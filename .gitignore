@@ -42,3 +42,11 @@ next-env.d.ts
 
 # local verification screenshots
 /screenshots
+
+# source PDFs/logos for aftermarket brand catalogs (uploaded to Supabase
+# Storage via scripts/upload_pdfs.mjs, not committed — same reasoning as
+# the D:\catalog vehicle PDFs)
+/after market
+
+.vercel
+.env*

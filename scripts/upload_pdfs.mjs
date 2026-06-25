@@ -17,6 +17,9 @@ dotenv.config({ path: path.join(__dirname, "..", ".env.local") });
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const CATALOG_DIR = "D:\\catalog";
+// Manifest entries with sourceDir: "after market" resolve against this folder
+// instead of CATALOG_DIR (aftermarket brand catalogues, not vehicle-specific).
+const AFTER_MARKET_DIR = "D:\\raznova\\after market";
 const BUCKET = "raznova-catalogs";
 
 if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
@@ -34,7 +37,8 @@ const manifest = JSON.parse(
 let totalBytes = 0;
 
 for (const [i, entry] of manifest.entries()) {
-  const localPath = path.join(CATALOG_DIR, entry.sourcePath);
+  const baseDir = entry.sourceDir === "after market" ? AFTER_MARKET_DIR : CATALOG_DIR;
+  const localPath = path.join(baseDir, entry.sourcePath);
   if (!fs.existsSync(localPath)) {
     console.warn(`SKIP (not found): ${localPath}`);
     continue;
@@ -43,7 +47,9 @@ for (const [i, entry] of manifest.entries()) {
   const stat = fs.statSync(localPath);
   totalBytes += stat.size;
 
-  const storagePath = `${entry.vehicleType}/${entry.brand}/${entry.sourcePath}`;
+  // Storage path scheme: <catalog_type>/<brand>/<filename>
+  // e.g. vehicle/Bajaj/CT100...pdf, brand/Varroc/Varroc 2 Wheeler...pdf
+  const storagePath = `${entry.catalogType}/${entry.brand}/${entry.sourcePath}`;
   const fileBuffer = fs.readFileSync(localPath);
 
   const { error: uploadError } = await supabase.storage
@@ -67,9 +73,10 @@ for (const [i, entry] of manifest.entries()) {
     .from("raznova_catalogs")
     .upsert(
       {
-        vehicle_type: entry.vehicleType,
+        catalog_type: entry.catalogType,
+        vehicle_type: entry.vehicleType ?? null,
         brand: entry.brand,
-        model: entry.model,
+        model: entry.model ?? null,
         title: entry.title,
         pdf_url,
         sort_order: i,

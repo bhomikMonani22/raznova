@@ -9,7 +9,11 @@ import CatalogList from "@/components/CatalogList";
 export function generateStaticParams() {
   const all = catalogs as CatalogEntry[];
   return Array.from(
-    new Set(all.map((c) => `${c.vehicle_type}__${c.brand}`))
+    new Set(
+      all
+        .filter((c) => c.catalog_type === "vehicle")
+        .map((c) => `${c.vehicle_type}__${c.brand}`)
+    )
   ).map((key) => {
     const [vehicleType, brand] = key.split("__");
     return { vehicleType, brand };
@@ -27,17 +31,17 @@ export default async function BrandCatalogPage({
 
   const brandName = decodeURIComponent(brand);
   const entries = (catalogs as CatalogEntry[]).filter(
-    (c) => c.vehicle_type === vehicleType && c.brand === brandName
+    (c) => c.catalog_type === "vehicle" && c.vehicle_type === vehicleType && c.brand === brandName
   );
 
   if (entries.length === 0) notFound();
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12">
-      <Link href={`/${locale}`} className="text-sm font-medium text-orange-600 hover:underline">
+      <Link href={`/${locale}`} className="text-sm font-medium text-[var(--accent)] hover:underline">
         ← {t.catalog.backToBrands}
       </Link>
-      <h1 className="mt-4 text-2xl font-bold text-slate-900">
+      <h1 className="font-display mt-4 text-display-2 font-bold text-[var(--ink)]">
         {brandName} — {t.catalog.title}
       </h1>
       <div className="mt-6">

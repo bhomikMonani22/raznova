@@ -1,8 +1,9 @@
 export type CatalogEntry = {
   id: number;
-  vehicle_type: "motorcycle" | "three_wheeler";
+  catalog_type: "vehicle" | "brand";
+  vehicle_type: "motorcycle" | "three_wheeler" | null;
   brand: string;
-  model: string;
+  model: string | null;
   title: string;
   pdf_url: string;
   sort_order: number;

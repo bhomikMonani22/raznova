@@ -54,21 +54,21 @@ export default function QuoteForm({ locale, t }: { locale: Locale; t: Translatio
           placeholder={t.quote.name}
           value={form.name}
           onChange={(e) => update("name", e.target.value)}
-          className="rounded-md border border-slate-300 px-3 py-2"
+          className="rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-[var(--ink)]"
         />
         <input
           required
           placeholder={t.quote.company}
           value={form.company}
           onChange={(e) => update("company", e.target.value)}
-          className="rounded-md border border-slate-300 px-3 py-2"
+          className="rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-[var(--ink)]"
         />
         <input
           required
           placeholder={t.quote.country}
           value={form.country}
           onChange={(e) => update("country", e.target.value)}
-          className="rounded-md border border-slate-300 px-3 py-2"
+          className="rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-[var(--ink)]"
         />
         <div className="grid gap-4 sm:grid-cols-2">
           <input
@@ -76,13 +76,13 @@ export default function QuoteForm({ locale, t }: { locale: Locale; t: Translatio
             placeholder={t.quote.email}
             value={form.email}
             onChange={(e) => update("email", e.target.value)}
-            className="rounded-md border border-slate-300 px-3 py-2"
+            className="rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-[var(--ink)]"
           />
           <input
             placeholder={t.quote.whatsapp}
             value={form.whatsapp}
             onChange={(e) => update("whatsapp", e.target.value)}
-            className="rounded-md border border-slate-300 px-3 py-2"
+            className="rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-[var(--ink)]"
           />
         </div>
         <textarea
@@ -91,32 +91,32 @@ export default function QuoteForm({ locale, t }: { locale: Locale; t: Translatio
           placeholder={t.quote.partsListPlaceholder}
           value={form.parts_list}
           onChange={(e) => update("parts_list", e.target.value)}
-          className="rounded-md border border-slate-300 px-3 py-2"
+          className="rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-[var(--ink)]"
         />
         <button
           type="submit"
           disabled={status === "submitting"}
-          className="rounded-md bg-orange-600 px-6 py-3 font-semibold text-white hover:bg-orange-700 disabled:opacity-60"
+          className="rounded-[var(--radius-md)] bg-[var(--accent)] px-6 py-3 font-semibold text-white transition-transform duration-200 hover:scale-[1.02] disabled:opacity-60 disabled:hover:scale-100"
         >
           {status === "submitting" ? t.quote.submitting : t.quote.submit}
         </button>
         {status === "error" && <p className="text-sm text-red-600">{t.quote.error}</p>}
       </form>
 
-      <div className="mt-8 border-t border-slate-200 pt-6">
-        <p className="text-sm font-medium text-slate-600">{t.quote.orContact}</p>
+      <div className="mt-8 border-t border-[var(--line)] pt-6">
+        <p className="text-sm font-medium text-[var(--muted)]">{t.quote.orContact}</p>
         <div className="mt-3 flex flex-wrap gap-3">
           <a
             href={whatsappLink("Hi Raznova, I'd like a quote.")}
             target="_blank"
             rel="noopener noreferrer"
-            className="rounded-md border border-green-600 px-4 py-2 text-sm font-semibold text-green-700 hover:bg-green-50"
+            className="rounded-[var(--radius-md)] border border-green-600 px-4 py-2 text-sm font-semibold text-green-700 hover:bg-green-50"
           >
             {t.quote.whatsappButton}
           </a>
           <a
             href={mailtoLink("Quote Request")}
-            className="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+            className="rounded-[var(--radius-md)] border border-[var(--line)] px-4 py-2 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--bg)]"
           >
             {t.quote.emailButton} ({CONTACT_EMAIL})
           </a>

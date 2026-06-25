@@ -29,7 +29,7 @@ fs.mkdirSync(dataDir, { recursive: true });
 
 const { data: catalogs, error: catalogsError } = await supabase
   .from("raznova_catalogs")
-  .select("id, vehicle_type, brand, model, title, pdf_url, sort_order")
+  .select("id, catalog_type, vehicle_type, brand, model, title, pdf_url, sort_order")
   .order("sort_order");
 if (catalogsError) throw catalogsError;
 
