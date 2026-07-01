@@ -101,11 +101,11 @@ export default function Showcase({
           initial="hidden"
           animate="visible"
           variants={staggerContainer(0.06)}
-          className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-6"
+          className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4"
         >
           {parts.map((part) => (
             <motion.div key={part.id} variants={fadeUp}>
-              <PartCard part={part} locale={locale} t={t} />
+              <PartCard part={part} locale={locale} />
             </motion.div>
           ))}
         </motion.div>
