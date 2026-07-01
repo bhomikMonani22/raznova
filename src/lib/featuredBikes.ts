@@ -7,13 +7,13 @@ export type FeaturedBike = {
 };
 
 export const FEATURED_BIKES: FeaturedBike[] = [
-  { brand: "TVS", model: "Raider 125" },
-  { brand: "TVS", model: "Apache RTR 160 4V", catalogModel: "Apache RTR 160" },
-  { brand: "TVS", model: "Apache RTR 200 4V", catalogModel: "Apache RTR 200" },
-  { brand: "Bajaj", model: "Boxer CT100", catalogModel: "Boxer CT100" },
-  { brand: "Bajaj", model: "Boxer CT125" },
-  { brand: "Bajaj", model: "Pulsar NS200" },
-  { brand: "Hero", model: "Hunk 125R" },
-  { brand: "Hero", model: "Hunk 160" },
-  { brand: "Hero", model: "HF 100", catalogModel: "HF 100" },
+  { brand: "TVS",   model: "Apache RTR 160",        catalogModel: "Apache RTR 160" },
+  { brand: "TVS",   model: "Star HLX 125" },
+  { brand: "TVS",   model: "HLX 150" },
+  { brand: "Bajaj", model: "Boxer (CT100 / BM150)", catalogModel: "Boxer CT100" },
+  { brand: "Bajaj", model: "Pulsar 150/180",         catalogModel: "Pulsar 150 UG4" },
+  { brand: "Bajaj", model: "Discover / Platina",     catalogModel: "Discover 100" },
+  { brand: "Hero",  model: "Hunk" },
+  { brand: "Hero",  model: "Eco Deluxe" },
+  { brand: "Hero",  model: "Splendor NXG" },
 ];
