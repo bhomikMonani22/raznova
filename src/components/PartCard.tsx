@@ -28,10 +28,7 @@ export default function PartCard({
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={part.image_url} alt={part.category} className="h-24 w-full object-contain" />
       <p className="mt-2 text-xs font-semibold uppercase text-[var(--accent-2)]">{part.category}</p>
-      <p className="mt-1 text-xs text-[var(--muted)]">
-        {t.showcase.fitmentRef}: {part.part_no}
-      </p>
-      <p className="mt-1 text-sm text-[var(--ink)]">{description}</p>
+      <p className="mt-1 text-sm text-[var(--ink)]">{part.brand} {part.model} {description}</p>
     </motion.div>
   );
 }

@@ -28,7 +28,6 @@ export type Translations = {
   showcase: {
     title: string;
     subtitle: string;
-    fitmentRef: string;
     viewCatalog: string;
   };
   fitmentStrip: {
@@ -135,7 +134,6 @@ export const TRANSLATIONS: Record<Locale, Translations> = {
     showcase: {
       title: "Featured Bikes & Fast-Moving Parts",
       subtitle: "A curated look at our most-requested models and parts.",
-      fitmentRef: "Fitment ref.",
       viewCatalog: "View full catalogue",
     },
     fitmentStrip: {
@@ -242,7 +240,6 @@ export const TRANSLATIONS: Record<Locale, Translations> = {
     showcase: {
       title: "Motos Destacadas y Repuestos de Alta Rotación",
       subtitle: "Una selección de nuestros modelos y repuestos más solicitados.",
-      fitmentRef: "Ref. de compatibilidad",
       viewCatalog: "Ver catálogo completo",
     },
     fitmentStrip: {
@@ -349,7 +346,6 @@ export const TRANSLATIONS: Record<Locale, Translations> = {
     showcase: {
       title: "Featured Bikes & Fast-Moving Parts",
       subtitle: "A curated look at our most-requested models and parts.",
-      fitmentRef: "Fitment ref.",
       viewCatalog: "View full catalogue",
     },
     fitmentStrip: {
