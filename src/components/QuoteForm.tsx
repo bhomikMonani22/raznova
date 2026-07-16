@@ -35,6 +35,31 @@ export default function QuoteForm({ locale, t }: { locale: Locale; t: Translatio
       parts_list: form.parts_list.slice(0, 4000),
       locale,
     });
+
+    if (!error) {
+      // Fire-and-forget email notification to the business inbox via
+      // FormSubmit (browser-only relay; activated once for CONTACT_EMAIL).
+      // The Supabase row above is the source of truth — a failed
+      // notification never blocks the submission.
+      fetch(`https://formsubmit.co/ajax/${CONTACT_EMAIL}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({
+          _subject: `New quote request — ${form.name.slice(0, 100)} (${form.country.slice(0, 60)})`,
+          _template: "box",
+          _captcha: "false",
+          ...(form.email.includes("@") ? { _replyto: form.email.slice(0, 200) } : {}),
+          Name: form.name.slice(0, 200),
+          Company: form.company.slice(0, 200),
+          Country: form.country.slice(0, 100),
+          Email: form.email.slice(0, 200),
+          WhatsApp: form.whatsapp.slice(0, 50),
+          Locale: locale,
+          "Parts list": form.parts_list.slice(0, 4000),
+        }),
+      }).catch(() => {});
+    }
+
     setStatus(error ? "error" : "success");
   }
 
