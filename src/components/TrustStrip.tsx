@@ -5,6 +5,10 @@ import { animate, motion, useInView, useReducedMotion } from "framer-motion";
 import type { Translations } from "@/i18n/translations";
 import { fadeUp, staggerContainer } from "@/lib/motion";
 import { IEC, GSTIN } from "@/lib/config";
+import { getOemLogo } from "@/lib/brandLogos";
+
+// Fitment-reference brands shown as logo chips (text chip when no logo file).
+const FITMENT_BRANDS = ["Hero", "Bajaj", "TVS", "Honda"] as const;
 
 /** Counts 0 → target once when scrolled into view, 1.2s ease-out,
  * tabular-nums. Reduced motion jumps straight to the final value. */
@@ -33,13 +37,47 @@ function CountUp({ target, suffix }: { target: number; suffix?: string }) {
   );
 }
 
+/** OEM fitment logos on small light chips (logos have opaque light
+ * backgrounds, so a cream chip is the uniform treatment). */
+function FitmentChips({ label }: { label: string }) {
+  return (
+    <span className="mt-1.5 flex flex-wrap items-center gap-1.5">
+      <span className="sr-only">{label}</span>
+      {FITMENT_BRANDS.map((brand) => {
+        const logo = getOemLogo(brand);
+        return logo ? (
+          <span
+            key={brand}
+            className="flex h-6 items-center justify-center rounded-[6px] bg-[var(--cream)] px-2 opacity-85"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={logo}
+              alt={`${brand} (fitment reference)`}
+              loading="lazy"
+              className="h-3.5 w-auto max-w-16 object-contain"
+            />
+          </span>
+        ) : (
+          <span
+            key={brand}
+            className="flex h-6 items-center rounded-[6px] bg-[var(--cream)] px-2 text-[10px] font-bold tracking-wide text-[var(--cream-ink)] opacity-85"
+          >
+            {brand.toUpperCase()}
+          </span>
+        );
+      })}
+    </span>
+  );
+}
+
 export default function TrustStrip({ t }: { t: Translations }) {
   const cells = [
     {
       key: "brands",
       value: <CountUp target={4} suffix="+" />,
       label: t.trust.brandsLabel,
-      sub: t.trust.brandsSub,
+      sub: <FitmentChips label={t.trust.brandsSub} />,
       mono: false,
     },
     {
@@ -92,7 +130,7 @@ export default function TrustStrip({ t }: { t: Translations }) {
             >
               {cell.value}
             </p>
-            {cell.sub && <p className="text-xs text-[var(--muted)]">{cell.sub}</p>}
+            {cell.sub}
           </motion.div>
         ))}
       </motion.div>

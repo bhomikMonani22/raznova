@@ -48,14 +48,14 @@ export default function Header({
   const threeWheelerBrands = uniqueVehicleBrands(catalogs, "three_wheeler");
   const partBrands = uniquePartBrands(catalogs);
 
-  const solid = scrolled || mobileOpen;
-
   return (
     <header
       className={`sticky top-0 z-50 h-16 transition-all duration-300 ${
-        solid
-          ? "glass-panel border-x-0 border-t-0 border-b border-[var(--line)]"
-          : "border-b border-transparent bg-transparent"
+        mobileOpen
+          ? "border-b border-[var(--line)] bg-[#0d0d0f]"
+          : scrolled
+            ? "glass-panel border-x-0 border-t-0 border-b border-[var(--line)]"
+            : "border-b border-transparent bg-transparent"
       }`}
     >
       <div className="mx-auto flex h-full max-w-6xl items-center justify-between px-5">
@@ -92,7 +92,7 @@ export default function Header({
               {t.nav.motorcycle}
             </button>
             {open === "motorcycle" && motorcycleBrands.length > 0 && (
-              <div className="glass-panel absolute left-0 top-full w-48 rounded-[var(--radius-md)] py-2 shadow-[var(--shadow-lift)]">
+              <div className="absolute left-0 top-full w-48 rounded-[var(--radius-md)] border border-[var(--line)] bg-[#101013] py-2 shadow-[var(--shadow-lift)]">
                 {motorcycleBrands.map((brand) => (
                   <Link
                     key={brand}
@@ -116,7 +116,7 @@ export default function Header({
                 {t.nav.threeWheeler}
               </button>
               {open === "three_wheeler" && (
-                <div className="glass-panel absolute left-0 top-full w-48 rounded-[var(--radius-md)] py-2 shadow-[var(--shadow-lift)]">
+                <div className="absolute left-0 top-full w-48 rounded-[var(--radius-md)] border border-[var(--line)] bg-[#101013] py-2 shadow-[var(--shadow-lift)]">
                   {threeWheelerBrands.map((brand) => (
                     <Link
                       key={brand}
@@ -141,7 +141,7 @@ export default function Header({
                 {t.nav.partBrands}
               </button>
               {open === "part_brands" && (
-                <div className="glass-panel absolute left-0 top-full w-48 rounded-[var(--radius-md)] py-2 shadow-[var(--shadow-lift)]">
+                <div className="absolute left-0 top-full w-48 rounded-[var(--radius-md)] border border-[var(--line)] bg-[#101013] py-2 shadow-[var(--shadow-lift)]">
                   {partBrands.map((brand) => (
                     <Link
                       key={brand}
@@ -179,7 +179,7 @@ export default function Header({
       </div>
 
       {mobileOpen && (
-        <div className="glass-panel max-h-[calc(100vh-4rem)] overflow-y-auto border-x-0 border-b border-t border-[var(--line)] px-5 py-4 md:hidden">
+        <div className="max-h-[calc(100vh-4rem)] overflow-y-auto border-b border-t border-[var(--line)] bg-[#0d0d0f] px-5 py-4 shadow-[var(--shadow-lift)] md:hidden">
           <Link
             href={`/${locale}`}
             onClick={() => setMobileOpen(false)}
