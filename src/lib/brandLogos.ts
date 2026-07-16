@@ -21,6 +21,7 @@ const OEM_LOGOS: Record<string, string> = {
   Hero: "/assets/logos/oem/hero.png",
   Bajaj: "/assets/logos/oem/bajaj.png",
   TVS: "/assets/logos/oem/tvs.png",
+  Honda: "/assets/logos/oem/honda.png",
 };
 
 const BRAND_LOGOS: Record<string, string> = {
