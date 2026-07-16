@@ -18,9 +18,18 @@ export default function Footer({ locale, t }: { locale: Locale; t: Translations 
       <div className="mx-auto max-w-6xl px-5 py-12 text-sm text-[var(--muted)]">
         <div className="flex flex-col gap-8 md:flex-row md:justify-between">
           <div>
-            <p className="font-display text-lg font-bold text-[var(--ink)]">
+            <p className="font-display flex items-center gap-2.5 text-lg font-bold text-[var(--ink)]">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/brand/raznova-mark-96.png"
+                alt=""
+                width={26}
+                height={26}
+                loading="lazy"
+                className="h-[26px] w-[26px]"
+              />
               {BRAND_NAME}
-              <span className="text-[var(--accent)]">.</span>
+              <span className="-ml-2.5 text-[var(--accent)]">.</span>
             </p>
             <p className="mt-2 max-w-sm leading-relaxed">{t.footer.regions}</p>
           </div>

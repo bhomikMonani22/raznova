@@ -61,10 +61,18 @@ export default function Header({
       <div className="mx-auto flex h-full max-w-6xl items-center justify-between px-5">
         <Link
           href={`/${locale}`}
-          className="font-display text-xl font-bold tracking-tight text-[var(--ink)]"
+          className="font-display flex items-center gap-2.5 text-xl font-bold tracking-tight text-[var(--ink)]"
         >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/brand/raznova-mark-96.png"
+            alt=""
+            width={30}
+            height={30}
+            className="h-[30px] w-[30px]"
+          />
           {BRAND_NAME}
-          <span className="text-[var(--accent)]">.</span>
+          <span className="-ml-2.5 text-[var(--accent)]">.</span>
         </Link>
 
         <nav className="hidden items-center gap-7 md:flex">

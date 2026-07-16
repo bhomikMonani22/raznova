@@ -41,14 +41,24 @@ export default function IntroCurtain() {
       }}
     >
       <span
-        className="font-display text-3xl font-bold tracking-tight text-[var(--ink)]"
+        className="flex flex-col items-center gap-4"
         style={{
           opacity: lifting ? 0 : undefined,
           transition: "opacity 0.3s ease",
           animation: "intro-logo 0.4s ease-out both",
         }}
       >
-        Raznova<span className="text-[var(--accent)]">.</span>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/brand/raznova-mark.png"
+          alt=""
+          width={72}
+          height={72}
+          className="h-[72px] w-[72px]"
+        />
+        <span className="font-display text-3xl font-bold tracking-tight text-[var(--ink)]">
+          Raznova<span className="text-[var(--accent)]">.</span>
+        </span>
       </span>
       <style>{`@keyframes intro-logo { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }`}</style>
     </div>

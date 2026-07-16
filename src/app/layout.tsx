@@ -25,9 +25,23 @@ const body = Inter({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://raznova.in"),
   title: "Raznova Exports — Two-Wheeler Spare Parts, Exported Worldwide",
   description:
     "Raznova Exports supplies genuine and OEM-grade two-wheeler spare parts from Pune, India to Latin America and Africa. IEC HFRPM4730J · GSTIN 27HFRPM4730J1ZT.",
+  openGraph: {
+    title: "Raznova Exports — Two-Wheeler Spare Parts Export",
+    description:
+      "Genuine and OEM-grade two-wheeler spare parts from Pune, India. IEC HFRPM4730J · GSTIN 27HFRPM4730J1ZT.",
+    url: "https://raznova.in",
+    siteName: "Raznova Exports",
+    images: [{ url: "/brand/og.jpg", width: 1200, height: 630 }],
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    images: ["/brand/og.jpg"],
+  },
 };
 
 // Runs synchronously before body paint: decides whether the once-per-session
