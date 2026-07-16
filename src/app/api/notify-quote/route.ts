@@ -34,7 +34,13 @@ export async function POST(req: NextRequest) {
   try {
     const res = await fetch(`https://formsubmit.co/ajax/${CONTACT_EMAIL}`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      // FormSubmit rejects requests without a web origin.
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        Origin: "https://raznova.in",
+        Referer: "https://raznova.in/",
+      },
       body: JSON.stringify({
         _subject: `New quote request — ${field(record.name)} (${field(record.country)})`,
         _template: "box",
@@ -51,10 +57,15 @@ export async function POST(req: NextRequest) {
           "https://supabase.com/dashboard/project/lsnudhxlyypugunlgwxi (Table Editor -> raznova_quote_requests)",
       }),
     });
-    const out = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      console.error("quote notification relay failed:", res.status, out);
-      return NextResponse.json({ ok: false, error: "relay failed" }, { status: 502 });
+    const out: { success?: string; message?: string } = await res.json().catch(() => ({}));
+    if (!res.ok || out.success === "false") {
+      // Pre-activation, FormSubmit responds success:"false" while it sends
+      // the one-time activation email — not a failure worth retrying.
+      console.error("quote notification relay response:", res.status, out);
+      return NextResponse.json(
+        { ok: false, relay: out.message ?? "relay failed" },
+        { status: res.ok ? 202 : 502 }
+      );
     }
   } catch (e) {
     console.error("quote notification relay failed:", e);
