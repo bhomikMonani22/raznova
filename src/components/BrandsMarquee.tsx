@@ -8,12 +8,19 @@ import { fadeUp } from "@/lib/motion";
 function LogoChip({ brand }: { brand: string }) {
   const logo = getBrandLogo(brand);
   return (
-    <div className="mx-6 flex h-14 w-32 shrink-0 items-center justify-center">
+    <div className="mx-4 flex h-16 w-36 shrink-0 items-center justify-center">
       {logo ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={logo} alt={`${brand} logo`} className="h-10 w-auto max-w-full object-contain" />
+        <div className="flex h-14 w-full items-center justify-center rounded-[10px] bg-[var(--cream)] px-4 opacity-85 transition-opacity duration-300 hover:opacity-100">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={logo}
+            alt={`${brand} logo`}
+            loading="lazy"
+            className="h-8 w-auto max-w-full object-contain"
+          />
+        </div>
       ) : (
-        <span className="font-display rounded-[var(--radius-md)] border border-[var(--line)] px-3 py-2 text-sm font-bold text-[var(--accent)]">
+        <span className="font-display flex h-14 w-full items-center justify-center rounded-[10px] border border-[var(--line)] text-sm font-bold text-[var(--muted)]">
           {brand}
         </span>
       )}
@@ -31,13 +38,16 @@ export default function BrandsMarquee({ t }: { t: Translations }) {
       whileInView="visible"
       viewport={{ once: true }}
       variants={fadeUp}
-      className="px-4 py-14"
+      className="border-t border-[var(--line)] px-5 py-16"
     >
       <div className="mx-auto max-w-6xl">
-        <h2 className="font-display text-center text-display-3 font-bold text-[var(--ink)]">
+        <p className="text-center text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--muted)]">
           {t.brandsMarquee.title}
-        </h2>
-        <div className="marquee-viewport mt-8 overflow-hidden">
+        </p>
+        <div className="marquee-viewport relative mt-8 overflow-hidden">
+          {/* Edge fades keep the loop cinematic instead of clipped. */}
+          <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-16 bg-gradient-to-r from-[var(--bg)] to-transparent" />
+          <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-16 bg-gradient-to-l from-[var(--bg)] to-transparent" />
           <div className="marquee-track">
             {brands.map((brand, i) => (
               <LogoChip key={`${brand}-${i}`} brand={brand} />

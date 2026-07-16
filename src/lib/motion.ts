@@ -3,12 +3,16 @@
 // handling lives in one place instead of being re-implemented per component.
 import type { Variants } from "framer-motion";
 
-export const REVEAL_EASE = [0.22, 1, 0.36, 1] as const;
+/** Global reveal ease — cubic-bezier(0.21, 0.47, 0.32, 0.98). */
+export const REVEAL_EASE = [0.21, 0.47, 0.32, 0.98] as const;
 
-/** Fade + translateY scroll-reveal. Pass to <motion.div variants={fadeUp}>
+/** Clip-wipe ease — cubic-bezier(0.65, 0, 0.35, 1) for image reveals. */
+export const WIPE_EASE = [0.65, 0, 0.35, 1] as const;
+
+/** Fade + 24px rise scroll-reveal. Pass to <motion.div variants={fadeUp}>
  * with initial="hidden" whileInView="visible" viewport={{ once: true }}. */
 export const fadeUp: Variants = {
-  hidden: { opacity: 0, y: 20 },
+  hidden: { opacity: 0, y: 24 },
   visible: {
     opacity: 1,
     y: 0,
@@ -16,10 +20,20 @@ export const fadeUp: Variants = {
   },
 };
 
+/** Clip-path wipe reveal for imagery: inset 100% → 0 over 0.7s. */
+export const clipWipe: Variants = {
+  hidden: { clipPath: "inset(0 0 100% 0)", opacity: 0.6 },
+  visible: {
+    clipPath: "inset(0 0 0% 0)",
+    opacity: 1,
+    transition: { duration: 0.7, ease: WIPE_EASE },
+  },
+};
+
 /** Container variant for staggered grids/card lists. Wrap children in
  * <motion.div variants={fadeUp}> and the parent in this with
  * staggerChildren set. */
-export function staggerContainer(staggerDelay = 0.08): Variants {
+export function staggerContainer(staggerDelay = 0.1): Variants {
   return {
     hidden: {},
     visible: {
@@ -28,12 +42,11 @@ export function staggerContainer(staggerDelay = 0.08): Variants {
   };
 }
 
-/** Card hover lift: -4px translateY + shadow increase, 250ms. */
+/** Card hover lift: -4px translateY, 250ms, transform-only. */
 export const cardHover = {
-  rest: { y: 0, boxShadow: "var(--shadow-soft)" },
+  rest: { y: 0 },
   hover: {
     y: -4,
-    boxShadow: "var(--shadow-lift)",
     transition: { duration: 0.25, ease: REVEAL_EASE },
   },
 };

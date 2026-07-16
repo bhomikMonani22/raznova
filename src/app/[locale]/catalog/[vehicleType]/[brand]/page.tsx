@@ -37,14 +37,17 @@ export default async function BrandCatalogPage({
   if (entries.length === 0) notFound();
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-12">
-      <Link href={`/${locale}`} className="text-sm font-medium text-[var(--accent)] hover:underline">
+    <div className="mx-auto max-w-6xl px-5 py-14">
+      <Link
+        href={`/${locale}`}
+        className="text-sm font-medium text-[var(--accent)] underline-offset-4 hover:underline"
+      >
         ← {t.catalog.backToBrands}
       </Link>
-      <h1 className="font-display mt-4 text-display-2 font-bold text-[var(--ink)]">
+      <h1 className="font-display mt-5 text-display-2 font-bold text-[var(--ink)]">
         {brandName} — {t.catalog.title}
       </h1>
-      <div className="mt-6">
+      <div className="mt-8">
         <CatalogList entries={entries} t={t} />
       </div>
     </div>

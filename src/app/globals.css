@@ -4,23 +4,36 @@
    Design tokens. Keep semantic names stable — components reference these
    custom properties (directly or via the @theme mappings below) rather
    than hardcoded colors, so retheming only touches this block.
+
+   DNA: near-black base, warm off-white text, Raznova purple as the only
+   accent (used sparingly), 1px low-alpha white borders for structure,
+   one cream light-contrast section mid-page.
    --------------------------------------------------------------------- */
 :root {
-  --bg: #f8f5f0;
-  --surface: #ffffff;
-  --ink: #1a1815;
-  --muted: #756f66;
-  --line: #e7e1d7;
-  --accent: #18344a;
-  --accent-2: #c8a45d;
+  --bg: #0a0a0b;
+  --surface: #121214;
+  --surface-2: #17171a;
+  --ink: #f5f1ea;
+  --muted: #a8a29a;
+  --line: rgba(255, 255, 255, 0.09);
+  --line-strong: rgba(255, 255, 255, 0.14);
+  --accent: #9781db;
+  --accent-ink: #0a0a0b;
+  --accent-soft: rgba(151, 129, 219, 0.14);
+  --cream: #fdf8f0;
+  --cream-ink: #17130d;
+  --cream-muted: #6d655a;
+  --cream-line: rgba(23, 19, 13, 0.12);
+  --whatsapp: #22c05c;
 
-  --shadow-soft: 0 8px 30px rgba(26, 24, 21, 0.06);
-  --shadow-lift: 0 16px 40px rgba(26, 24, 21, 0.12);
+  --shadow-soft: 0 8px 30px rgba(0, 0, 0, 0.35);
+  --shadow-lift: 0 16px 48px rgba(0, 0, 0, 0.5);
 
   --radius-md: 12px;
   --radius-lg: 16px;
 
-  --ease-reveal: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-reveal: cubic-bezier(0.21, 0.47, 0.32, 0.98);
+  --ease-wipe: cubic-bezier(0.65, 0, 0.35, 1);
 }
 
 @theme inline {
@@ -30,61 +43,233 @@
   --color-muted: var(--muted);
   --color-line: var(--line);
   --color-accent: var(--accent);
-  --color-accent-2: var(--accent-2);
+  --color-cream: var(--cream);
   --font-display: var(--font-display);
   --font-body: var(--font-body);
 }
 
+html {
+  background: var(--bg);
+  color-scheme: dark;
+}
+
 body {
   font-family: var(--font-body), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  line-height: 1.6;
+  font-size: 15.5px;
+  line-height: 1.65;
 }
 
 .font-display {
   font-family: var(--font-display), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  letter-spacing: -0.02em;
+}
+
+/* System mono — credentials (IEC / GSTIN) render in mono everywhere.
+   Zero font-payload cost. */
+.font-mono-credentials {
+  font-family: ui-monospace, "SFMono-Regular", "Cascadia Mono", Menlo, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* System serif italic — institutional pull-quotes. Zero font-payload cost. */
+.font-serif-quote {
+  font-family: Georgia, "Times New Roman", serif;
+  font-style: italic;
+}
+
+/* System sans — used on the hero subtitle (the page's LCP element) so its
+   paint never waits on a webfont download. Metrically close to Inter. */
+.font-system {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* Uppercase micro-label for section eyebrows. */
+.eyebrow {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--accent);
 }
 
 /* ---------------------------------------------------------------------
-   Headline scale. Use via utility classes on heading elements.
-   h1 ~3.5rem / h2 ~2.25rem / h3 ~1.5rem / body ~1rem.
+   Headline scale. h1 clamps 2.5→4.5rem; display font, tight tracking.
    --------------------------------------------------------------------- */
 .text-display-1 {
-  font-size: 2.25rem;
-  line-height: 1.1;
-  letter-spacing: -0.01em;
-}
-@media (min-width: 768px) {
-  .text-display-1 {
-    font-size: 3.5rem;
-  }
+  font-size: clamp(2.375rem, 6.5vw, 4.25rem);
+  line-height: 1.04;
+  letter-spacing: -0.02em;
 }
 
 .text-display-2 {
-  font-size: 1.75rem;
-  line-height: 1.15;
-  letter-spacing: -0.01em;
-}
-@media (min-width: 768px) {
-  .text-display-2 {
-    font-size: 2.25rem;
-  }
+  font-size: clamp(1.75rem, 4vw, 2.75rem);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
 }
 
 .text-display-3 {
-  font-size: 1.25rem;
+  font-size: clamp(1.15rem, 2vw, 1.4rem);
   line-height: 1.25;
-}
-@media (min-width: 768px) {
-  .text-display-3 {
-    font-size: 1.5rem;
-  }
+  letter-spacing: -0.01em;
 }
 
 .card-surface {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-soft);
+}
+
+/* Dark glass panel — category cards, header-on-scroll. */
+.glass-panel {
+  background: rgba(18, 18, 20, 0.72);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--line);
+}
+
+/* ---------------------------------------------------------------------
+   Hero Ken Burns: slow scale 1.0 → 1.06 over 20s, transform-only.
+   Applied to the <Image> wrapper; removed under reduced motion.
+   --------------------------------------------------------------------- */
+@keyframes ken-burns {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.06);
+  }
+}
+
+.ken-burns {
+  animation: ken-burns 20s linear forwards;
+  will-change: transform;
+}
+
+/* ---------------------------------------------------------------------
+   Hero entrance choreography — pure CSS so the text paints at first
+   render instead of waiting for hydration (keeps LCP < 2.5s on mobile).
+   Per-element delay via --rise-delay inline custom property.
+   --------------------------------------------------------------------- */
+@keyframes hero-rise {
+  from {
+    opacity: 0;
+    transform: translateY(22px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.hero-rise {
+  opacity: 0;
+  animation: hero-rise 0.55s var(--ease-reveal) forwards;
+  animation-delay: var(--rise-delay, 0s);
+}
+
+/* Transform-only variant for the hero's large text blocks: painted (and
+   LCP-eligible) from the first frame, still rises into place. */
+@keyframes hero-rise-solid {
+  from {
+    transform: translateY(22px);
+  }
+  to {
+    transform: none;
+  }
+}
+
+.hero-rise-solid {
+  animation: hero-rise-solid 0.55s var(--ease-reveal) backwards;
+  animation-delay: var(--rise-delay, 0s);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-rise,
+  .hero-rise-solid {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+/* Scroll-indicator: thin line pulsing downward at hero bottom center. */
+@keyframes scroll-hint {
+  0% {
+    transform: scaleY(0);
+    transform-origin: top;
+  }
+  45% {
+    transform: scaleY(1);
+    transform-origin: top;
+  }
+  55% {
+    transform: scaleY(1);
+    transform-origin: bottom;
+  }
+  100% {
+    transform: scaleY(0);
+    transform-origin: bottom;
+  }
+}
+
+.scroll-hint-line {
+  animation: scroll-hint 2.2s var(--ease-wipe) infinite;
+}
+
+/* Subtle glow pulse on the primary CTA every 6s — purple, the signature. */
+@keyframes cta-glow {
+  0%,
+  86%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(151, 129, 219, 0);
+  }
+  92% {
+    box-shadow: 0 0 34px 5px rgba(151, 129, 219, 0.4);
+  }
+}
+
+.cta-glow {
+  animation: cta-glow 6s ease-in-out infinite;
+}
+
+/* ---------------------------------------------------------------------
+   Contact finale: dot-matrix background drifting very slowly.
+   Background layer is transform-animated only.
+   --------------------------------------------------------------------- */
+.dot-matrix {
+  background-image: radial-gradient(rgba(245, 241, 234, 0.13) 1px, transparent 1.5px);
+  background-size: 28px 28px;
+}
+
+@keyframes dot-drift {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-28px, -28px, 0);
+  }
+}
+
+.dot-drift {
+  animation: dot-drift 24s linear infinite;
+}
+
+/* ---------------------------------------------------------------------
+   Intro curtain (runs once per session). An inline head script sets
+   .intro-pending on <html> before paint when sessionStorage lacks the
+   flag; the overlay is only visible in that state, so returning visitors
+   never see a flash. IntroCurtain (client) plays the reveal and clears
+   the class. Reduced motion: class is never set (script checks).
+   --------------------------------------------------------------------- */
+#intro-curtain {
+  display: none;
+}
+
+html.intro-pending #intro-curtain {
+  display: flex;
+}
+
+html.intro-pending body {
+  overflow: hidden;
 }
 
 /* ---------------------------------------------------------------------
@@ -110,12 +295,42 @@ body {
   }
 }
 
+/* Magnetic CTA wrapper: springy settle via CSS transition (JS only sets
+   the transform), instant 0.97 press feedback. */
+.magnetic {
+  transition: transform 0.18s ease-out;
+  will-change: transform;
+}
+
+.magnetic:active {
+  scale: 0.97;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .magnetic:active {
+    scale: 1;
+  }
+}
+
+/* Category card border-trace: SVG rect stroke draws around the card on
+   hover. Dash values are set relative to a 100x100 non-scaling viewBox
+   via pathLength, so one rule fits every card size. */
+.trace-rect {
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  transition: stroke-dashoffset 0.6s var(--ease-wipe);
+}
+
+.group:hover .trace-rect,
+.group:focus-visible .trace-rect {
+  stroke-dashoffset: 0;
+}
+
 /* ---------------------------------------------------------------------
    Motion accessibility: any CSS-driven animation/transition collapses to
    near-instant when the user has reduced motion enabled. Components that
-   animate via JS (Framer Motion) must also check usePrefersReducedMotion
-   / useReducedMotion() and branch accordingly — this rule only covers
-   pure-CSS motion (e.g. the marquee above).
+   animate via JS (Framer Motion) must also check useReducedMotion() and
+   branch accordingly — this rule only covers pure-CSS motion.
    --------------------------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -127,7 +342,11 @@ body {
     scroll-behavior: auto !important;
   }
 
-  .marquee-track {
+  .marquee-track,
+  .ken-burns,
+  .scroll-hint-line,
+  .cta-glow,
+  .dot-drift {
     animation: none;
   }
 }

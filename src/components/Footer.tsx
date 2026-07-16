@@ -1,33 +1,67 @@
 import Link from "next/link";
 import type { Locale } from "@/i18n/locales";
 import type { Translations } from "@/i18n/translations";
-import { BRAND_NAME, CONTACT_EMAIL, whatsappLink, mailtoLink } from "@/lib/config";
+import {
+  BRAND_NAME,
+  CONTACT_EMAIL,
+  CONTACT_PHONE_DISPLAY,
+  IEC,
+  GSTIN,
+  whatsappLink,
+  mailtoLink,
+  telLink,
+} from "@/lib/config";
 
 export default function Footer({ locale, t }: { locale: Locale; t: Translations }) {
   return (
-    <footer className="mt-auto border-t border-[var(--line)] bg-[var(--surface)]">
-      <div className="mx-auto max-w-6xl px-4 py-10 text-sm text-[var(--muted)]">
-        <div className="flex flex-col gap-6 md:flex-row md:justify-between">
+    <footer className="mt-auto border-t border-[var(--line)] bg-[var(--bg)]">
+      <div className="mx-auto max-w-6xl px-5 py-12 text-sm text-[var(--muted)]">
+        <div className="flex flex-col gap-8 md:flex-row md:justify-between">
           <div>
-            <p className="font-display text-lg font-bold text-[var(--accent)]">{BRAND_NAME}</p>
-            <p className="mt-2 max-w-sm">{t.footer.regions}</p>
+            <p className="font-display text-lg font-bold text-[var(--ink)]">
+              {BRAND_NAME}
+              <span className="text-[var(--accent)]">.</span>
+            </p>
+            <p className="mt-2 max-w-sm leading-relaxed">{t.footer.regions}</p>
           </div>
-          <div className="flex flex-col gap-2">
-            <Link href={`/${locale}/quote`} className="font-medium text-[var(--accent)] hover:underline">
+          <div className="flex flex-col gap-2.5">
+            <Link
+              href={`/${locale}/quote`}
+              className="font-medium text-[var(--accent)] transition-colors hover:text-[var(--ink)]"
+            >
               {t.nav.requestQuote}
             </Link>
-            <a href={whatsappLink("Hi Raznova, I'd like a quote.")} className="hover:underline">
+            <a
+              href={whatsappLink("Hi Raznova, I'd like a quote.")}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="transition-colors hover:text-[var(--ink)]"
+            >
               {t.quote.whatsappButton}
             </a>
-            <a href={mailtoLink("Quote Request")} className="hover:underline">
+            <a href={mailtoLink("Quote Request")} className="transition-colors hover:text-[var(--ink)]">
               {CONTACT_EMAIL}
+            </a>
+            <a
+              href={telLink()}
+              className="transition-colors hover:text-[var(--ink)]"
+              style={{ fontVariantNumeric: "tabular-nums" }}
+            >
+              {CONTACT_PHONE_DISPLAY}
             </a>
           </div>
         </div>
-        <div className="mt-8 border-t border-[var(--line)] pt-6 text-xs text-[var(--muted)]">
-          <p>{t.footer.brandLine} {t.footer.gstin}.</p>
-          <p className="mt-1">{t.footer.disclaimer}</p>
-          <p className="mt-1">© {new Date().getFullYear()} {BRAND_NAME}. {t.footer.rights}</p>
+
+        {/* Credentials line — every page, mono, perfectly aligned. */}
+        <div className="mt-10 border-t border-[var(--line)] pt-6">
+          <p className="font-mono-credentials text-xs leading-6 text-[var(--muted)]">
+            Raznova Exports · A unit of Shrinath Ji Enterprises · IEC: {IEC} · GSTIN: {GSTIN} ·{" "}
+            {CONTACT_EMAIL} · {CONTACT_PHONE_DISPLAY} · Pune, India
+          </p>
+          <p className="mt-3 text-xs text-[var(--muted)]/80">{t.footer.disclaimer}</p>
+          <p className="mt-1 text-xs text-[var(--muted)]/80">
+            © {new Date().getFullYear()} {BRAND_NAME} Exports. {t.footer.rights}
+          </p>
         </div>
       </div>
     </footer>

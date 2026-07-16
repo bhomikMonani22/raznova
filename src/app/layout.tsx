@@ -1,35 +1,40 @@
 import type { Metadata } from "next";
-import { Outfit, Inter } from "next/font/google";
+import { Geist, Inter } from "next/font/google";
 import "./globals.css";
+import LenisProvider from "@/components/LenisProvider";
+import IntroCurtain from "@/components/IntroCurtain";
 
-// Design spec calls for Clash Display (600/700) + Satoshi (400/500/600),
-// both free Fontshare fonts that aren't on next/font/google and aren't
-// straightforward to self-host via @font-face in this environment (no
-// network access to fetch the font files at build time). Substituting the
-// closest next/font/google equivalents: Outfit (geometric, confident
-// display letterforms similar to Clash Display) for headings, and Inter
-// (humanist, highly legible UI/body grotesque similar to Satoshi) for body
-// copy. Swap these for the real Fontshare files later by replacing this
-// block with local @font-face declarations in globals.css.
-const display = Outfit({
+// Display: Geist (600/700, -2% tracking via .font-display) for confident,
+// institutional headlines. Body: Inter at 15-16px. Mono (credentials) and
+// serif (pull-quotes) use system stacks — zero extra font payload.
+// display: "optional" — fonts are preloaded and almost always ready at first
+// paint; when they're not, the fallback stays. No late swap repaint, so text
+// LCP entries are never re-emitted (budget rule: perf wins over polish).
+const display = Geist({
   subsets: ["latin"],
   weight: ["600", "700"],
   variable: "--font-display",
-  display: "swap",
+  display: "optional",
 });
 
 const body = Inter({
   subsets: ["latin"],
   weight: ["400", "500", "600"],
   variable: "--font-body",
-  display: "swap",
+  display: "optional",
 });
 
 export const metadata: Metadata = {
-  title: "Raznova — Two-Wheeler Spare Parts Export",
+  title: "Raznova Exports — Two-Wheeler Spare Parts, Exported Worldwide",
   description:
-    "Raznova exports genuine and OEM-grade two-wheeler spare parts to Latin America and Africa.",
+    "Raznova Exports supplies genuine and OEM-grade two-wheeler spare parts from Pune, India to Latin America and Africa. IEC HFRPM4730J · GSTIN 27HFRPM4730J1ZT.",
 };
+
+// Runs synchronously before body paint: decides whether the once-per-session
+// intro curtain shows, so returning visitors never see a flash of it.
+// Desktop (fine pointer) only — mobile buyers land straight on content and
+// the mobile LCP budget stays intact.
+const INTRO_GATE = `try{if(!sessionStorage.getItem("rz-intro")&&matchMedia("(pointer: fine)").matches&&!matchMedia("(prefers-reduced-motion: reduce)").matches){document.documentElement.classList.add("intro-pending")}}catch(e){}`;
 
 export default function RootLayout({
   children,
@@ -39,6 +44,9 @@ export default function RootLayout({
   return (
     <html lang="en" className={`h-full ${display.variable} ${body.variable}`}>
       <body className="min-h-full flex flex-col bg-[var(--bg)] text-[var(--ink)] antialiased font-body">
+        <script dangerouslySetInnerHTML={{ __html: INTRO_GATE }} />
+        <IntroCurtain />
+        <LenisProvider />
         {children}
       </body>
     </html>

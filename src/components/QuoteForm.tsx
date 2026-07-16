@@ -40,11 +40,14 @@ export default function QuoteForm({ locale, t }: { locale: Locale; t: Translatio
 
   if (status === "success") {
     return (
-      <div className="rounded-md border border-green-200 bg-green-50 p-6 text-green-800">
+      <div className="rounded-[var(--radius-md)] border border-[var(--accent)]/40 bg-[var(--accent-soft)] p-6 text-[var(--ink)]">
         {t.quote.success}
       </div>
     );
   }
+
+  const fieldCls =
+    "min-h-12 rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface)] px-4 py-3 text-[var(--ink)] placeholder:text-[var(--muted)]/70 outline-none transition-colors focus:border-[var(--accent)]/60";
 
   return (
     <div>
@@ -54,21 +57,21 @@ export default function QuoteForm({ locale, t }: { locale: Locale; t: Translatio
           placeholder={t.quote.name}
           value={form.name}
           onChange={(e) => update("name", e.target.value)}
-          className="rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-[var(--ink)]"
+          className={fieldCls}
         />
         <input
           required
           placeholder={t.quote.company}
           value={form.company}
           onChange={(e) => update("company", e.target.value)}
-          className="rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-[var(--ink)]"
+          className={fieldCls}
         />
         <input
           required
           placeholder={t.quote.country}
           value={form.country}
           onChange={(e) => update("country", e.target.value)}
-          className="rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-[var(--ink)]"
+          className={fieldCls}
         />
         <div className="grid gap-4 sm:grid-cols-2">
           <input
@@ -76,13 +79,13 @@ export default function QuoteForm({ locale, t }: { locale: Locale; t: Translatio
             placeholder={t.quote.email}
             value={form.email}
             onChange={(e) => update("email", e.target.value)}
-            className="rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-[var(--ink)]"
+            className={fieldCls}
           />
           <input
             placeholder={t.quote.whatsapp}
             value={form.whatsapp}
             onChange={(e) => update("whatsapp", e.target.value)}
-            className="rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-[var(--ink)]"
+            className={fieldCls}
           />
         </div>
         <textarea
@@ -91,16 +94,16 @@ export default function QuoteForm({ locale, t }: { locale: Locale; t: Translatio
           placeholder={t.quote.partsListPlaceholder}
           value={form.parts_list}
           onChange={(e) => update("parts_list", e.target.value)}
-          className="rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-[var(--ink)]"
+          className={fieldCls}
         />
         <button
           type="submit"
           disabled={status === "submitting"}
-          className="rounded-[var(--radius-md)] bg-[var(--accent)] px-6 py-3 font-semibold text-white transition-transform duration-200 hover:scale-[1.02] disabled:opacity-60 disabled:hover:scale-100"
+          className="min-h-12 rounded-[var(--radius-md)] bg-[var(--accent)] px-6 py-3 font-semibold text-[var(--accent-ink)] transition-transform duration-200 hover:scale-[1.02] disabled:opacity-60 disabled:hover:scale-100"
         >
           {status === "submitting" ? t.quote.submitting : t.quote.submit}
         </button>
-        {status === "error" && <p className="text-sm text-red-600">{t.quote.error}</p>}
+        {status === "error" && <p className="text-sm text-red-400">{t.quote.error}</p>}
       </form>
 
       <div className="mt-8 border-t border-[var(--line)] pt-6">
@@ -110,13 +113,13 @@ export default function QuoteForm({ locale, t }: { locale: Locale; t: Translatio
             href={whatsappLink("Hi Raznova, I'd like a quote.")}
             target="_blank"
             rel="noopener noreferrer"
-            className="rounded-[var(--radius-md)] border border-green-600 px-4 py-2 text-sm font-semibold text-green-700 hover:bg-green-50"
+            className="min-h-11 rounded-[var(--radius-md)] border border-[var(--accent)]/50 px-4 py-2.5 text-sm font-semibold text-[var(--accent)] transition-colors hover:bg-[var(--accent-soft)]"
           >
             {t.quote.whatsappButton}
           </a>
           <a
             href={mailtoLink("Quote Request")}
-            className="rounded-[var(--radius-md)] border border-[var(--line)] px-4 py-2 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--bg)]"
+            className="min-h-11 rounded-[var(--radius-md)] border border-[var(--line)] px-4 py-2.5 text-sm font-semibold text-[var(--ink)]/85 transition-colors hover:border-[var(--line-strong)] hover:text-[var(--ink)]"
           >
             {t.quote.emailButton} ({CONTACT_EMAIL})
           </a>

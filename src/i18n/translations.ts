@@ -15,9 +15,54 @@ export type Translations = {
     cta: string;
     ctaBrowse: string;
     ctaQuote: string;
+    ctaWhatsapp: string;
+    ctaEmail: string;
     statFitment: string;
     statShipping: string;
     statExport: string;
+  };
+  trust: {
+    brandsLabel: string;
+    brandsSub: string;
+    iecLabel: string;
+    gstinLabel: string;
+    portLabel: string;
+    portValue: string;
+  };
+  inventory: {
+    eyebrow: string;
+    title: string;
+    subtitle: string;
+    captionFloor: string;
+    captionOffice: string;
+    captionPigeonholes: string;
+    captionBulk: string;
+    captionDispatch: string;
+  };
+  categories: {
+    eyebrow: string;
+    title: string;
+    subtitle: string;
+    items: { title: string; body: string }[];
+  };
+  howWeWork: {
+    eyebrow: string;
+    title: string;
+    steps: { title: string; body: string }[];
+  };
+  lightSection: {
+    eyebrow: string;
+    title: string;
+    body: string;
+    quote: string;
+  };
+  contactFinale: {
+    eyebrow: string;
+    title: string;
+    whatsappCta: string;
+    emailCta: string;
+    callLabel: string;
+    credsTitle: string;
   };
   positioning: {
     line: string;
@@ -121,9 +166,69 @@ export const TRANSLATIONS: Record<Locale, Translations> = {
       cta: "Request a Quote",
       ctaBrowse: "Browse Catalogs",
       ctaQuote: "Request a Quote",
+      ctaWhatsapp: "Get a Quote on WhatsApp",
+      ctaEmail: "Email us",
       statFitment: "Hero · Bajaj · TVS fitment",
       statShipping: "Shipping to LatAm & Africa",
       statExport: "Export-ready: IEC & GST registered",
+    },
+    trust: {
+      brandsLabel: "brand patterns",
+      brandsSub: "Hero · Bajaj · TVS · Honda fitment",
+      iecLabel: "IEC",
+      gstinLabel: "GSTIN",
+      portLabel: "Ships from",
+      portValue: "Nhava Sheva (JNPT)",
+    },
+    inventory: {
+      eyebrow: "Inventory",
+      title: "Full Range. Full Inventory.",
+      subtitle:
+        "Complete two-wheeler parts coverage — engine, electrical, transmission, body — stocked and dispatch-ready.",
+      captionFloor: "Export cartons staged on the dispatch floor",
+      captionOffice: "OEM-pattern stock, binned and labelled",
+      captionPigeonholes: "Small-parts racking — thousands of live SKUs",
+      captionBulk: "Bulk carton storage, ready to consolidate",
+      captionDispatch: "Pick faces replenished daily",
+    },
+    categories: {
+      eyebrow: "Coverage",
+      title: "Product categories",
+      subtitle: "Eight families of coverage across every fast-moving platform.",
+      items: [
+        { title: "Engine Components", body: "Cylinder blocks, valves, timing kits, oil seals." },
+        { title: "Electricals & CDI", body: "CDI units, ignition coils, switches, indicators, bulbs." },
+        { title: "Clutch & Transmission", body: "Clutch assemblies, plates, pressure plates, chain-sprocket kits." },
+        { title: "Cables & Controls", body: "Accelerator, clutch, brake and speedometer cables, levers, locksets." },
+        { title: "Brakes & Suspension", body: "Brake shoes, levers, front and rear shock absorbers." },
+        { title: "Filters & Service Parts", body: "Air filters, oil filters, spark plugs, bearings." },
+        { title: "Body & Visors", body: "Mirrors, visors, indicators and body fitment parts." },
+        { title: "Batteries & Tyres-Tubes", body: "Batteries plus JK Tyre tyres and tubes, export-packed." },
+      ],
+    },
+    howWeWork: {
+      eyebrow: "Export operations",
+      title: "How we work",
+      steps: [
+        { title: "Enquiry", body: "Send your parts list on WhatsApp or email — model, part, quantity." },
+        { title: "Quote in 24h", body: "Line-by-line pricing with availability and lead times, within one working day." },
+        { title: "Packing & QC", body: "Every carton checked, sea-worthy export packing, photographed before sealing." },
+        { title: "Dispatch & BL", body: "Container dispatch from Nhava Sheva (JNPT) with the full document set — BL, invoice, packing list." },
+      ],
+    },
+    lightSection: {
+      eyebrow: "Sourcing",
+      title: "Sourced from Pune's OE-supplier belt.",
+      body: "Raznova operates from Pune, home to the Tier-1 ecosystem that supplies India's two-wheeler OEMs. Two decades of distributor-grade parts knowledge decide what goes into every container.",
+      quote: "We ship the parts that keep a fleet earning — nothing that sits on a shelf.",
+    },
+    contactFinale: {
+      eyebrow: "Contact",
+      title: "Sourcing two-wheeler spares? Talk to us today.",
+      whatsappCta: "Get a Quote on WhatsApp",
+      emailCta: "Email us",
+      callLabel: "Call or WhatsApp",
+      credsTitle: "Business credentials",
     },
     positioning: {
       line: "Genuine-grade aftermarket parts · OEM fitment referenced · Export-ready",
@@ -227,9 +332,69 @@ export const TRANSLATIONS: Record<Locale, Translations> = {
       cta: "Solicitar Cotización",
       ctaBrowse: "Ver Catálogos", // TODO: confirm Spanish copy
       ctaQuote: "Solicitar Cotización",
+      ctaWhatsapp: "Cotice por WhatsApp",
+      ctaEmail: "Escríbanos",
       statFitment: "Compatibilidad Hero · Bajaj · TVS", // TODO: confirm Spanish copy
       statShipping: "Envíos a LatAm y África", // TODO: confirm Spanish copy
       statExport: "Listo para exportar: IEC y GST registrados", // TODO: confirm Spanish copy
+    },
+    trust: {
+      brandsLabel: "patrones de marca",
+      brandsSub: "Compatibilidad Hero · Bajaj · TVS · Honda",
+      iecLabel: "IEC",
+      gstinLabel: "GSTIN",
+      portLabel: "Embarques desde",
+      portValue: "Nhava Sheva (JNPT)",
+    },
+    inventory: {
+      eyebrow: "Inventario",
+      title: "Gama completa. Inventario completo.",
+      subtitle:
+        "Cobertura completa de repuestos para motos — motor, eléctrico, transmisión, carrocería — en stock y listos para despacho.",
+      captionFloor: "Cartones de exportación en el piso de despacho",
+      captionOffice: "Stock de patrón OEM, clasificado y etiquetado",
+      captionPigeonholes: "Estanterías de piezas menudas — miles de SKUs activos",
+      captionBulk: "Almacenaje de cartones a granel, listo para consolidar",
+      captionDispatch: "Frentes de picking reabastecidos a diario",
+    },
+    categories: {
+      eyebrow: "Cobertura",
+      title: "Categorías de producto",
+      subtitle: "Ocho familias de cobertura para todas las plataformas de alta rotación.",
+      items: [
+        { title: "Componentes de motor", body: "Bloques de cilindro, válvulas, kits de distribución, retenes." },
+        { title: "Eléctricos y CDI", body: "Unidades CDI, bobinas de encendido, comandos, direccionales, bombillos." },
+        { title: "Embrague y transmisión", body: "Conjuntos de embrague, discos, platos de presión, kits de piñón y cadena." },
+        { title: "Cables y controles", body: "Cables de acelerador, embrague, freno y velocímetro, palancas, switches." },
+        { title: "Frenos y suspensión", body: "Zapatas de freno, palancas, amortiguadores delanteros y traseros." },
+        { title: "Filtros y mantenimiento", body: "Filtros de aire y aceite, bujías, rodamientos." },
+        { title: "Carrocería y visores", body: "Espejos, visores, direccionales y piezas de carrocería." },
+        { title: "Baterías y llantas-neumáticos", body: "Baterías, más llantas y neumáticos JK Tyre, empacados para exportación." },
+      ],
+    },
+    howWeWork: {
+      eyebrow: "Operaciones de exportación",
+      title: "Cómo trabajamos",
+      steps: [
+        { title: "Consulta", body: "Envíe su lista de repuestos por WhatsApp o correo — modelo, pieza, cantidad." },
+        { title: "Cotización en 24h", body: "Precios línea por línea con disponibilidad y plazos, dentro de un día hábil." },
+        { title: "Empaque y QC", body: "Cada cartón verificado, empaque marítimo de exportación, fotografiado antes de sellar." },
+        { title: "Despacho y BL", body: "Despacho de contenedores desde Nhava Sheva (JNPT) con documentación completa — BL, factura, lista de empaque." },
+      ],
+    },
+    lightSection: {
+      eyebrow: "Abastecimiento",
+      title: "Abastecidos del cinturón de proveedores OE de Pune.",
+      body: "Raznova opera desde Pune, sede del ecosistema Tier-1 que abastece a los fabricantes de motos de la India. Dos décadas de conocimiento de repuestos a nivel distribuidor deciden qué va en cada contenedor.",
+      quote: "Enviamos las piezas que mantienen una flota produciendo — nada que se quede en el estante.",
+    },
+    contactFinale: {
+      eyebrow: "Contacto",
+      title: "¿Busca repuestos para motos? Hable con nosotros hoy.",
+      whatsappCta: "Cotice por WhatsApp",
+      emailCta: "Escríbanos",
+      callLabel: "Llame o WhatsApp",
+      credsTitle: "Credenciales comerciales",
     },
     positioning: {
       line: "Repuestos de calidad aftermarket · Compatibilidad OEM referenciada · Listo para exportar", // TODO: confirm Spanish copy
@@ -333,9 +498,69 @@ export const TRANSLATIONS: Record<Locale, Translations> = {
       cta: "Request a Quote",
       ctaBrowse: "Browse Catalogs", // inherited from en
       ctaQuote: "Request a Quote",
+      ctaWhatsapp: "Get a Quote on WhatsApp",
+      ctaEmail: "Email us",
       statFitment: "Hero · Bajaj · TVS fitment", // inherited from en
       statShipping: "Shipping to Southern & East Africa",
       statExport: "Export-ready: IEC & GST registered", // inherited from en
+    },
+    trust: {
+      brandsLabel: "brand patterns",
+      brandsSub: "Hero · Bajaj · TVS · Honda fitment",
+      iecLabel: "IEC",
+      gstinLabel: "GSTIN",
+      portLabel: "Ships from",
+      portValue: "Nhava Sheva (JNPT)",
+    },
+    inventory: {
+      eyebrow: "Inventory",
+      title: "Full Range. Full Inventory.",
+      subtitle:
+        "Complete two-wheeler parts coverage — engine, electrical, transmission, body — stocked and dispatch-ready.",
+      captionFloor: "Export cartons staged on the dispatch floor",
+      captionOffice: "OEM-pattern stock, binned and labelled",
+      captionPigeonholes: "Small-parts racking — thousands of live SKUs",
+      captionBulk: "Bulk carton storage, ready to consolidate",
+      captionDispatch: "Pick faces replenished daily",
+    },
+    categories: {
+      eyebrow: "Coverage",
+      title: "Product categories",
+      subtitle: "Eight families of coverage across every fast-moving platform.",
+      items: [
+        { title: "Engine Components", body: "Cylinder blocks, valves, timing kits, oil seals." },
+        { title: "Electricals & CDI", body: "CDI units, ignition coils, switches, indicators, bulbs." },
+        { title: "Clutch & Transmission", body: "Clutch assemblies, plates, pressure plates, chain-sprocket kits." },
+        { title: "Cables & Controls", body: "Accelerator, clutch, brake and speedometer cables, levers, locksets." },
+        { title: "Brakes & Suspension", body: "Brake shoes, levers, front and rear shock absorbers." },
+        { title: "Filters & Service Parts", body: "Air filters, oil filters, spark plugs, bearings." },
+        { title: "Body & Visors", body: "Mirrors, visors, indicators and body fitment parts." },
+        { title: "Batteries & Tyres-Tubes", body: "Batteries plus JK Tyre tyres and tubes, export-packed." },
+      ],
+    },
+    howWeWork: {
+      eyebrow: "Export operations",
+      title: "How we work",
+      steps: [
+        { title: "Enquiry", body: "Send your parts list on WhatsApp or email — model, part, quantity." },
+        { title: "Quote in 24h", body: "Line-by-line pricing with availability and lead times, within one working day." },
+        { title: "Packing & QC", body: "Every carton checked, sea-worthy export packing, photographed before sealing." },
+        { title: "Dispatch & BL", body: "Container dispatch from Nhava Sheva (JNPT) to African ports with the full document set — BL, invoice, packing list." },
+      ],
+    },
+    lightSection: {
+      eyebrow: "Sourcing",
+      title: "Sourced from Pune's OE-supplier belt.",
+      body: "Raznova operates from Pune, home to the Tier-1 ecosystem that supplies India's two-wheeler OEMs. Two decades of distributor-grade parts knowledge decide what goes into every container.",
+      quote: "We ship the parts that keep a fleet earning — nothing that sits on a shelf.",
+    },
+    contactFinale: {
+      eyebrow: "Contact",
+      title: "Sourcing two-wheeler spares? Talk to us today.",
+      whatsappCta: "Get a Quote on WhatsApp",
+      emailCta: "Email us",
+      callLabel: "Call or WhatsApp",
+      credsTitle: "Business credentials",
     },
     positioning: {
       line: "Genuine-grade aftermarket parts · OEM fitment referenced · Export-ready", // inherited from en

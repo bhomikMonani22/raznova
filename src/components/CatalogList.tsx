@@ -41,16 +41,18 @@ export default function CatalogList({
   return (
     <div>
       {models.length > 1 && (
-        <div className="mb-6">
-          <p className="mb-2 text-sm font-semibold text-[var(--ink)]">{t.catalog.filterByModel}</p>
+        <div className="mb-8">
+          <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
+            {t.catalog.filterByModel}
+          </p>
           <div className="flex flex-wrap gap-2">
             {models.map((model) => (
               <label
                 key={model}
-                className={`cursor-pointer rounded-full border px-3 py-1 text-sm transition-colors ${
+                className={`min-h-10 cursor-pointer rounded-full border px-4 py-2 text-sm transition-colors duration-200 ${
                   selected.has(model)
-                    ? "border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]"
-                    : "border-[var(--line)] text-[var(--muted)]"
+                    ? "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]"
+                    : "border-[var(--line)] text-[var(--muted)] hover:border-[var(--line-strong)] hover:text-[var(--ink)]"
                 }`}
               >
                 <input
@@ -65,7 +67,7 @@ export default function CatalogList({
             {selected.size > 0 && (
               <button
                 onClick={() => setSelected(new Set())}
-                className="rounded-full border border-[var(--line)] px-3 py-1 text-sm text-[var(--muted)]"
+                className="min-h-10 rounded-full border border-[var(--line)] px-4 py-2 text-sm text-[var(--muted)] transition-colors hover:text-[var(--ink)]"
               >
                 {t.catalog.clearFilter}
               </button>
@@ -80,7 +82,7 @@ export default function CatalogList({
         <motion.div
           initial="hidden"
           whileInView="visible"
-          viewport={{ once: true }}
+          viewport={{ once: true, margin: "-40px" }}
           variants={staggerContainer(0.07)}
           className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
         >
@@ -94,23 +96,25 @@ export default function CatalogList({
                 whileHover="hover"
                 animate="rest"
                 {...cardHover}
-                className="flex flex-col card-surface p-4"
+                className="flex flex-col card-surface p-5"
               >
-                <p className="font-semibold text-[var(--ink)]">{entry.model ?? entry.brand}</p>
+                <p className="font-display font-bold text-[var(--ink)]">
+                  {entry.model ?? entry.brand}
+                </p>
                 <p className="mt-1 text-sm text-[var(--muted)]">{entry.title}</p>
-                <div className="mt-4 flex gap-3">
+                <div className="mt-5 flex gap-3">
                   <a
                     href={entry.pdf_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="rounded-[var(--radius-md)] bg-[var(--accent)] px-3 py-1.5 text-sm font-medium text-white transition-transform duration-200 hover:scale-[1.02]"
+                    className="rounded-[var(--radius-md)] bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-[var(--accent-ink)] transition-transform duration-200 hover:scale-[1.02]"
                   >
                     {t.catalog.viewPdf}
                   </a>
                   <a
                     href={entry.pdf_url}
                     download
-                    className="rounded-[var(--radius-md)] border border-[var(--line)] px-3 py-1.5 text-sm font-medium text-[var(--ink)] hover:bg-[var(--bg)]"
+                    className="rounded-[var(--radius-md)] border border-[var(--line)] px-4 py-2 text-sm font-medium text-[var(--ink)]/85 transition-colors hover:border-[var(--line-strong)] hover:text-[var(--ink)]"
                   >
                     {t.catalog.download}
                   </a>
@@ -120,7 +124,7 @@ export default function CatalogList({
         </motion.div>
       )}
 
-      <div className="mt-8">
+      <div className="mt-10">
         <FitmentDisclaimer t={t} />
       </div>
     </div>

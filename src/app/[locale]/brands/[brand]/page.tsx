@@ -33,14 +33,23 @@ export default async function PartBrandPage({
   const logo = getBrandLogo(brandName);
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-12">
-      <Link href={`/${locale}`} className="text-sm font-medium text-[var(--accent)] hover:underline">
+    <div className="mx-auto max-w-6xl px-5 py-14">
+      <Link
+        href={`/${locale}`}
+        className="text-sm font-medium text-[var(--accent)] underline-offset-4 hover:underline"
+      >
         ← {t.catalog.backToBrands}
       </Link>
-      <div className="mt-4 flex items-center gap-4">
+      <div className="mt-5 flex items-center gap-4">
         {logo ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={logo} alt={`${brandName} logo`} className="h-10 w-auto object-contain" />
+          <span className="flex h-12 w-28 items-center justify-center rounded-[8px] bg-[var(--cream)] px-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={logo}
+              alt={`${brandName} logo`}
+              className="h-7 w-auto max-w-full object-contain"
+            />
+          </span>
         ) : (
           <span className="font-display rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface)] px-3 py-1 text-lg font-bold text-[var(--accent)]">
             {brandName}
@@ -50,7 +59,7 @@ export default async function PartBrandPage({
           {brandName} — {t.catalog.title}
         </h1>
       </div>
-      <div className="mt-6">
+      <div className="mt-8">
         <CatalogList entries={entries} t={t} />
       </div>
     </div>
