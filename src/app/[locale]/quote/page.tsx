@@ -1,7 +1,25 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { isLocale } from "@/i18n/locales";
 import { getTranslations } from "@/i18n/translations";
 import QuoteForm from "@/components/QuoteForm";
+import { QUOTE_META, canonical } from "@/lib/seo";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  if (!isLocale(locale)) return {};
+  const meta = QUOTE_META[locale];
+  return {
+    title: { absolute: meta.title },
+    description: meta.description,
+    alternates: { canonical: canonical(locale, "/quote") },
+    openGraph: { title: meta.title, description: meta.description, url: canonical(locale, "/quote") },
+  };
+}
 
 export default async function QuotePage({
   params,

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { isLocale } from "@/i18n/locales";
@@ -5,6 +6,25 @@ import { getTranslations } from "@/i18n/translations";
 import catalogs from "@/data/catalogs.json";
 import type { CatalogEntry } from "@/lib/types";
 import CatalogList from "@/components/CatalogList";
+import { catalogMeta, canonical } from "@/lib/seo";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string; vehicleType: string; brand: string }>;
+}): Promise<Metadata> {
+  const { locale, vehicleType, brand } = await params;
+  if (!isLocale(locale)) return {};
+  const brandName = decodeURIComponent(brand);
+  const meta = catalogMeta(brandName, locale);
+  const path = `/catalog/${vehicleType}/${encodeURIComponent(brandName)}`;
+  return {
+    title: { absolute: meta.title },
+    description: meta.description,
+    alternates: { canonical: canonical(locale, path) },
+    openGraph: { title: meta.title, description: meta.description, url: canonical(locale, path) },
+  };
+}
 
 export function generateStaticParams() {
   const all = catalogs as CatalogEntry[];

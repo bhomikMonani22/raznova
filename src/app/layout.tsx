@@ -26,9 +26,9 @@ const body = Inter({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://raznova.in"),
-  title: "Raznova Exports — Two-Wheeler Spare Parts, Exported Worldwide",
+  title: "Motorcycle Spare Parts Exporter India | Raznova Exports",
   description:
-    "Raznova Exports supplies genuine and OEM-grade two-wheeler spare parts from Pune, India to Latin America and Africa. IEC HFRPM4730J · GSTIN 27HFRPM4730J1ZT.",
+    "IEC-registered two-wheeler spare parts exporter in Pune, India. OEM-pattern and aftermarket compatible ranges shipped worldwide from Nhava Sheva (JNPT).",
   openGraph: {
     title: "Raznova Exports — Two-Wheeler Spare Parts Export",
     description:

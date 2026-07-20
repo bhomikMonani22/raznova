@@ -1,7 +1,25 @@
+import type { Metadata } from "next";
 import { isLocale } from "@/i18n/locales";
 import { getTranslations } from "@/i18n/translations";
 import { notFound } from "next/navigation";
 import dynamic from "next/dynamic";
+import { HOME_META, canonical } from "@/lib/seo";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  if (!isLocale(locale)) return {};
+  const meta = HOME_META[locale];
+  return {
+    title: { absolute: meta.title },
+    description: meta.description,
+    alternates: { canonical: canonical(locale) },
+    openGraph: { title: meta.title, description: meta.description, url: canonical(locale) },
+  };
+}
 import Hero from "@/components/Hero";
 import catalogs from "@/data/catalogs.json";
 import showcase from "@/data/showcase.json";

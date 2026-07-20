@@ -311,7 +311,7 @@ export const TRANSLATIONS: Record<Locale, Translations> = {
       brandLine: "Raznova is a brand of Shrinath Ji Enterprises.",
       gstin: "GSTIN 27HFRPM4730J1ZT",
       disclaimer:
-        "OEM brand names are referenced for fitment identification only.",
+        "Raznova Exports is an independent exporter of OEM-pattern and aftermarket compatible parts. Not affiliated with or authorized by Hero MotoCorp, Bajaj Auto, TVS Motor, or Honda.",
       regions: "Serving export partners across Latin America & Africa.",
       rights: "All rights reserved.",
     },
@@ -477,7 +477,7 @@ export const TRANSLATIONS: Record<Locale, Translations> = {
       brandLine: "Raznova es una marca de Shrinath Ji Enterprises.",
       gstin: "GSTIN 27HFRPM4730J1ZT",
       disclaimer:
-        "Los nombres de marcas OEM se mencionan únicamente para identificar compatibilidad.",
+        "Raznova Exports es un exportador independiente de repuestos de patrón OEM y compatibles aftermarket. No está afiliado ni autorizado por Hero MotoCorp, Bajaj Auto, TVS Motor ni Honda.",
       regions: "Atendiendo a socios exportadores en América Latina y África.",
       rights: "Todos los derechos reservados.",
     },
@@ -643,7 +643,7 @@ export const TRANSLATIONS: Record<Locale, Translations> = {
       brandLine: "Raznova is a brand of Shrinath Ji Enterprises.",
       gstin: "GSTIN 27HFRPM4730J1ZT",
       disclaimer:
-        "OEM brand names are referenced for fitment identification only.",
+        "Raznova Exports is an independent exporter of OEM-pattern and aftermarket compatible parts. Not affiliated with or authorized by Hero MotoCorp, Bajaj Auto, TVS Motor, or Honda.",
       regions: "Shipping to distribution partners across Southern & East Africa.",
       rights: "All rights reserved.",
     },
