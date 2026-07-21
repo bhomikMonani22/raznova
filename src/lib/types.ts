@@ -20,3 +20,14 @@ export type ShowcasePart = {
   description_es: string;
   sort_order: number;
 };
+
+/** What actually crosses to the client: one locale's description and only
+ * the fields the card renders. Halves the serialized showcase payload. */
+export type ShowcasePartLite = {
+  id: number;
+  brand: string;
+  model: string;
+  category: string;
+  image_url: string;
+  description: string;
+};

@@ -1,8 +1,4 @@
-"use client";
-
-import { motion } from "framer-motion";
 import type { Translations } from "@/i18n/translations";
-import { fadeUp, staggerContainer } from "@/lib/motion";
 import SectionHeading from "./SectionHeading";
 
 const ICONS = [
@@ -34,6 +30,8 @@ const ICONS = [
   </g>,
 ];
 
+/** Server component — reveal via the shared [data-reveal] observer, purple
+ * border trace and icon tilt via CSS hover. No client JS. */
 export default function ProductCategories({ t }: { t: Translations }) {
   return (
     <section className="px-5 py-20 md:py-28">
@@ -44,17 +42,12 @@ export default function ProductCategories({ t }: { t: Translations }) {
           subtitle={t.categories.subtitle}
         />
 
-        <motion.div
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: "-60px" }}
-          variants={staggerContainer(0.08)}
-          className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
-        >
+        <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {t.categories.items.map((item, i) => (
-            <motion.div
+            <div
               key={item.title}
-              variants={fadeUp}
+              data-reveal
+              style={{ "--reveal-i": i % 4 } as React.CSSProperties}
               className="group relative rounded-[var(--radius-lg)] glass-panel p-6"
             >
               {/* Purple accent traces around the border on hover. */}
@@ -94,13 +87,11 @@ export default function ProductCategories({ t }: { t: Translations }) {
                   {ICONS[i % ICONS.length]}
                 </svg>
               </div>
-              <h3 className="font-display mt-4 text-lg font-bold text-[var(--ink)]">
-                {item.title}
-              </h3>
+              <h3 className="font-display mt-4 text-lg font-bold text-[var(--ink)]">{item.title}</h3>
               <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">{item.body}</p>
-            </motion.div>
+            </div>
           ))}
-        </motion.div>
+        </div>
       </div>
     </section>
   );

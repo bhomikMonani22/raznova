@@ -1,10 +1,6 @@
-"use client";
-
 import Link from "next/link";
-import { motion } from "framer-motion";
 import type { Locale } from "@/i18n/locales";
 import type { Translations } from "@/i18n/translations";
-import { fadeUp, staggerContainer } from "@/lib/motion";
 import {
   whatsappLink,
   mailtoLink,
@@ -16,6 +12,8 @@ import {
 } from "@/lib/config";
 import Magnetic from "./Magnetic";
 
+/** Server component apart from the two magnetic CTA wrappers — reveals come
+ * from the shared [data-reveal] observer. */
 export default function ContactFinale({ locale, t }: { locale: Locale; t: Translations }) {
   return (
     <section className="relative overflow-hidden border-t border-[var(--line)]">
@@ -26,24 +24,23 @@ export default function ContactFinale({ locale, t }: { locale: Locale; t: Transl
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,var(--bg)_78%)]" />
       </div>
 
-      <motion.div
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, margin: "-80px" }}
-        variants={staggerContainer(0.1)}
-        className="relative mx-auto flex max-w-4xl flex-col items-center px-5 py-24 text-center md:py-32"
-      >
-        <motion.p variants={fadeUp} className="eyebrow">
+      <div className="relative mx-auto flex max-w-4xl flex-col items-center px-5 py-24 text-center md:py-32">
+        <p data-reveal className="eyebrow">
           {t.contactFinale.eyebrow}
-        </motion.p>
-        <motion.h2
-          variants={fadeUp}
+        </p>
+        <h2
+          data-reveal
+          style={{ "--reveal-i": 1 } as React.CSSProperties}
           className="font-display mt-3 max-w-3xl text-display-1 font-bold text-[var(--ink)]"
         >
           {t.contactFinale.title}
-        </motion.h2>
+        </h2>
 
-        <motion.div variants={fadeUp} className="mt-10 flex flex-col items-center gap-4 sm:flex-row">
+        <div
+          data-reveal
+          style={{ "--reveal-i": 2 } as React.CSSProperties}
+          className="mt-10 flex flex-col items-center gap-4 sm:flex-row"
+        >
           <Magnetic>
             <a
               href={whatsappLink("Hi Raznova, I'd like a quote.")}
@@ -65,10 +62,10 @@ export default function ContactFinale({ locale, t }: { locale: Locale; t: Transl
               {t.contactFinale.emailCta}
             </a>
           </Magnetic>
-        </motion.div>
+        </div>
 
         {/* Phone in large one-thumb-tappable type. */}
-        <motion.div variants={fadeUp} className="mt-10">
+        <div data-reveal style={{ "--reveal-i": 3 } as React.CSSProperties} className="mt-10">
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
             {t.contactFinale.callLabel}
           </p>
@@ -79,11 +76,12 @@ export default function ContactFinale({ locale, t }: { locale: Locale; t: Transl
           >
             {CONTACT_PHONE_DISPLAY}
           </a>
-        </motion.div>
+        </div>
 
         {/* Credentials block — buyers screenshot this. */}
-        <motion.div
-          variants={fadeUp}
+        <div
+          data-reveal
+          style={{ "--reveal-i": 4 } as React.CSSProperties}
           className="font-mono-credentials mt-12 w-full max-w-xl rounded-[var(--radius-md)] border border-[var(--line-strong)] bg-[var(--surface)]/70 px-6 py-6 text-left text-[13px] leading-7 text-[var(--ink)]/90"
         >
           <p className="mb-2 text-[10px] uppercase tracking-[0.24em] text-[var(--accent)]">
@@ -105,17 +103,17 @@ export default function ContactFinale({ locale, t }: { locale: Locale; t: Transl
               {CONTACT_PHONE_DISPLAY}
             </a>
           </p>
-        </motion.div>
+        </div>
 
-        <motion.div variants={fadeUp} className="mt-8">
+        <div data-reveal style={{ "--reveal-i": 5 } as React.CSSProperties} className="mt-8">
           <Link
             href={`/${locale}/quote`}
             className="text-sm font-medium text-[var(--muted)] underline-offset-4 transition-colors hover:text-[var(--accent)] hover:underline"
           >
             {t.quoteCta.subtitle}
           </Link>
-        </motion.div>
-      </motion.div>
+        </div>
+      </div>
     </section>
   );
 }

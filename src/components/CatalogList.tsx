@@ -1,11 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "framer-motion";
 import type { CatalogEntry } from "@/lib/types";
 import type { Translations } from "@/i18n/translations";
 import FitmentDisclaimer from "./FitmentDisclaimer";
-import { fadeUp, staggerContainer, cardHover } from "@/lib/motion";
 
 // Shared list-of-PDFs renderer used by both the vehicle brand catalog route
 // (catalog/[vehicleType]/[brand]) and the aftermarket brand route
@@ -79,24 +77,15 @@ export default function CatalogList({
       {filtered.length === 0 ? (
         <p className="text-[var(--muted)]">{t.catalog.noResults}</p>
       ) : (
-        <motion.div
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: "-40px" }}
-          variants={staggerContainer(0.07)}
-          className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
-        >
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filtered
             .sort((a, b) => a.sort_order - b.sort_order)
-            .map((entry) => (
-              <motion.div
+            .map((entry, i) => (
+              <div
                 key={entry.id}
-                variants={fadeUp}
-                initial="rest"
-                whileHover="hover"
-                animate="rest"
-                {...cardHover}
-                className="flex flex-col card-surface p-5"
+                data-reveal
+                style={{ "--reveal-i": i % 3 } as React.CSSProperties}
+                className="flex flex-col card-surface p-5 transition-transform duration-300 hover:-translate-y-1"
               >
                 <p className="font-display font-bold text-[var(--ink)]">
                   {entry.model ?? entry.brand}
@@ -119,9 +108,9 @@ export default function CatalogList({
                     {t.catalog.download}
                   </a>
                 </div>
-              </motion.div>
+              </div>
             ))}
-        </motion.div>
+        </div>
       )}
 
       <div className="mt-10">

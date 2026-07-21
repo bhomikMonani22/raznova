@@ -295,6 +295,99 @@ html.intro-pending body {
   }
 }
 
+/* ---------------------------------------------------------------------
+   Scroll reveal, CSS-only. One shared IntersectionObserver (inline script
+   in the root layout) adds .is-visible to [data-reveal] elements; the
+   animation itself is pure CSS. This keeps reveal-only sections as server
+   components — no framer-motion hydration on the critical path.
+   Stagger: set --reveal-i on children of a [data-reveal-group].
+   --------------------------------------------------------------------- */
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(24px);
+  transition:
+    opacity 0.6s var(--ease-reveal),
+    transform 0.6s var(--ease-reveal);
+  transition-delay: calc(var(--reveal-i, 0) * 0.08s);
+  will-change: opacity, transform;
+}
+
+[data-reveal].is-visible {
+  opacity: 1;
+  transform: none;
+  will-change: auto;
+}
+
+/* Clip-wipe variant for imagery (inventory grid). */
+[data-reveal="wipe"] {
+  opacity: 1;
+  transform: none;
+  clip-path: inset(0 0 100% 0);
+  transition: clip-path 0.7s var(--ease-wipe);
+  transition-delay: calc(var(--reveal-i, 0) * 0.12s);
+}
+
+[data-reveal="wipe"].is-visible {
+  clip-path: inset(0 0 0% 0);
+}
+
+/* No-JS and reduced-motion: content is simply visible. */
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal],
+  [data-reveal="wipe"] {
+    opacity: 1;
+    transform: none;
+    clip-path: none;
+    transition: none;
+  }
+}
+
+/* ---------------------------------------------------------------------
+   Scroll-driven animations (CSS). Where `animation-timeline` is
+   unsupported the element simply renders in its final state — the design
+   degrades to static, never to broken.
+   --------------------------------------------------------------------- */
+@keyframes draw-line {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.progress-line {
+  transform-origin: left;
+  transform: scaleX(1);
+}
+
+@supports (animation-timeline: view()) {
+  .progress-line {
+    transform: scaleX(0);
+    animation: draw-line linear both;
+    animation-timeline: view();
+    animation-range: entry 85% cover 55%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .progress-line {
+    transform: scaleX(1);
+    animation: none;
+  }
+}
+
+/* Cream section: always fully opaque (dark text must never sit on a dark
+   background), with gradient edge blends so the transition from the
+   near-black sections reads as a soft crossfade rather than a hard seam. */
+.cream-edge-top {
+  background: linear-gradient(to bottom, var(--bg) 0%, transparent 100%);
+}
+
+.cream-edge-bottom {
+  background: linear-gradient(to top, var(--bg) 0%, transparent 100%);
+}
+
 /* Magnetic CTA wrapper: springy settle via CSS transition (JS only sets
    the transform), instant 0.97 press feedback. */
 .magnetic {

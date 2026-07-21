@@ -1,9 +1,5 @@
-"use client";
-
-import { motion } from "framer-motion";
 import type { Translations } from "@/i18n/translations";
 import { CARRIED_BRANDS, getBrandLogo } from "@/lib/brandLogos";
-import { fadeUp } from "@/lib/motion";
 
 function LogoChip({ brand }: { brand: string }) {
   const logo = getBrandLogo(brand);
@@ -28,18 +24,13 @@ function LogoChip({ brand }: { brand: string }) {
   );
 }
 
+/** Server component — CSS marquee, reveal via the shared observer. */
 export default function BrandsMarquee({ t }: { t: Translations }) {
   // Duplicate the list so the 50%-translateX loop in globals.css is seamless.
   const brands = [...CARRIED_BRANDS, ...CARRIED_BRANDS];
 
   return (
-    <motion.section
-      initial="hidden"
-      whileInView="visible"
-      viewport={{ once: true }}
-      variants={fadeUp}
-      className="border-t border-[var(--line)] px-5 py-16"
-    >
+    <section data-reveal className="border-t border-[var(--line)] px-5 py-16">
       <div className="mx-auto max-w-6xl">
         <p className="text-center text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--muted)]">
           {t.brandsMarquee.title}
@@ -55,6 +46,6 @@ export default function BrandsMarquee({ t }: { t: Translations }) {
           </div>
         </div>
       </div>
-    </motion.section>
+    </section>
   );
 }

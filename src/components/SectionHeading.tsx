@@ -1,10 +1,6 @@
-"use client";
-
-import { motion } from "framer-motion";
-import { fadeUp, staggerContainer } from "@/lib/motion";
-
 /** Consistent section header: uppercase micro-label eyebrow, display
- * headline, optional supporting line. Reveals once on scroll. */
+ * headline, optional supporting line. Server component — reveal is driven
+ * by the shared [data-reveal] observer, not a client animation library. */
 export default function SectionHeading({
   eyebrow,
   title,
@@ -20,30 +16,26 @@ export default function SectionHeading({
 }) {
   const alignCls = align === "center" ? "text-center items-center" : "text-left items-start";
   return (
-    <motion.div
-      initial="hidden"
-      whileInView="visible"
-      viewport={{ once: true, margin: "-60px" }}
-      variants={staggerContainer(0.1)}
-      className={`flex flex-col gap-3 ${alignCls}`}
-    >
-      <motion.p variants={fadeUp} className="eyebrow">
+    <div className={`flex flex-col gap-3 ${alignCls}`}>
+      <p data-reveal className="eyebrow">
         {eyebrow}
-      </motion.p>
-      <motion.h2
-        variants={fadeUp}
+      </p>
+      <h2
+        data-reveal
+        style={{ "--reveal-i": 1 } as React.CSSProperties}
         className={`font-display text-display-2 font-bold ${onCream ? "text-[var(--cream-ink)]" : "text-[var(--ink)]"}`}
       >
         {title}
-      </motion.h2>
+      </h2>
       {subtitle && (
-        <motion.p
-          variants={fadeUp}
+        <p
+          data-reveal
+          style={{ "--reveal-i": 2 } as React.CSSProperties}
           className={`max-w-2xl text-[15px] ${onCream ? "text-[var(--cream-muted)]" : "text-[var(--muted)]"}`}
         >
           {subtitle}
-        </motion.p>
+        </p>
       )}
-    </motion.div>
+    </div>
   );
 }

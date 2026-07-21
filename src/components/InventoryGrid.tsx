@@ -1,9 +1,5 @@
-"use client";
-
 import Image from "next/image";
-import { motion } from "framer-motion";
 import type { Translations } from "@/i18n/translations";
-import { clipWipe, staggerContainer } from "@/lib/motion";
 import SectionHeading from "./SectionHeading";
 
 type Tile = {
@@ -14,6 +10,8 @@ type Tile = {
   sizes: string;
 };
 
+/** Server component — clip-path wipe reveals come from the shared
+ * [data-reveal="wipe"] observer, hover scale from CSS. No client JS. */
 export default function InventoryGrid({ t }: { t: Translations }) {
   // One large frame + four satellites. All photos are real warehouse
   // floor shots; portrait originals are cropped by their frames.
@@ -21,35 +19,35 @@ export default function InventoryGrid({ t }: { t: Translations }) {
     {
       src: "/warehouse/floor-wide.jpg",
       caption: t.inventory.captionFloor,
-      alt: "Warehouse floor stacked with Hero Genuine Parts export cartons",
+      alt: "Raznova Exports warehouse floor in Pune stacked with two-wheeler spare parts export cartons",
       className: "col-span-2 md:col-span-7 md:row-span-2 aspect-[16/10] md:aspect-auto",
       sizes: "(min-width: 768px) 58vw, 100vw",
     },
     {
       src: "/warehouse/aisle-office.jpg",
       caption: t.inventory.captionOffice,
-      alt: "Racked aisle of boxed OEM-pattern spare parts",
+      alt: "Racked aisle of boxed OEM-pattern motorcycle spare parts ready for export",
       className: "md:col-span-5 aspect-[3/4] md:aspect-[16/10]",
       sizes: "(min-width: 768px) 42vw, 50vw",
     },
     {
       src: "/warehouse/aisle-pigeonholes.jpg",
       caption: t.inventory.captionPigeonholes,
-      alt: "Pigeonhole racking holding small fast-moving parts",
+      alt: "Pigeonhole racking holding fast-moving small two-wheeler parts by SKU",
       className: "md:col-span-5 aspect-[3/4] md:aspect-[16/10]",
       sizes: "(min-width: 768px) 42vw, 50vw",
     },
     {
       src: "/warehouse/bulk-cartons.jpg",
       caption: t.inventory.captionBulk,
-      alt: "Bulk storage aisle with stacked Hero Genuine Parts cartons",
+      alt: "Bulk carton storage aisle of motorcycle spare parts awaiting container consolidation",
       className: "md:col-span-6 aspect-[3/4] md:aspect-[16/9]",
       sizes: "(min-width: 768px) 50vw, 50vw",
     },
     {
       src: "/warehouse/aisle-dispatch.jpg",
       caption: t.inventory.captionDispatch,
-      alt: "Dispatch aisle with open cartons being picked",
+      alt: "Dispatch aisle with open cartons being picked for a spare parts export order",
       className: "md:col-span-6 aspect-[3/4] md:aspect-[16/9]",
       sizes: "(min-width: 768px) 50vw, 50vw",
     },
@@ -64,17 +62,12 @@ export default function InventoryGrid({ t }: { t: Translations }) {
           subtitle={t.inventory.subtitle}
         />
 
-        <motion.div
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: "-80px" }}
-          variants={staggerContainer(0.12)}
-          className="mt-12 grid grid-cols-2 gap-3 md:grid-cols-12 md:gap-4"
-        >
-          {tiles.map((tile) => (
-            <motion.figure
-              key={tile.src + tile.caption}
-              variants={clipWipe}
+        <div className="mt-12 grid grid-cols-2 gap-3 md:grid-cols-12 md:gap-4">
+          {tiles.map((tile, i) => (
+            <figure
+              key={tile.src}
+              data-reveal="wipe"
+              style={{ "--reveal-i": i } as React.CSSProperties}
               className={`group relative overflow-hidden rounded-[var(--radius-md)] border border-[var(--line)] ${tile.className}`}
             >
               <div className="absolute inset-0 transition-transform duration-700 [transition-timing-function:cubic-bezier(0.21,0.47,0.32,0.98)] group-hover:scale-[1.03]">
@@ -93,9 +86,9 @@ export default function InventoryGrid({ t }: { t: Translations }) {
                   {tile.caption}
                 </span>
               </figcaption>
-            </motion.figure>
+            </figure>
           ))}
-        </motion.div>
+        </div>
       </div>
     </section>
   );

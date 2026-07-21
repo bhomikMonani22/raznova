@@ -1,43 +1,11 @@
-"use client";
-
-import { useEffect, useRef, useState } from "react";
-import { animate, motion, useInView, useReducedMotion } from "framer-motion";
 import type { Translations } from "@/i18n/translations";
-import { fadeUp, staggerContainer } from "@/lib/motion";
 import { IEC, GSTIN } from "@/lib/config";
 import { getOemLogo } from "@/lib/brandLogos";
 
 // Fitment-reference brands shown as logo chips (text chip when no logo file).
 const FITMENT_BRANDS = ["Hero", "Bajaj", "TVS", "Honda"] as const;
 
-/** Counts 0 → target once when scrolled into view, 1.2s ease-out,
- * tabular-nums. Reduced motion jumps straight to the final value. */
-function CountUp({ target, suffix }: { target: number; suffix?: string }) {
-  const ref = useRef<HTMLSpanElement>(null);
-  const inView = useInView(ref, { once: true, margin: "-40px" });
-  const prefersReducedMotion = useReducedMotion();
-  const [value, setValue] = useState(prefersReducedMotion ? target : 0);
-
-  useEffect(() => {
-    if (!inView) return;
-    // Reduced motion: duration 0 jumps straight to the final value.
-    const controls = animate(0, target, {
-      duration: prefersReducedMotion ? 0 : 1.2,
-      ease: "easeOut",
-      onUpdate: (v) => setValue(Math.round(v)),
-    });
-    return () => controls.stop();
-  }, [inView, target, prefersReducedMotion]);
-
-  return (
-    <span ref={ref} style={{ fontVariantNumeric: "tabular-nums" }}>
-      {value}
-      {suffix}
-    </span>
-  );
-}
-
-/** OEM fitment logos on small light chips (logos have opaque light
+/** OEM fitment logos on small light chips (the logo files have opaque light
  * backgrounds, so a cream chip is the uniform treatment). */
 function FitmentChips({ label }: { label: string }) {
   return (
@@ -71,51 +39,35 @@ function FitmentChips({ label }: { label: string }) {
   );
 }
 
+/** Server component. The "4+" counter counts up via the shared count-up
+ * script in the root layout (data-countup), which respects reduced motion
+ * and leaves the final value in the HTML for crawlers. */
 export default function TrustStrip({ t }: { t: Translations }) {
   const cells = [
     {
       key: "brands",
-      value: <CountUp target={4} suffix="+" />,
+      value: (
+        <span data-countup="4" data-countup-suffix="+" style={{ fontVariantNumeric: "tabular-nums" }}>
+          4+
+        </span>
+      ),
       label: t.trust.brandsLabel,
       sub: <FitmentChips label={t.trust.brandsSub} />,
       mono: false,
     },
-    {
-      key: "iec",
-      value: IEC,
-      label: t.trust.iecLabel,
-      sub: null,
-      mono: true,
-    },
-    {
-      key: "gstin",
-      value: GSTIN,
-      label: t.trust.gstinLabel,
-      sub: null,
-      mono: true,
-    },
-    {
-      key: "port",
-      value: t.trust.portValue,
-      label: t.trust.portLabel,
-      sub: null,
-      mono: false,
-    },
+    { key: "iec", value: IEC, label: t.trust.iecLabel, sub: null, mono: true },
+    { key: "gstin", value: GSTIN, label: t.trust.gstinLabel, sub: null, mono: true },
+    { key: "port", value: t.trust.portValue, label: t.trust.portLabel, sub: null, mono: false },
   ];
 
   return (
     <section className="border-y border-[var(--line)] bg-[var(--surface)]/40">
-      <motion.div
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, margin: "-40px" }}
-        variants={staggerContainer(0.08)}
-        className="mx-auto grid max-w-6xl grid-cols-2 divide-x divide-[var(--line)] lg:grid-cols-4"
-      >
-        {cells.map((cell) => (
-          <motion.div
+      <div className="mx-auto grid max-w-6xl grid-cols-2 divide-x divide-[var(--line)] lg:grid-cols-4">
+        {cells.map((cell, i) => (
+          <div
             key={cell.key}
-            variants={fadeUp}
+            data-reveal
+            style={{ "--reveal-i": i } as React.CSSProperties}
             className="flex min-h-[104px] flex-col justify-center gap-1 px-5 py-6"
           >
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
@@ -131,9 +83,9 @@ export default function TrustStrip({ t }: { t: Translations }) {
               {cell.value}
             </p>
             {cell.sub}
-          </motion.div>
+          </div>
         ))}
-      </motion.div>
+      </div>
     </section>
   );
 }

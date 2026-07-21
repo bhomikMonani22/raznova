@@ -1,10 +1,7 @@
-"use client";
-
-import { motion } from "framer-motion";
 import type { Translations } from "@/i18n/translations";
-import { fadeUp, staggerContainer } from "@/lib/motion";
 import SectionHeading from "./SectionHeading";
 
+/** Server component — reveal via the shared [data-reveal] observer. */
 export default function MarketsServed({ t }: { t: Translations }) {
   const regions = [
     { title: t.markets.latamTitle, body: t.markets.latamBody },
@@ -15,22 +12,21 @@ export default function MarketsServed({ t }: { t: Translations }) {
     <section className="border-t border-[var(--line)] px-5 py-20 md:py-28">
       <div className="mx-auto max-w-6xl">
         <SectionHeading eyebrow="LatAm · Africa" title={t.markets.title} />
-        <motion.div
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: "-60px" }}
-          variants={staggerContainer(0.1)}
-          className="mt-12 grid gap-4 sm:grid-cols-2"
-        >
-          {regions.map((region) => (
-            <motion.div key={region.title} variants={fadeUp} className="card-surface p-8 text-center">
+        <div className="mt-12 grid gap-4 sm:grid-cols-2">
+          {regions.map((region, i) => (
+            <div
+              key={region.title}
+              data-reveal
+              style={{ "--reveal-i": i } as React.CSSProperties}
+              className="card-surface p-8 text-center"
+            >
               <h3 className="font-display text-display-3 font-bold text-[var(--accent)]">
                 {region.title}
               </h3>
               <p className="mt-3 text-sm leading-relaxed text-[var(--muted)]">{region.body}</p>
-            </motion.div>
+            </div>
           ))}
-        </motion.div>
+        </div>
       </div>
     </section>
   );

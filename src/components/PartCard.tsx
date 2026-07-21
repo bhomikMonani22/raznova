@@ -1,33 +1,18 @@
 import Image from "next/image";
-import { motion } from "framer-motion";
-import type { ShowcasePart } from "@/lib/types";
-import type { Locale } from "@/i18n/locales";
-import { cardHover } from "@/lib/motion";
+import type { ShowcasePartLite } from "@/lib/types";
 
-export default function PartCard({
-  part,
-  locale,
-}: {
-  part: ShowcasePart;
-  locale: Locale;
-}) {
-  const description =
-    locale === "es" ? part.description_es : part.description_en;
-
+/** Pure presentational card — hover lift is CSS, no animation library.
+ * `description` is resolved server-side so only the active locale's text
+ * ships to the client. */
+export default function PartCard({ part }: { part: ShowcasePartLite }) {
   return (
-    <motion.div
-      initial="rest"
-      whileHover="hover"
-      animate="rest"
-      variants={cardHover}
-      className="flex h-full flex-col overflow-hidden card-surface"
-    >
+    <div className="flex h-full flex-col overflow-hidden card-surface transition-transform duration-300 hover:-translate-y-1">
       {/* Part photos are shot on white — a warm light panel keeps them
           reading as product imagery inside the dark card. */}
       <div className="relative m-2.5 aspect-[4/3] rounded-[10px] bg-[var(--cream)]">
         <Image
           src={part.image_url}
-          alt={`${part.brand} ${part.model} — ${description}`}
+          alt={`${part.brand} ${part.model} ${part.description} — two-wheeler spare part for export`}
           fill
           sizes="(min-width: 1024px) 22vw, (min-width: 640px) 30vw, 45vw"
           quality={70}
@@ -39,9 +24,9 @@ export default function PartCard({
           {part.category}
         </p>
         <p className="mt-1.5 text-[15px] leading-snug text-[var(--ink)]">
-          {part.brand} {part.model} {description}
+          {part.brand} {part.model} {part.description}
         </p>
       </div>
-    </motion.div>
+    </div>
   );
 }

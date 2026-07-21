@@ -1,10 +1,8 @@
-"use client";
-
-import { motion } from "framer-motion";
 import type { Translations } from "@/i18n/translations";
-import { fadeUp, staggerContainer, cardHover } from "@/lib/motion";
 import SectionHeading from "./SectionHeading";
 
+/** Server component — reveal via the shared [data-reveal] observer,
+ * hover lift via CSS. No client JS. */
 export default function WhyRaznova({ t }: { t: Translations }) {
   const cards = [
     { title: t.whyRaznova.sourcingTitle, body: t.whyRaznova.sourcingBody },
@@ -17,36 +15,22 @@ export default function WhyRaznova({ t }: { t: Translations }) {
     <section className="px-5 py-20 md:py-28">
       <div className="mx-auto max-w-6xl">
         <SectionHeading eyebrow="Raznova" title={t.whyRaznova.title} />
-        <motion.div
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: "-60px" }}
-          variants={staggerContainer(0.08)}
-          className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
-        >
+        <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {cards.map((card, i) => (
-            <motion.div
+            <div
               key={card.title}
-              variants={fadeUp}
-              initial="rest"
-              whileHover="hover"
-              animate="rest"
-              {...cardHover}
-              className="card-surface flex flex-col p-6"
+              data-reveal
+              style={{ "--reveal-i": i } as React.CSSProperties}
+              className="card-surface flex flex-col p-6 transition-transform duration-300 hover:-translate-y-1"
             >
-              <span
-                className="font-mono-credentials text-xs text-[var(--accent)]"
-                aria-hidden="true"
-              >
+              <span className="font-mono-credentials text-xs text-[var(--accent)]" aria-hidden="true">
                 {String(i + 1).padStart(2, "0")}
               </span>
-              <h3 className="font-display mt-3 text-lg font-bold text-[var(--ink)]">
-                {card.title}
-              </h3>
+              <h3 className="font-display mt-3 text-lg font-bold text-[var(--ink)]">{card.title}</h3>
               <p className="mt-2.5 text-sm leading-relaxed text-[var(--muted)]">{card.body}</p>
-            </motion.div>
+            </div>
           ))}
-        </motion.div>
+        </div>
       </div>
     </section>
   );

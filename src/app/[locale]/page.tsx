@@ -26,6 +26,50 @@ import Hero from "@/components/Hero";
 import catalogs from "@/data/catalogs.json";
 import showcase from "@/data/showcase.json";
 import type { CatalogEntry, ShowcasePart } from "@/lib/types";
+import type { ShowcaseGroup } from "@/components/Showcase";
+import { FEATURED_BIKES } from "@/lib/featuredBikes";
+import { getOemLogo } from "@/lib/brandLogos";
+
+const OEM_FITMENT_BRANDS = ["Hero", "Bajaj", "TVS"] as const;
+
+/** Build the showcase payload server-side: pre-grouped per featured bike,
+ * one locale's description only, and just the fields the card renders.
+ * Keeps the full catalog intact while roughly halving what crosses to the
+ * client (LCP/TBT budget). */
+function buildShowcaseGroups(locale: string): ShowcaseGroup[] {
+  const parts = showcase as ShowcasePart[];
+  const all = catalogs as CatalogEntry[];
+
+  return FEATURED_BIKES.map((bike) => {
+    const match = bike.catalogModel
+      ? all.find(
+          (c) =>
+            c.catalog_type === "vehicle" &&
+            c.brand === bike.brand &&
+            c.model === bike.catalogModel
+        )
+      : undefined;
+
+    return {
+      brand: bike.brand,
+      model: bike.model,
+      catalogHref: match
+        ? `/${locale}/catalog/${match.vehicle_type}/${encodeURIComponent(match.brand)}`
+        : null,
+      parts: parts
+        .filter((p) => p.brand === bike.brand && p.model === bike.model)
+        .sort((a, b) => a.sort_order - b.sort_order)
+        .map((p) => ({
+          id: p.id,
+          brand: p.brand,
+          model: p.model,
+          category: p.category,
+          image_url: p.image_url,
+          description: locale === "es" ? p.description_es : p.description_en,
+        })),
+    };
+  });
+}
 
 // Below-fold sections are code-split: they stay fully server-rendered in the
 // HTML, but their hydration JS (framer-motion et al.) loads after the shell,
@@ -62,8 +106,11 @@ export default async function HomePage({
       <Showcase
         locale={locale}
         t={t}
-        showcase={showcase as ShowcasePart[]}
-        catalogs={catalogs as CatalogEntry[]}
+        groups={buildShowcaseGroups(locale)}
+        oemLogos={OEM_FITMENT_BRANDS.map((brand) => ({
+          brand,
+          src: getOemLogo(brand) ?? "",
+        })).filter((l) => l.src)}
       />
       <BrandsMarquee t={t} />
       <HowWeWork t={t} />
