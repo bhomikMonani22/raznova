@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { isLocale } from "@/i18n/locales";
 import { getTranslations } from "@/i18n/translations";
 import catalogs from "@/data/catalogs.json";
 import type { CatalogEntry } from "@/lib/types";
 import CatalogList from "@/components/CatalogList";
-import { catalogMeta, canonical } from "@/lib/seo";
+import Breadcrumbs from "@/components/Breadcrumbs";
+import { catalogMeta, canonical, SITE_URL } from "@/lib/seo";
+import JsonLd from "@/components/JsonLd";
+import { breadcrumbs, vehicleCatalogProducts } from "@/lib/schema";
 
 export async function generateMetadata({
   params,
@@ -56,14 +58,23 @@ export default async function BrandCatalogPage({
 
   if (entries.length === 0) notFound();
 
+  const pageUrl = `${SITE_URL}/${locale}/catalog/${vehicleType}/${encodeURIComponent(brandName)}`;
+
   return (
     <div className="mx-auto max-w-6xl px-5 py-14">
-      <Link
-        href={`/${locale}`}
-        className="text-sm font-medium text-[var(--accent)] underline-offset-4 hover:underline"
-      >
-        ← {t.catalog.backToBrands}
-      </Link>
+      <JsonLd
+        data={breadcrumbs([
+          { name: t.nav.home, url: `${SITE_URL}/${locale}` },
+          { name: `${brandName} — ${t.catalog.title}`, url: pageUrl },
+        ])}
+      />
+      <JsonLd data={vehicleCatalogProducts(locale, vehicleType, brandName, entries)} />
+      <Breadcrumbs
+        items={[
+          { name: t.nav.home, href: `/${locale}` },
+          { name: `${brandName} — ${t.catalog.title}` },
+        ]}
+      />
       <h1 className="font-display mt-5 text-display-2 font-bold text-[var(--ink)]">
         {brandName} — {t.catalog.title}
       </h1>

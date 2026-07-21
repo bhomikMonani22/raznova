@@ -1,13 +1,15 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { isLocale } from "@/i18n/locales";
 import { getTranslations } from "@/i18n/translations";
 import catalogs from "@/data/catalogs.json";
 import type { CatalogEntry } from "@/lib/types";
 import CatalogList from "@/components/CatalogList";
+import Breadcrumbs from "@/components/Breadcrumbs";
 import { getBrandLogo } from "@/lib/brandLogos";
-import { partBrandMeta, canonical } from "@/lib/seo";
+import { partBrandMeta, canonical, SITE_URL } from "@/lib/seo";
+import JsonLd from "@/components/JsonLd";
+import { breadcrumbs, partBrandProducts } from "@/lib/schema";
 
 export async function generateMetadata({
   params,
@@ -51,15 +53,23 @@ export default async function PartBrandPage({
   if (entries.length === 0) notFound();
 
   const logo = getBrandLogo(brandName);
+  const pageUrl = `${SITE_URL}/${locale}/brands/${encodeURIComponent(brandName)}`;
 
   return (
     <div className="mx-auto max-w-6xl px-5 py-14">
-      <Link
-        href={`/${locale}`}
-        className="text-sm font-medium text-[var(--accent)] underline-offset-4 hover:underline"
-      >
-        ← {t.catalog.backToBrands}
-      </Link>
+      <JsonLd
+        data={breadcrumbs([
+          { name: t.nav.home, url: `${SITE_URL}/${locale}` },
+          { name: `${brandName} — ${t.catalog.title}`, url: pageUrl },
+        ])}
+      />
+      <JsonLd data={partBrandProducts(locale, brandName, entries)} />
+      <Breadcrumbs
+        items={[
+          { name: t.nav.home, href: `/${locale}` },
+          { name: `${brandName} — ${t.catalog.title}` },
+        ]}
+      />
       <div className="mt-5 flex items-center gap-4">
         {logo ? (
           <span className="flex h-12 w-28 items-center justify-center rounded-[8px] bg-[var(--cream)] px-3">

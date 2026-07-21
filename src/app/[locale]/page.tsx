@@ -4,6 +4,8 @@ import { getTranslations } from "@/i18n/translations";
 import { notFound } from "next/navigation";
 import dynamic from "next/dynamic";
 import { HOME_META, canonical } from "@/lib/seo";
+import JsonLd from "@/components/JsonLd";
+import { webPage } from "@/lib/schema";
 
 export async function generateMetadata({
   params,
@@ -48,8 +50,11 @@ export default async function HomePage({
   if (!isLocale(locale)) notFound();
   const t = getTranslations(locale);
 
+  const meta = HOME_META[locale];
+
   return (
     <>
+      <JsonLd data={webPage(locale, "", meta.title, meta.description)} />
       <Hero t={t} />
       <TrustStrip t={t} />
       <InventoryGrid t={t} />

@@ -4,6 +4,8 @@ import { getTranslations } from "@/i18n/translations";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SetHtmlLang from "@/components/SetHtmlLang";
+import JsonLd from "@/components/JsonLd";
+import { organizationAndWebsite } from "@/lib/schema";
 import catalogs from "@/data/catalogs.json";
 import type { CatalogEntry } from "@/lib/types";
 
@@ -25,6 +27,7 @@ export default async function LocaleLayout({
 
   return (
     <>
+      <JsonLd data={organizationAndWebsite(locale)} />
       <SetHtmlLang locale={locale} />
       <Header locale={locale} t={t} catalogs={catalogs as CatalogEntry[]} />
       <main className="flex-1">{children}</main>
