@@ -1,14 +1,13 @@
 import Image from "next/image";
 import type { Translations } from "@/i18n/translations";
 import { whatsappLink, mailtoLink, IEC, GSTIN } from "@/lib/config";
-import Magnetic from "./Magnetic";
 
 const WORD_STAGGER = 0.05;
 
 /** Full-viewport cinematic hero. Entrance choreography is pure CSS
  * (.hero-rise + per-element --rise-delay) so the headline and subtitle
- * paint at first render — LCP is never gated on hydration. Only the
- * magnetic CTA wrappers are client components. */
+ * paint at first render — LCP is never gated on hydration. Fully server
+ * rendered: the magnetic CTA pull is handled by the shared boot script. */
 export default function Hero({ t }: { t: Translations }) {
   const words = t.hero.title.split(" ");
   const afterHeadline = words.length * WORD_STAGGER + 0.35;
@@ -21,7 +20,7 @@ export default function Hero({ t }: { t: Translations }) {
         <div className="ken-burns absolute inset-0">
           <Image
             src="/warehouse/floor-wide.jpg"
-            alt="Raznova Exports warehouse in Pune — Hero Genuine Parts cartons staged for dispatch"
+            alt="Raznova Exports warehouse in Pune with two-wheeler spare parts cartons staged for export dispatch"
             fill
             priority
             sizes="100vw"
@@ -79,25 +78,23 @@ export default function Hero({ t }: { t: Translations }) {
           className="hero-rise-solid mt-8 flex flex-wrap items-center gap-4"
           style={{ "--rise-delay": `${afterHeadline + 0.2}s` } as React.CSSProperties}
         >
-          <Magnetic>
-            <a
+          <a
+              data-magnetic
               href={whatsappLink("Hi Raznova, I'd like a quote.")}
               target="_blank"
               rel="noopener noreferrer"
-              className="cta-glow inline-flex min-h-12 items-center gap-2.5 rounded-[var(--radius-md)] bg-[var(--accent)] px-7 py-3.5 text-base font-semibold text-[var(--accent-ink)]"
+              className="magnetic cta-glow inline-flex min-h-12 items-center gap-2.5 rounded-[var(--radius-md)] bg-[var(--accent)] px-7 py-3.5 text-base font-semibold text-[var(--accent-ink)]"
             >
               <WhatsAppIcon />
               {t.hero.ctaWhatsapp}
             </a>
-          </Magnetic>
-          <Magnetic>
             <a
+              data-magnetic
               href={mailtoLink("Quote Request")}
-              className="inline-flex min-h-12 items-center rounded-[var(--radius-md)] border border-[var(--line-strong)] px-7 py-3.5 text-base font-semibold text-[var(--ink)] transition-colors hover:border-[var(--ink)]/40"
+              className="magnetic inline-flex min-h-12 items-center rounded-[var(--radius-md)] border border-[var(--line-strong)] px-7 py-3.5 text-base font-semibold text-[var(--ink)] transition-colors hover:border-[var(--ink)]/40"
             >
               {t.hero.ctaEmail}
             </a>
-          </Magnetic>
         </div>
       </div>
 

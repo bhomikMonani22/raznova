@@ -262,6 +262,7 @@ body {
    --------------------------------------------------------------------- */
 #intro-curtain {
   display: none;
+  transition: transform 0.5s var(--ease-wipe);
 }
 
 html.intro-pending #intro-curtain {
@@ -270,6 +271,30 @@ html.intro-pending #intro-curtain {
 
 html.intro-pending body {
   overflow: hidden;
+}
+
+html.intro-lifting #intro-curtain {
+  transform: translateY(-100%);
+}
+
+html.intro-lifting .intro-mark {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.intro-mark {
+  animation: intro-logo 0.4s ease-out both;
+}
+
+@keyframes intro-logo {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 /* ---------------------------------------------------------------------
