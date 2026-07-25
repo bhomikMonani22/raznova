@@ -72,6 +72,24 @@ export const QUOTE_META: Record<Locale, { title: string; description: string }> 
   },
 };
 
+export const PARTS_META: Record<Locale, { title: string; description: string }> = {
+  en: {
+    title: "Two-Wheeler Spare Parts Index | Raznova Exports",
+    description:
+      "Full index of two-wheeler spare parts stocked for export from India — engine, electrical, transmission, brakes and body, by motorcycle platform.",
+  },
+  es: {
+    title: "Índice de Repuestos para Motos | Raznova Exports",
+    description:
+      "Índice completo de repuestos para motos en stock para exportación desde India — motor, eléctrico, transmisión, frenos y carrocería, por plataforma.",
+  },
+  "en-ZA": {
+    title: "Two-Wheeler Spare Parts Index | Raznova Exports",
+    description:
+      "Full index of two-wheeler spare parts stocked for export from India to Africa — engine, electrical, transmission, brakes and body, by platform.",
+  },
+};
+
 export function catalogMeta(brand: string, locale: Locale): { title: string; description: string } {
   const label = fitmentLabel(brand, locale);
   if (locale === "es") {

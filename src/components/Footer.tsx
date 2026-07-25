@@ -118,6 +118,14 @@ export default function Footer({ locale, t }: { locale: Locale; t: Translations 
                   </Link>
                 </li>
               ))}
+              <li>
+                <Link
+                  href={`/${locale}/parts`}
+                  className="font-medium text-[var(--ink)]/85 transition-colors hover:text-[var(--accent)]"
+                >
+                  {t.partsIndex.linkLabel}
+                </Link>
+              </li>
             </ul>
           </div>
 

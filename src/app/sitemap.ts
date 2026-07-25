@@ -56,6 +56,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "monthly",
       priority: 0.8,
     });
+    entries.push({
+      url: `${SITE_URL}/${locale}/parts`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    });
   }
 
   // Top-level English landing pages (Phase-3 SEO) — high-intent B2B targets.

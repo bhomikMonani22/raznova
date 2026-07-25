@@ -70,6 +70,15 @@ export type Translations = {
     paragraphs: string[];
     linksTitle: string;
   };
+  partsIndex: {
+    eyebrow: string;
+    title: string;
+    lead: string;
+    note: string;
+    partsFor: string;
+    viewCatalogue: string;
+    linkLabel: string;
+  };
   positioning: {
     line: string;
   };
@@ -245,6 +254,15 @@ export const TRANSLATIONS: Record<Locale, Translations> = {
         "Every consignment is QC-checked, sea-worthy export-packed and photographed before sealing, then dispatched from Nhava Sheva (JNPT) with a complete document set — bill of lading, commercial invoice and packing list. We ship to Latin America and to East and Southern Africa on TT or LC terms, with ECGC-insured export shipments and quotations returned within one working day.",
       ],
       linksTitle: "Export markets and fitment ranges",
+    },
+    partsIndex: {
+      eyebrow: "Parts index",
+      title: "Two-wheeler spare parts index",
+      lead: "The complete reference list of spare parts we stock and export, grouped by the motorcycle platform they fit. Every item below is an OEM-pattern or aftermarket compatible part held for wholesale export from Pune, India.",
+      note: "Part names indicate the vehicle a component fits. Send any list of items from this page for a line-by-line quotation with availability and lead times.",
+      partsFor: "spare parts",
+      viewCatalogue: "View catalogue",
+      linkLabel: "Full parts index",
     },
     positioning: {
       line: "Genuine-grade aftermarket parts · OEM fitment referenced · Export-ready",
@@ -422,6 +440,15 @@ export const TRANSLATIONS: Record<Locale, Translations> = {
       ],
       linksTitle: "Mercados de exportación y gamas de compatibilidad",
     },
+    partsIndex: {
+      eyebrow: "Índice de repuestos",
+      title: "Índice de repuestos para motos",
+      lead: "La lista de referencia completa de los repuestos que mantenemos en stock y exportamos, agrupados por la plataforma de motocicleta a la que corresponden. Cada artículo es una pieza de patrón OEM o compatible aftermarket disponible para exportación mayorista desde Pune, India.",
+      note: "Los nombres de las piezas indican el vehículo al que corresponde cada componente. Envíe cualquier lista de artículos de esta página para recibir una cotización línea por línea con disponibilidad y plazos.",
+      partsFor: "repuestos",
+      viewCatalogue: "Ver catálogo",
+      linkLabel: "Índice completo de repuestos",
+    },
     positioning: {
       line: "Repuestos de calidad aftermarket · Compatibilidad OEM referenciada · Listo para exportar", // TODO: confirm Spanish copy
     },
@@ -597,6 +624,15 @@ export const TRANSLATIONS: Record<Locale, Translations> = {
         "Every consignment is QC-checked, sea-worthy export-packed and photographed before sealing, then dispatched from Nhava Sheva (JNPT) to Durban, Mombasa and Dar es Salaam with a complete document set — bill of lading, commercial invoice and packing list. We work on TT or LC terms, with ECGC-insured export shipments and quotations returned within one working day.",
       ],
       linksTitle: "Export markets and fitment ranges",
+    },
+    partsIndex: {
+      eyebrow: "Parts index",
+      title: "Two-wheeler spare parts index",
+      lead: "The complete reference list of spare parts we stock and export to Africa, grouped by the motorcycle platform they fit. Every item below is an OEM-pattern or aftermarket compatible part held for wholesale export from Pune, India.",
+      note: "Part names indicate the vehicle a component fits. Send any list of items from this page for a line-by-line quotation with availability and shipping lead times.",
+      partsFor: "spare parts",
+      viewCatalogue: "View catalogue",
+      linkLabel: "Full parts index",
     },
     positioning: {
       line: "Genuine-grade aftermarket parts · OEM fitment referenced · Export-ready", // inherited from en
