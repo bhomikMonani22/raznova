@@ -84,6 +84,7 @@ const LightSection = dynamic(() => import("@/components/LightSection"));
 const WhyRaznova = dynamic(() => import("@/components/WhyRaznova"));
 const MarketsServed = dynamic(() => import("@/components/MarketsServed"));
 const AboutBlock = dynamic(() => import("@/components/AboutBlock"));
+const GlobalReach = dynamic(() => import("@/components/GlobalReach"));
 const ContactFinale = dynamic(() => import("@/components/ContactFinale"));
 
 export default async function HomePage({
@@ -117,6 +118,7 @@ export default async function HomePage({
       <HowWeWork t={t} />
       <LightSection t={t} />
       <WhyRaznova t={t} />
+      <GlobalReach t={t} />
       <MarketsServed t={t} />
       <AboutBlock locale={locale} t={t} />
       <ContactFinale locale={locale} t={t} />

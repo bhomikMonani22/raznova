@@ -79,6 +79,15 @@ export type Translations = {
     viewCatalogue: string;
     linkLabel: string;
   };
+  globalReach: {
+    eyebrow: string;
+    title: string;
+    lead: string;
+    originLabel: string;
+    lanesTitle: string;
+    transitLabel: string;
+    lanes: { port: string; country: string; transit: string }[];
+  };
   positioning: {
     line: string;
   };
@@ -263,6 +272,20 @@ export const TRANSLATIONS: Record<Locale, Translations> = {
       partsFor: "spare parts",
       viewCatalogue: "View catalogue",
       linkLabel: "Full parts index",
+    },
+    globalReach: {
+      eyebrow: "Global reach",
+      title: "From Nhava Sheva to your port",
+      lead: "Every consignment leaves India through Nhava Sheva (JNPT) and sails on established lanes to our active markets. Indicative transit times below; exact timing is confirmed at booking.",
+      originLabel: "Nhava Sheva (JNPT), India",
+      lanesTitle: "Active shipping lanes",
+      transitLabel: "Indicative transit",
+      lanes: [
+        { port: "Mombasa", country: "Kenya", transit: "2–3 weeks" },
+        { port: "Durban", country: "South Africa", transit: "≈3 weeks" },
+        { port: "Port Louis", country: "Mauritius", transit: "≈2 weeks" },
+        { port: "Cartagena", country: "Colombia", transit: "Long-haul, via trans-shipment" },
+      ],
     },
     positioning: {
       line: "Genuine-grade aftermarket parts · OEM fitment referenced · Export-ready",
@@ -449,6 +472,20 @@ export const TRANSLATIONS: Record<Locale, Translations> = {
       viewCatalogue: "Ver catálogo",
       linkLabel: "Índice completo de repuestos",
     },
+    globalReach: {
+      eyebrow: "Alcance global",
+      title: "De Nhava Sheva a su puerto",
+      lead: "Cada consignación sale de India por Nhava Sheva (JNPT) y navega por rutas establecidas hacia nuestros mercados activos. Tiempos de tránsito indicativos; el plazo exacto se confirma en la reserva.",
+      originLabel: "Nhava Sheva (JNPT), India",
+      lanesTitle: "Rutas de embarque activas",
+      transitLabel: "Tránsito indicativo",
+      lanes: [
+        { port: "Mombasa", country: "Kenia", transit: "2–3 semanas" },
+        { port: "Durban", country: "Sudáfrica", transit: "≈3 semanas" },
+        { port: "Port Louis", country: "Mauricio", transit: "≈2 semanas" },
+        { port: "Cartagena", country: "Colombia", transit: "Larga distancia, vía trasbordo" },
+      ],
+    },
     positioning: {
       line: "Repuestos de calidad aftermarket · Compatibilidad OEM referenciada · Listo para exportar", // TODO: confirm Spanish copy
     },
@@ -633,6 +670,20 @@ export const TRANSLATIONS: Record<Locale, Translations> = {
       partsFor: "spare parts",
       viewCatalogue: "View catalogue",
       linkLabel: "Full parts index",
+    },
+    globalReach: {
+      eyebrow: "Global reach",
+      title: "From Nhava Sheva to your port",
+      lead: "Every consignment leaves India through Nhava Sheva (JNPT) and sails on established lanes to Southern and East African ports. Indicative transit times below; exact timing is confirmed at booking.",
+      originLabel: "Nhava Sheva (JNPT), India",
+      lanesTitle: "Active shipping lanes",
+      transitLabel: "Indicative transit",
+      lanes: [
+        { port: "Durban", country: "South Africa", transit: "≈3 weeks" },
+        { port: "Mombasa", country: "Kenya", transit: "2–3 weeks" },
+        { port: "Port Louis", country: "Mauritius", transit: "≈2 weeks" },
+        { port: "Cartagena", country: "Colombia", transit: "Long-haul, via trans-shipment" },
+      ],
     },
     positioning: {
       line: "Genuine-grade aftermarket parts · OEM fitment referenced · Export-ready", // inherited from en

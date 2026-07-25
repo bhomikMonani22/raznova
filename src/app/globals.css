@@ -413,6 +413,116 @@ html.intro-lifting .intro-mark {
   background: linear-gradient(to top, var(--bg) 0%, transparent 100%);
 }
 
+/* ---------------------------------------------------------------------
+   Global reach map. All motion is CSS: the arcs draw themselves once when
+   the section scrolls in (piggybacking the [data-reveal] observer on the
+   wrapper), and each vessel rides its lane via offset-path, which the
+   compositor can handle without layout or paint work.
+   --------------------------------------------------------------------- */
+.reach-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  paint-order: stroke;
+  stroke: #08080a;
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+
+/* Labels are unreadable once the map is scaled to a phone; the lane list
+   below the map carries the same information there. */
+@media (max-width: 767px) {
+  .reach-label {
+    display: none;
+  }
+}
+
+.reach-arc {
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+  opacity: 0.75;
+}
+
+[data-reveal].is-visible .reach-arc {
+  animation: reach-draw 1.6s var(--ease-reveal) forwards;
+  animation-delay: calc(var(--arc-i, 0) * 0.22s);
+}
+
+@keyframes reach-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.reach-vessel {
+  offset-rotate: 0deg;
+  opacity: 0;
+}
+
+[data-reveal].is-visible .reach-vessel {
+  animation-name: reach-sail;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+@keyframes reach-sail {
+  0% {
+    offset-distance: 0%;
+    opacity: 0;
+  }
+  8%,
+  88% {
+    opacity: 1;
+  }
+  100% {
+    offset-distance: 100%;
+    opacity: 0;
+  }
+}
+
+.reach-pulse {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: reach-pulse 3.2s ease-in-out infinite;
+}
+
+@keyframes reach-pulse {
+  0%,
+  100% {
+    transform: scale(0.8);
+    opacity: 0.85;
+  }
+  50% {
+    transform: scale(1.25);
+    opacity: 0.35;
+  }
+}
+
+/* No offset-path support: hide the vessels rather than parking them all at
+   the origin. Arcs and markers still tell the story. */
+@supports not (offset-path: path("M0 0L1 1")) {
+  .reach-vessel {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reach-arc,
+  [data-reveal].is-visible .reach-arc {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+
+  .reach-vessel,
+  .reach-pulse {
+    animation: none;
+  }
+
+  .reach-vessel {
+    display: none;
+  }
+}
+
 /* Magnetic CTA wrapper: springy settle via CSS transition (JS only sets
    the transform), instant 0.97 press feedback. */
 .magnetic {
