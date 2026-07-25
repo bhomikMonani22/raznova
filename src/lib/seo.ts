@@ -21,6 +21,19 @@ export function canonical(locale: Locale, path = ""): string {
   return `${SITE_URL}/${locale}${path}`;
 }
 
+/** hreflang map for a page that exists in all three real locales. Only en,
+ * es and en-ZA are declared — every one is a genuinely translated or
+ * region-adapted route; no locales are fabricated. x-default points at the
+ * English route, which is what an unmatched visitor should land on. */
+export function languageAlternates(path = ""): Record<string, string> {
+  return {
+    en: `${SITE_URL}/en${path}`,
+    es: `${SITE_URL}/es${path}`,
+    "en-ZA": `${SITE_URL}/en-ZA${path}`,
+    "x-default": `${SITE_URL}/en${path}`,
+  };
+}
+
 /** Per-locale home metadata — keyword-led, ≤60-char titles, ≤155-char
  * descriptions with IEC-registered exporter phrasing. */
 export const HOME_META: Record<Locale, { title: string; description: string }> = {
@@ -71,6 +84,20 @@ export function catalogMeta(brand: string, locale: Locale): { title: string; des
     title: `${label} Spare Parts Catalogues | Raznova Exports`,
     description: `Download ${label.toLowerCase()} two-wheeler spare parts catalogues (PDF). Wholesale export supply from IEC-registered Raznova Exports, Pune, India.`,
   };
+}
+
+/** The Phase-3 landing page that matches an OEM vehicle brand, so catalog
+ * pages can link out to the deeper market/fitment content (and pass link
+ * equity both ways). Returns null for brands without a landing page. */
+const BRAND_LANDING: Record<string, { slug: string; label: string }> = {
+  Hero: { slug: "hero-spare-parts-exporter", label: "Hero-fitment spare parts exporter" },
+  Bajaj: { slug: "bajaj-spare-parts-exporter", label: "Bajaj-compatible spare parts supplier" },
+  TVS: { slug: "tvs-spare-parts-exporter", label: "TVS-pattern spare parts exporter" },
+  Honda: { slug: "honda-fitment-spare-parts-exporter", label: "Honda-fitment spare parts exporter" },
+};
+
+export function brandLanding(brand: string): { slug: string; label: string } | null {
+  return BRAND_LANDING[brand] ?? null;
 }
 
 export function partBrandMeta(brand: string, locale: Locale): { title: string; description: string } {

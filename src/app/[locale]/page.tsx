@@ -3,7 +3,7 @@ import { isLocale } from "@/i18n/locales";
 import { getTranslations } from "@/i18n/translations";
 import { notFound } from "next/navigation";
 import dynamic from "next/dynamic";
-import { HOME_META, canonical } from "@/lib/seo";
+import { HOME_META, canonical, languageAlternates } from "@/lib/seo";
 import JsonLd from "@/components/JsonLd";
 import { webPage } from "@/lib/schema";
 
@@ -18,7 +18,7 @@ export async function generateMetadata({
   return {
     title: { absolute: meta.title },
     description: meta.description,
-    alternates: { canonical: canonical(locale) },
+    alternates: { canonical: canonical(locale), languages: languageAlternates() },
     openGraph: { title: meta.title, description: meta.description, url: canonical(locale) },
   };
 }
@@ -83,6 +83,7 @@ const HowWeWork = dynamic(() => import("@/components/HowWeWork"));
 const LightSection = dynamic(() => import("@/components/LightSection"));
 const WhyRaznova = dynamic(() => import("@/components/WhyRaznova"));
 const MarketsServed = dynamic(() => import("@/components/MarketsServed"));
+const AboutBlock = dynamic(() => import("@/components/AboutBlock"));
 const ContactFinale = dynamic(() => import("@/components/ContactFinale"));
 
 export default async function HomePage({
@@ -117,6 +118,7 @@ export default async function HomePage({
       <LightSection t={t} />
       <WhyRaznova t={t} />
       <MarketsServed t={t} />
+      <AboutBlock locale={locale} t={t} />
       <ContactFinale locale={locale} t={t} />
     </>
   );

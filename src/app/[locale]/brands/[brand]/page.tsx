@@ -7,7 +7,7 @@ import type { CatalogEntry } from "@/lib/types";
 import CatalogList from "@/components/CatalogList";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import { getBrandLogo } from "@/lib/brandLogos";
-import { partBrandMeta, canonical, SITE_URL } from "@/lib/seo";
+import { partBrandMeta, canonical, languageAlternates, SITE_URL } from "@/lib/seo";
 import JsonLd from "@/components/JsonLd";
 import { breadcrumbs, partBrandProducts } from "@/lib/schema";
 
@@ -24,7 +24,7 @@ export async function generateMetadata({
   return {
     title: { absolute: meta.title },
     description: meta.description,
-    alternates: { canonical: canonical(locale, path) },
+    alternates: { canonical: canonical(locale, path), languages: languageAlternates(path) },
     openGraph: { title: meta.title, description: meta.description, url: canonical(locale, path) },
   };
 }

@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { isLocale } from "@/i18n/locales";
 import { getTranslations } from "@/i18n/translations";
 import QuoteForm from "@/components/QuoteForm";
-import { QUOTE_META, canonical } from "@/lib/seo";
+import { QUOTE_META, canonical, languageAlternates } from "@/lib/seo";
 import JsonLd from "@/components/JsonLd";
 import { webPage } from "@/lib/schema";
 
@@ -18,7 +18,10 @@ export async function generateMetadata({
   return {
     title: { absolute: meta.title },
     description: meta.description,
-    alternates: { canonical: canonical(locale, "/quote") },
+    alternates: {
+      canonical: canonical(locale, "/quote"),
+      languages: languageAlternates("/quote"),
+    },
     openGraph: { title: meta.title, description: meta.description, url: canonical(locale, "/quote") },
   };
 }

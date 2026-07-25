@@ -11,8 +11,48 @@ import {
   mailtoLink,
   telLink,
 } from "@/lib/config";
+import catalogs from "@/data/catalogs.json";
+import type { CatalogEntry } from "@/lib/types";
+import { LANDINGS } from "@/lib/landings";
+
+// The header's brand dropdowns only render once opened, so their links are
+// absent from the server HTML. This footer carries the site's real
+// navigational link graph instead: every catalog, aftermarket-brand and
+// landing page is reachable from every page, for crawlers and for users.
+function navGroups(locale: Locale) {
+  const all = catalogs as CatalogEntry[];
+
+  const vehicleBrands = Array.from(
+    new Set(all.filter((c) => c.catalog_type === "vehicle").map((c) => c.brand))
+  ).sort();
+  const partBrands = Array.from(
+    new Set(all.filter((c) => c.catalog_type === "brand").map((c) => c.brand))
+  ).sort();
+
+  const vehicleLinks = vehicleBrands.map((brand) => {
+    const entry = all.find((c) => c.catalog_type === "vehicle" && c.brand === brand)!;
+    return {
+      label: brand,
+      href: `/${locale}/catalog/${entry.vehicle_type}/${encodeURIComponent(brand)}`,
+    };
+  });
+
+  const partLinks = partBrands.map((brand) => ({
+    label: brand,
+    href: `/${locale}/brands/${encodeURIComponent(brand)}`,
+  }));
+
+  // Landing pages are English-only; link them from the /en tree only.
+  const countryLandings = LANDINGS.filter((l) => l.slug.startsWith("motorcycle-spare-parts-") && l.slug !== "motorcycle-spare-parts-exporter-india");
+  const rangeLandings = LANDINGS.filter((l) => !countryLandings.includes(l));
+
+  return { vehicleLinks, partLinks, countryLandings, rangeLandings };
+}
 
 export default function Footer({ locale, t }: { locale: Locale; t: Translations }) {
+  const { vehicleLinks, partLinks, countryLandings, rangeLandings } = navGroups(locale);
+  const showLandings = locale === "en";
+
   return (
     <footer className="mt-auto border-t border-[var(--line)] bg-[var(--bg)]">
       <div className="mx-auto max-w-6xl px-5 py-12 text-sm text-[var(--muted)]">
@@ -60,6 +100,82 @@ export default function Footer({ locale, t }: { locale: Locale; t: Translations 
             </a>
           </div>
         </div>
+
+        {/* Navigational link graph — crawlable on every page. */}
+        <nav
+          aria-label="Footer"
+          className="mt-10 grid gap-8 border-t border-[var(--line)] pt-10 sm:grid-cols-2 lg:grid-cols-4"
+        >
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--ink)]/70">
+              {t.nav.motorcycle}
+            </p>
+            <ul className="mt-3 space-y-2">
+              {vehicleLinks.map((link) => (
+                <li key={link.href}>
+                  <Link href={link.href} className="transition-colors hover:text-[var(--accent)]">
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--ink)]/70">
+              {t.nav.partBrands}
+            </p>
+            <ul className="mt-3 space-y-2">
+              {partLinks.map((link) => (
+                <li key={link.href}>
+                  <Link href={link.href} className="transition-colors hover:text-[var(--accent)]">
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {showLandings && (
+            <>
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--ink)]/70">
+                  Fitment ranges
+                </p>
+                <ul className="mt-3 space-y-2">
+                  {rangeLandings.map((l) => (
+                    <li key={l.slug}>
+                      <Link
+                        href={`/${l.slug}`}
+                        className="transition-colors hover:text-[var(--accent)]"
+                      >
+                        {l.h1}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--ink)]/70">
+                  Export markets
+                </p>
+                <ul className="mt-3 space-y-2">
+                  {countryLandings.map((l) => (
+                    <li key={l.slug}>
+                      <Link
+                        href={`/${l.slug}`}
+                        className="transition-colors hover:text-[var(--accent)]"
+                      >
+                        {l.h1}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </>
+          )}
+        </nav>
 
         {/* Credentials line — every page, mono, perfectly aligned. */}
         <div className="mt-10 border-t border-[var(--line)] pt-6">

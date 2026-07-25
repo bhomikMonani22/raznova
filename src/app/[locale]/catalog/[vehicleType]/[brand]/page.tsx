@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { isLocale } from "@/i18n/locales";
 import { getTranslations } from "@/i18n/translations";
@@ -6,7 +7,7 @@ import catalogs from "@/data/catalogs.json";
 import type { CatalogEntry } from "@/lib/types";
 import CatalogList from "@/components/CatalogList";
 import Breadcrumbs from "@/components/Breadcrumbs";
-import { catalogMeta, canonical, SITE_URL } from "@/lib/seo";
+import { catalogMeta, canonical, languageAlternates, brandLanding, SITE_URL } from "@/lib/seo";
 import JsonLd from "@/components/JsonLd";
 import { breadcrumbs, vehicleCatalogProducts } from "@/lib/schema";
 
@@ -23,7 +24,7 @@ export async function generateMetadata({
   return {
     title: { absolute: meta.title },
     description: meta.description,
-    alternates: { canonical: canonical(locale, path) },
+    alternates: { canonical: canonical(locale, path), languages: languageAlternates(path) },
     openGraph: { title: meta.title, description: meta.description, url: canonical(locale, path) },
   };
 }
@@ -59,6 +60,8 @@ export default async function BrandCatalogPage({
   if (entries.length === 0) notFound();
 
   const pageUrl = `${SITE_URL}/${locale}/catalog/${vehicleType}/${encodeURIComponent(brandName)}`;
+  // English-only landing pages, so only surface the cross-link on /en.
+  const landing = locale === "en" ? brandLanding(brandName) : null;
 
   return (
     <div className="mx-auto max-w-6xl px-5 py-14">
@@ -78,6 +81,17 @@ export default async function BrandCatalogPage({
       <h1 className="font-display mt-5 text-display-2 font-bold text-[var(--ink)]">
         {brandName} — {t.catalog.title}
       </h1>
+      {landing && (
+        <p className="mt-4 text-[15px] text-[var(--muted)]">
+          <Link
+            href={`/${landing.slug}`}
+            className="font-medium text-[var(--accent)] underline-offset-4 hover:underline"
+          >
+            {landing.label}
+          </Link>{" "}
+          — export supply, fitment coverage and shipping details.
+        </p>
+      )}
       <div className="mt-8">
         <CatalogList entries={entries} t={t} />
       </div>

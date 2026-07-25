@@ -64,6 +64,12 @@ export type Translations = {
     callLabel: string;
     credsTitle: string;
   };
+  about: {
+    eyebrow: string;
+    title: string;
+    paragraphs: string[];
+    linksTitle: string;
+  };
   positioning: {
     line: string;
   };
@@ -229,6 +235,16 @@ export const TRANSLATIONS: Record<Locale, Translations> = {
       emailCta: "Email us",
       callLabel: "Call or WhatsApp",
       credsTitle: "Business credentials",
+    },
+    about: {
+      eyebrow: "About Raznova Exports",
+      title: "Two-wheeler spare parts exporter, Pune, India",
+      paragraphs: [
+        "Raznova Exports is an IEC-registered exporter of two-wheeler spare parts, operating from Pune in the heart of India's OE-supplier belt. We supply OEM-pattern and aftermarket compatible parts with fitment across Hero, Bajaj, TVS and Honda motorcycle platforms to importers, distributors, wholesalers and dealer networks overseas.",
+        "Our range covers engine components, electricals and CDI, clutch and transmission, cables and controls, brakes and suspension, filters and service parts, body and visors, and batteries and tyres-tubes. We stock the fast-moving references that turn over in real markets rather than slow long-tail parts, and we consolidate mixed-model, mixed-category container loads so a distributor can cover a whole market from one shipment.",
+        "Every consignment is QC-checked, sea-worthy export-packed and photographed before sealing, then dispatched from Nhava Sheva (JNPT) with a complete document set — bill of lading, commercial invoice and packing list. We ship to Latin America and to East and Southern Africa on TT or LC terms, with ECGC-insured export shipments and quotations returned within one working day.",
+      ],
+      linksTitle: "Export markets and fitment ranges",
     },
     positioning: {
       line: "Genuine-grade aftermarket parts · OEM fitment referenced · Export-ready",
@@ -396,6 +412,16 @@ export const TRANSLATIONS: Record<Locale, Translations> = {
       callLabel: "Llame o WhatsApp",
       credsTitle: "Credenciales comerciales",
     },
+    about: {
+      eyebrow: "Sobre Raznova Exports",
+      title: "Exportador de repuestos para motos, Pune, India",
+      paragraphs: [
+        "Raznova Exports es un exportador registrado (IEC) de repuestos para motos, con sede en Pune, en el corazón del cinturón de proveedores OE de India. Suministramos repuestos de patrón OEM y compatibles aftermarket con aplicación en plataformas Hero, Bajaj, TVS y Honda para importadores, distribuidores, mayoristas y redes de concesionarios en el exterior.",
+        "Nuestra gama cubre componentes de motor, eléctricos y CDI, embrague y transmisión, cables y controles, frenos y suspensión, filtros y piezas de mantenimiento, carrocería y visores, además de baterías y llantas-neumáticos. Mantenemos en stock las referencias de alta rotación que realmente se mueven en el mercado, y consolidamos contenedores con modelos y categorías mixtas para que un distribuidor cubra todo su mercado en un solo embarque.",
+        "Cada consignación se verifica, se empaca para transporte marítimo y se fotografía antes de sellar, y luego se despacha desde Nhava Sheva (JNPT) con la documentación completa: conocimiento de embarque, factura comercial y lista de empaque. Enviamos a América Latina y a África Oriental y Meridional con términos TT o LC, con embarques asegurados por ECGC y cotizaciones en un día hábil.",
+      ],
+      linksTitle: "Mercados de exportación y gamas de compatibilidad",
+    },
     positioning: {
       line: "Repuestos de calidad aftermarket · Compatibilidad OEM referenciada · Listo para exportar", // TODO: confirm Spanish copy
     },
@@ -561,6 +587,16 @@ export const TRANSLATIONS: Record<Locale, Translations> = {
       emailCta: "Email us",
       callLabel: "Call or WhatsApp",
       credsTitle: "Business credentials",
+    },
+    about: {
+      eyebrow: "About Raznova Exports",
+      title: "Two-wheeler spare parts exporter to Africa",
+      paragraphs: [
+        "Raznova Exports is an IEC-registered exporter of two-wheeler spare parts, operating from Pune in the heart of India's OE-supplier belt. We supply OEM-pattern and aftermarket compatible parts with fitment across Hero, Bajaj, TVS and Honda motorcycle platforms to importers, distributors and dealer networks across Southern and East Africa.",
+        "Our range covers engine components, electricals and CDI, clutch and transmission, cables and controls, brakes and suspension, filters and service parts, body and visors, and batteries and tyres-tubes. We stock the fast-moving references that turn over in African markets — including the Boxer, HLX and commuter workhorse platforms — and consolidate mixed-model container loads so a distributor can cover a whole market from one shipment.",
+        "Every consignment is QC-checked, sea-worthy export-packed and photographed before sealing, then dispatched from Nhava Sheva (JNPT) to Durban, Mombasa and Dar es Salaam with a complete document set — bill of lading, commercial invoice and packing list. We work on TT or LC terms, with ECGC-insured export shipments and quotations returned within one working day.",
+      ],
+      linksTitle: "Export markets and fitment ranges",
     },
     positioning: {
       line: "Genuine-grade aftermarket parts · OEM fitment referenced · Export-ready", // inherited from en
