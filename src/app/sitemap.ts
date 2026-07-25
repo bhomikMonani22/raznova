@@ -3,6 +3,7 @@ import catalogs from "@/data/catalogs.json";
 import type { CatalogEntry } from "@/lib/types";
 import { LOCALES } from "@/i18n/locales";
 import { SITE_URL } from "@/lib/seo";
+import { LANDING_SLUGS } from "@/lib/landings";
 
 // Every indexable page across all three locales. lastModified is the build
 // date — the site is fully static, so content only changes on deploy.
@@ -56,5 +57,16 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.8,
     });
   }
+
+  // Top-level English landing pages (Phase-3 SEO) — high-intent B2B targets.
+  for (const slug of LANDING_SLUGS) {
+    entries.push({
+      url: `${SITE_URL}/${slug}`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.9,
+    });
+  }
+
   return entries;
 }

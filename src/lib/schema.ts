@@ -77,6 +77,36 @@ export function webPage(locale: Locale, path: string, name: string, description:
   };
 }
 
+/** WebPage schema for a top-level (non-locale-prefixed) landing page. */
+export function landingWebPage(slug: string, name: string, description: string) {
+  const url = `${SITE_URL}/${slug}`;
+  return {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "@id": `${url}#webpage`,
+    url,
+    name,
+    description,
+    inLanguage: "en",
+    isPartOf: { "@id": WEBSITE_ID },
+    about: { "@id": ORG_ID },
+  };
+}
+
+/** FAQPage schema. Answers are plain text (no markup) and mirror the visible
+ * Q&A on the page, per Google's FAQ structured-data policy. */
+export function faqPage(faqs: { q: string; a: string }[]) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faqs.map((f) => ({
+      "@type": "Question",
+      name: f.q,
+      acceptedAnswer: { "@type": "Answer", text: f.a },
+    })),
+  };
+}
+
 export function breadcrumbs(items: { name: string; url: string }[]) {
   return {
     "@context": "https://schema.org",
