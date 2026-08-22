@@ -57,6 +57,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.8,
     });
     entries.push({
+      url: `${SITE_URL}/${locale}/catalogue/colombia`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    });
+    entries.push({
       url: `${SITE_URL}/${locale}/parts`,
       lastModified,
       changeFrequency: "monthly",

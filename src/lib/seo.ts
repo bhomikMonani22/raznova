@@ -90,6 +90,24 @@ export const PARTS_META: Record<Locale, { title: string; description: string }> 
   },
 };
 
+export const CATALOGUE_META: Record<Locale, { title: string; description: string }> = {
+  en: {
+    title: "Hero-Fitment Parts Catalogue — Colombia | Raznova",
+    description:
+      "Part-number catalogue of Hero-fitment spare parts for Colombia — Hunk, Eco Deluxe, Splendor, Xpulse and Thriller fitment. No pricing; quotations on request.",
+  },
+  es: {
+    title: "Catálogo de Repuestos Hero — Colombia | Raznova",
+    description:
+      "Catálogo con números de parte de repuestos compatibles con Hero para Colombia — Hunk, Eco Deluxe, Splendor, Xpulse y Thriller. Cotización a solicitud.",
+  },
+  "en-ZA": {
+    title: "Hero-Fitment Parts Catalogue — Colombia | Raznova",
+    description:
+      "Part-number catalogue of Hero-fitment spare parts supplied to Colombia — Hunk, Eco Deluxe, Splendor, Xpulse and Thriller fitment. Quotations on request.",
+  },
+};
+
 export function catalogMeta(brand: string, locale: Locale): { title: string; description: string } {
   const label = fitmentLabel(brand, locale);
   if (locale === "es") {

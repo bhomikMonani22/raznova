@@ -79,6 +79,20 @@ export type Translations = {
     viewCatalogue: string;
     linkLabel: string;
   };
+  catalogue: {
+    eyebrow: string;
+    title: string;
+    lead: string;
+    note: string;
+    partNo: string;
+    description: string;
+    fits: string;
+    category: string;
+    download: string;
+    partsCount: string;
+    otherBrands: string;
+    linkLabel: string;
+  };
   globalReach: {
     eyebrow: string;
     title: string;
@@ -272,6 +286,20 @@ export const TRANSLATIONS: Record<Locale, Translations> = {
       partsFor: "spare parts",
       viewCatalogue: "View catalogue",
       linkLabel: "Full parts index",
+    },
+    catalogue: {
+      eyebrow: "Colombia · Parts catalogue",
+      title: "Hero-fitment parts catalogue — Colombia",
+      lead: "Working reference list of Hero-fitment spare parts we supply into the Colombian market, listed by the model each part fits. Part numbers are OEM-pattern references for fitment identification. No pricing is published — send a list for a line-by-line quotation.",
+      note: "Descriptions are shown in Spanish exactly as they appear on our Colombian order sheets, with an English equivalent alongside.",
+      partNo: "Part number",
+      description: "Description",
+      fits: "Fits",
+      category: "Category",
+      download: "Download as CSV",
+      partsCount: "part references",
+      otherBrands: "Bajaj-compatible and TVS-pattern catalogues for Colombia are available on request — send us the models you stock and we will return a matching list.",
+      linkLabel: "Colombia parts catalogue",
     },
     globalReach: {
       eyebrow: "Global reach",
@@ -472,6 +500,20 @@ export const TRANSLATIONS: Record<Locale, Translations> = {
       viewCatalogue: "Ver catálogo",
       linkLabel: "Índice completo de repuestos",
     },
+    catalogue: {
+      eyebrow: "Colombia · Catálogo de repuestos",
+      title: "Catálogo de repuestos compatibles con Hero — Colombia",
+      lead: "Lista de referencia de repuestos compatibles con Hero que suministramos al mercado colombiano, ordenada por el modelo al que corresponde cada pieza. Los números de parte son referencias de patrón OEM para identificar compatibilidad. No publicamos precios — envíenos su lista para una cotización línea por línea.",
+      note: "Las descripciones aparecen en español tal como figuran en nuestras órdenes para Colombia, con su equivalente en inglés al lado.",
+      partNo: "Número de parte",
+      description: "Descripción",
+      fits: "Compatible con",
+      category: "Categoría",
+      download: "Descargar en CSV",
+      partsCount: "referencias",
+      otherBrands: "Los catálogos compatibles con Bajaj y de patrón TVS para Colombia están disponibles a solicitud — indíquenos los modelos que maneja y le enviaremos la lista correspondiente.",
+      linkLabel: "Catálogo de repuestos Colombia",
+    },
     globalReach: {
       eyebrow: "Alcance global",
       title: "De Nhava Sheva a su puerto",
@@ -670,6 +712,20 @@ export const TRANSLATIONS: Record<Locale, Translations> = {
       partsFor: "spare parts",
       viewCatalogue: "View catalogue",
       linkLabel: "Full parts index",
+    },
+    catalogue: {
+      eyebrow: "Colombia · Parts catalogue",
+      title: "Hero-fitment parts catalogue — Colombia",
+      lead: "Working reference list of Hero-fitment spare parts we supply into the Colombian market, listed by the model each part fits. Part numbers are OEM-pattern references for fitment identification. No pricing is published — send a list for a line-by-line quotation.",
+      note: "Descriptions are shown in Spanish exactly as they appear on our Colombian order sheets, with an English equivalent alongside.",
+      partNo: "Part number",
+      description: "Description",
+      fits: "Fits",
+      category: "Category",
+      download: "Download as CSV",
+      partsCount: "part references",
+      otherBrands: "Bajaj-compatible and TVS-pattern catalogues for Colombia are available on request — send us the models you stock and we will return a matching list.",
+      linkLabel: "Colombia parts catalogue",
     },
     globalReach: {
       eyebrow: "Global reach",

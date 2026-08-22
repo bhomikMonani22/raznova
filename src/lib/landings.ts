@@ -444,6 +444,7 @@ export const LANDINGS: Landing[] = [
       },
     ],
     related: [
+      { label: "Colombia parts catalogue (part numbers)", href: "/en/catalogue/colombia" },
       { label: "Bajaj-compatible spare parts supplier", href: "/bajaj-spare-parts-exporter" },
       { label: "Sitio en español", href: "/es" },
       { label: "Two-wheeler spare parts wholesale", href: "/two-wheeler-spare-parts-wholesale" },
