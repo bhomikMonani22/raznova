@@ -121,6 +121,13 @@ export default async function ColombiaCataloguePage({
             {items.length} {t.catalogue.partsCount}
           </p>
           <a
+            href="/catalogue/raznova-export-parts-catalogue.pdf"
+            download
+            className="inline-flex min-h-10 items-center rounded-[var(--radius-md)] border border-[var(--accent)]/60 bg-[var(--accent-soft)] px-4 py-2 text-sm font-semibold text-[var(--accent)] transition-colors hover:bg-[var(--accent)]/20"
+          >
+            {t.catalogue.downloadPdf}
+          </a>
+          <a
             href="/catalogue/raznova-hero-fitment-colombia.csv"
             download
             className="inline-flex min-h-10 items-center rounded-[var(--radius-md)] border border-[var(--line-strong)] px-4 py-2 text-sm font-semibold text-[var(--ink)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"

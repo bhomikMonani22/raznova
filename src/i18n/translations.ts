@@ -89,6 +89,7 @@ export type Translations = {
     fits: string;
     category: string;
     download: string;
+    downloadPdf: string;
     partsCount: string;
     otherBrands: string;
     linkLabel: string;
@@ -297,8 +298,9 @@ export const TRANSLATIONS: Record<Locale, Translations> = {
       fits: "Fits",
       category: "Category",
       download: "Download as CSV",
+      downloadPdf: "Download full catalogue (PDF)",
       partsCount: "part references",
-      otherBrands: "Bajaj-compatible and TVS-pattern catalogues for Colombia are available on request — send us the models you stock and we will return a matching list.",
+      otherBrands: "The downloadable PDF catalogue above covers Bajaj-compatible and TVS-pattern ranges as well — Boxer, Discover, Platina and Pulsar fitment, plus the Apache RTR line — with part numbers for every model. Send us the models you stock for a matching quotation.",
       linkLabel: "Colombia parts catalogue",
     },
     globalReach: {
@@ -510,8 +512,9 @@ export const TRANSLATIONS: Record<Locale, Translations> = {
       fits: "Compatible con",
       category: "Categoría",
       download: "Descargar en CSV",
+      downloadPdf: "Descargar catálogo completo (PDF)",
       partsCount: "referencias",
-      otherBrands: "Los catálogos compatibles con Bajaj y de patrón TVS para Colombia están disponibles a solicitud — indíquenos los modelos que maneja y le enviaremos la lista correspondiente.",
+      otherBrands: "El catálogo en PDF descargable arriba también incluye las gamas compatibles con Bajaj y de patrón TVS — Boxer, Discover, Platina y Pulsar, además de la línea Apache RTR — con números de parte para cada modelo. Indíquenos los modelos que maneja para una cotización.",
       linkLabel: "Catálogo de repuestos Colombia",
     },
     globalReach: {
@@ -723,8 +726,9 @@ export const TRANSLATIONS: Record<Locale, Translations> = {
       fits: "Fits",
       category: "Category",
       download: "Download as CSV",
+      downloadPdf: "Download full catalogue (PDF)",
       partsCount: "part references",
-      otherBrands: "Bajaj-compatible and TVS-pattern catalogues for Colombia are available on request — send us the models you stock and we will return a matching list.",
+      otherBrands: "The downloadable PDF catalogue above covers Bajaj-compatible and TVS-pattern ranges as well — Boxer, Discover, Platina and Pulsar fitment, plus the Apache RTR line — with part numbers for every model. Send us the models you stock for a matching quotation.",
       linkLabel: "Colombia parts catalogue",
     },
     globalReach: {
