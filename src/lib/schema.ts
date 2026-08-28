@@ -24,6 +24,15 @@ export function organizationAndWebsite(locale: Locale) {
         name: `${BRAND_NAME} Exports`,
         legalName: "Shrinath Ji Enterprises",
         url: SITE_URL,
+        // Plain-language identity: what LLMs and search engines quote when a
+        // user asks "who exports two-wheeler spare parts from India".
+        description:
+          "Raznova Exports is an IEC-registered exporter and wholesale supplier of two-wheeler (motorcycle) spare parts based in Pune, India. It supplies OEM-pattern and aftermarket compatible parts with fitment for Hero, Bajaj, TVS and Honda motorcycles to importers and distributors across Latin America and Africa, shipping from Nhava Sheva (JNPT).",
+        slogan: "Two-wheeler spare parts exporter — Pune, India",
+        foundingLocation: {
+          "@type": "Place",
+          name: "Pune, Maharashtra, India",
+        },
         logo: {
           "@type": "ImageObject",
           url: `${SITE_URL}/brand/raznova-mark.png`,
@@ -39,15 +48,48 @@ export function organizationAndWebsite(locale: Locale) {
           addressRegion: "Maharashtra",
           addressCountry: "IN",
         },
-        contactPoint: [
-          {
-            "@type": "ContactPoint",
-            contactType: "sales",
-            telephone: WHATSAPP_NUMBER,
-            email: CONTACT_EMAIL,
-            availableLanguage: ["en", "es"],
-          },
+        // Registration identifiers as verifiable facts.
+        identifier: [
+          { "@type": "PropertyValue", propertyID: "IEC", value: "HFRPM4730J" },
+          { "@type": "PropertyValue", propertyID: "GSTIN", value: "27HFRPM4730J1ZT" },
         ],
+        // Topical expertise — helps entity/topic association.
+        knowsAbout: [
+          "Two-wheeler spare parts export",
+          "Motorcycle spare parts",
+          "Hero-fitment spare parts",
+          "Bajaj-compatible spare parts",
+          "TVS-pattern spare parts",
+          "Honda-fitment spare parts",
+          "OEM-pattern and aftermarket motorcycle components",
+          "Wholesale parts distribution from India",
+        ],
+        // Markets served — supports "which countries does it export to".
+        areaServed: [
+          "Colombia",
+          "Kenya",
+          "South Africa",
+          "Mauritius",
+          "Peru",
+          "Ecuador",
+          "Tanzania",
+          "Latin America",
+          "Africa",
+        ].map((name) => ({ "@type": "Place", name })),
+        hasOfferCatalog: {
+          "@type": "OfferCatalog",
+          name: "Two-wheeler spare parts",
+          itemListElement: [
+            "Engine components",
+            "Electricals & CDI",
+            "Clutch & transmission",
+            "Cables & controls",
+            "Brakes & suspension",
+            "Filters & service parts",
+            "Body & visors",
+            "Batteries & tyres-tubes",
+          ].map((name) => ({ "@type": "OfferCatalog", name })),
+        },
         sameAs: ["https://www.linkedin.com/company/raznova/"],
       },
       {
