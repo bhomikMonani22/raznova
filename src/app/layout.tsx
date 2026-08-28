@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Inter } from "next/font/google";
 import "./globals.css";
+import { Analytics as VercelAnalytics } from "@vercel/analytics/next";
 import LenisProvider from "@/components/LenisProvider";
+import Analytics from "@/components/Analytics";
 import { BRAND_NAME } from "@/lib/config";
 
 // Display: Geist (600/700, -2% tracking via .font-display) for confident,
@@ -97,7 +99,9 @@ export default function RootLayout({
         </div>
 
         <LenisProvider />
+        <Analytics />
         {children}
+        <VercelAnalytics />
       </body>
     </html>
   );

@@ -5,6 +5,7 @@ import type { Locale } from "@/i18n/locales";
 import type { Translations } from "@/i18n/translations";
 import { supabase } from "@/lib/supabaseClient";
 import { CONTACT_EMAIL, whatsappLink, mailtoLink } from "@/lib/config";
+import { track } from "@/lib/analytics";
 
 type Status = "idle" | "submitting" | "success" | "error";
 
@@ -37,6 +38,11 @@ export default function QuoteForm({ locale, t }: { locale: Locale; t: Translatio
     });
 
     if (!error) {
+      // Analytics: record the funnel conversion. Non-sensitive metadata only
+      // (locale) — the visitor's country is added server-side from geo
+      // headers; no form fields are sent. Fire-and-forget, fail-silent.
+      track("quote_submit", { locale });
+
       // Fire-and-forget email notification to the business inbox via
       // FormSubmit (browser-only relay; activated once for CONTACT_EMAIL).
       // The Supabase row above is the source of truth — a failed
