@@ -26,11 +26,23 @@ const body = Inter({
   display: "optional",
 });
 
+// Search-engine ownership verification via HTML meta tags — the backup to
+// DNS verification. Set the token env vars in Vercel and redeploy; when a
+// value is absent the tag is simply omitted (no empty meta is emitted).
+//   GOOGLE_SITE_VERIFICATION  -> <meta name="google-site-verification" ...>
+//   BING_SITE_VERIFICATION    -> <meta name="msvalidate.01" ...>
+const googleVerification = process.env.GOOGLE_SITE_VERIFICATION;
+const bingVerification = process.env.BING_SITE_VERIFICATION;
+
 export const metadata: Metadata = {
   metadataBase: new URL("https://raznova.in"),
   title: "Motorcycle Spare Parts Exporter India | Raznova Exports",
   description:
     "IEC-registered two-wheeler spare parts exporter in Pune, India. OEM-pattern and aftermarket compatible ranges shipped worldwide from Nhava Sheva (JNPT).",
+  verification: {
+    ...(googleVerification ? { google: googleVerification } : {}),
+    ...(bingVerification ? { other: { "msvalidate.01": bingVerification } } : {}),
+  },
   openGraph: {
     title: "Raznova Exports — Two-Wheeler Spare Parts Export",
     description:
