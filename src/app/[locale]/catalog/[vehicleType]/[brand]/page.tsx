@@ -90,6 +90,19 @@ export default async function BrandCatalogPage({
             {landing.label}
           </Link>{" "}
           — export supply, fitment coverage and shipping details.
+          {locale === "en" && brandName === "Hero" && (
+            <>
+              {" "}
+              See also{" "}
+              <Link
+                href="/hero-fitment-parts-export"
+                className="font-medium text-[var(--accent)] underline-offset-4 hover:underline"
+              >
+                Hero-fitment parts for export markets
+              </Link>
+              .
+            </>
+          )}
         </p>
       )}
       <div className="mt-8">

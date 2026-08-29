@@ -555,6 +555,138 @@ export const LANDINGS: Landing[] = [
       { label: "Request a wholesale quote", href: QUOTE },
     ],
   },
+  {
+    slug: "hero-fitment-parts-export",
+    metaTitle: "Hero-Fitment Parts for Export Markets | Raznova",
+    metaDescription:
+      "Hero-fitment two-wheeler spare parts for export markets — Colombia, Philippines, Mexico, Guatemala, Nigeria, DR Congo. Splendor, HF Deluxe, Hunk, Xpulse fitment.",
+    eyebrow: "Hero Export Markets",
+    h1: "Hero-Fitment Two-Wheeler Spare Parts for Export Markets",
+    lead: "Raznova Exports supplies Hero-fitment two-wheeler spare parts to markets where Hero MotoCorp has an established or growing rider base, including Colombia, the Philippines, Mexico, Guatemala, Nigeria and the DR Congo. Raznova is an independent exporter; part numbers and model names identify fitment only and do not imply affiliation with Hero MotoCorp.",
+    sections: [
+      {
+        heading: "Latin America — Colombia, Mexico and Guatemala",
+        body: [
+          "Colombia is one of Hero MotoCorp's fastest-growing export markets, and Raznova supplies Hero-fitment parts for importers and distributors serving it, alongside Mexico and Guatemala. Coverage centres on the commuter platforms that carry volume — the Splendor and HF Deluxe families — and on premium models where they are imported, such as the Hunk 160R and Xpulse 200.",
+          "Categories supplied for these markets include engine components, electricals and CDI, clutch and transmission, cables and controls, and brakes and suspension. Spanish-language product context is available on the Raznova Spanish site for teams in the region.",
+        ],
+      },
+      {
+        heading: "Africa — Nigeria and the DR Congo",
+        body: [
+          "Hero commuter and workhorse motorcycles are widely ridden across West and Central Africa. For importers in Nigeria and the DR Congo, Raznova supplies Hero-fitment parts for the Splendor and HF Deluxe commuter platforms, with an emphasis on the fast-moving service items a working fleet consumes — brake shoes, clutch and transmission parts, cables, filters and electrical components.",
+        ],
+      },
+      {
+        heading: "Asia and beyond — the Philippines and Türkiye",
+        body: [
+          "The Philippines is an established Hero market, and Türkiye a growing one. Raznova supplies Hero-fitment engine, electrical, clutch, cable and brake parts for importers serving these markets, matched to the models each imports — from commuter Splendor and HF Deluxe platforms to the Hunk and Xpulse where they are sold.",
+        ],
+      },
+      {
+        heading: "Ordering and dispatch",
+        body: [
+          "All Hero-fitment orders dispatch from Nhava Sheva (JNPT), India, QC-checked and sea-worthy export-packed, with a complete document set — bill of lading, commercial invoice and packing list. " +
+            COMMERCIAL_TERMS,
+        ],
+      },
+    ],
+    faqs: [
+      {
+        q: "Are these genuine Hero MotoCorp parts?",
+        a: "No. Raznova Exports supplies OEM-pattern and aftermarket compatible parts with fitment for Hero motorcycles, and is not affiliated with or authorised by Hero MotoCorp. Model names identify fitment only.",
+      },
+      {
+        q: "Which Hero models do these parts fit?",
+        a: "Coverage centres on the Splendor and HF Deluxe commuter platforms, with premium models such as the Hunk 160R and Xpulse 200 where a market imports them. Send your specific models for confirmation on the quotation.",
+      },
+      {
+        q: "Which markets does Raznova supply Hero-fitment parts for?",
+        a: "Raznova supplies Hero-fitment parts for importers in markets where Hero has an established or growing rider base, including Colombia, the Philippines, Mexico, Guatemala, Nigeria and the DR Congo, dispatching from Nhava Sheva (JNPT), India.",
+      },
+      {
+        q: "What Hero-fitment categories are available?",
+        a: "Engine components, electricals and CDI, clutch and transmission, cables and controls, brakes and suspension, filters and service parts, and body and visor items.",
+      },
+    ],
+    related: [
+      { label: "Hero-fitment spare parts exporter", href: "/hero-spare-parts-exporter" },
+      { label: "Hero motorcycle catalogues", href: "/en/catalog/motorcycle/Hero" },
+      { label: "Motorcycle spare parts — Colombia", href: "/motorcycle-spare-parts-colombia" },
+      { label: "About Raznova Exports", href: "/about" },
+    ],
+  },
+  {
+    slug: "about",
+    metaTitle: "About Raznova Exports — Company Information",
+    metaDescription:
+      "Raznova Exports: IEC-registered two-wheeler spare parts exporter in Pune, India. Credentials, product categories, countries served, payment terms and contact.",
+    eyebrow: "Company",
+    h1: "About Raznova Exports — Company Information",
+    lead: "Raznova Exports is a Pune, India-based exporter of two-wheeler spare parts for Bajaj, TVS, Hero and Honda motorcycles, serving importers, distributors and wholesalers internationally. IEC HFRPM4730J, GSTIN 27HFRPM4730J1ZT.",
+    sections: [
+      {
+        heading: "Company and credentials",
+        body: [
+          "Raznova Exports is the export trading name of Shrinath Ji Enterprises, based in Pune, Maharashtra, India. It operates under Importer-Exporter Code (IEC) HFRPM4730J and GSTIN 27HFRPM4730J1ZT.",
+          "The company is an independent exporter of OEM-pattern and aftermarket compatible two-wheeler spare parts. It is not affiliated with or authorised by Hero MotoCorp, Bajaj Auto, TVS Motor or Honda; brand and model names are used only to identify the vehicle a part fits.",
+        ],
+      },
+      {
+        heading: "What Raznova exports",
+        body: [
+          "Two-wheeler (motorcycle) spare parts with fitment for Hero, Bajaj, TVS and Honda platforms, across eight categories: engine components; electricals and CDI; clutch and transmission; cables and controls; brakes and suspension; filters and service parts; body and visors; and batteries and tyres-tubes.",
+          "The focus is fast-moving, high-turnover service parts for commuter and workhorse models — for example Bajaj Boxer CT100/BM150, Pulsar, Discover and Platina; TVS Apache RTR and Star HLX; and Hero Splendor, HF Deluxe, Hunk and Xpulse.",
+        ],
+      },
+      {
+        heading: "Countries served and shipping",
+        body: [
+          "Raznova ships from Nhava Sheva (JNPT), India's largest container port, with active lanes to Kenya (Mombasa), South Africa (Durban), Mauritius (Port Louis) and Colombia (Cartagena), and supplies importers more widely across Latin America and East and Southern Africa.",
+          "Every consignment is QC-checked, sea-worthy export-packed and photographed before sealing, then dispatched with a complete document set — bill of lading, commercial invoice and packing list. Transit time depends on the destination port and is confirmed at booking.",
+        ],
+      },
+      {
+        heading: "Ordering, payment and contact",
+        body: [
+          "Minimum order quantities are set per line item and confirmed on the quotation. Raznova consolidates mixed-model, mixed-category container loads and accepts smaller trial orders from new partners. Payment is on TT or LC terms, and export shipments are ECGC-insured. Quotations are returned within one working day.",
+          "Contact: raznovaexports@gmail.com, phone/WhatsApp +91 93074 29165. To request pricing, send a parts list with model, part and quantity.",
+        ],
+      },
+    ],
+    faqs: [
+      {
+        q: "Does Raznova export genuine or aftermarket parts?",
+        a: "Raznova Exports supplies OEM-pattern and aftermarket compatible two-wheeler spare parts. It is an independent exporter and is not affiliated with or authorized by Hero MotoCorp, Bajaj Auto, TVS Motor or Honda. Brand and model names are used only to identify the vehicle a part fits.",
+      },
+      {
+        q: "What is the minimum order quantity?",
+        a: "Minimum order quantities are set per line item and confirmed on the quotation. Raznova consolidates mixed-model, mixed-category container loads and accepts smaller trial orders from new partners before scaling to full-container volumes.",
+      },
+      {
+        q: "Which countries does Raznova ship to?",
+        a: "Raznova Exports ships from Nhava Sheva (JNPT), India, with active lanes to Kenya, South Africa, Mauritius and Colombia, and supplies importers and distributors more widely across Latin America and East and Southern Africa.",
+      },
+      {
+        q: "What are the payment terms?",
+        a: "Payment is on TT (telegraphic transfer) or LC (letter of credit) terms. Export shipments are ECGC-insured. Specific terms are confirmed at the quotation stage.",
+      },
+      {
+        q: "How long does shipping take from India?",
+        a: "Transit time depends on the destination port and is confirmed at booking. Indicative sea-freight times from Nhava Sheva (JNPT) are around two to three weeks to Mombasa, about three weeks to Durban, and longer to Latin American ports via trans-shipment.",
+      },
+      {
+        q: "Is Raznova IEC and GST registered?",
+        a: "Yes. Raznova Exports operates under IEC (Importer-Exporter Code) HFRPM4730J and GSTIN 27HFRPM4730J1ZT, registered in India. It is the export trading name of Shrinath Ji Enterprises, based in Pune, Maharashtra.",
+      },
+    ],
+    related: [
+      { label: "Full parts index", href: "/en/parts" },
+      { label: "Colombia parts catalogue", href: "/en/catalogue/colombia" },
+      { label: "Hero-fitment parts for export markets", href: "/hero-fitment-parts-export" },
+      { label: "Request a wholesale quote", href: QUOTE },
+    ],
+  },
 ];
 
 export function getLanding(slug: string): Landing | undefined {

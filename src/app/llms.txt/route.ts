@@ -55,10 +55,17 @@ Fitment coverage for Hero, Bajaj, TVS and Honda motorcycle platforms across engi
 
 ${brandLandings.map((l) => link(l.h1, "/" + l.slug)).join("\n")}
 ${link("Motorcycle spare parts exporter in India", "/motorcycle-spare-parts-exporter-india")}
+${link("About Raznova Exports (company information)", "/about")}
 ${link("Full parts index (all references)", "/en/parts")}
 ${link("Colombia parts catalogue (part numbers)", "/en/catalogue/colombia")}
 ${link("Downloadable export parts catalogue (PDF, Hero/Bajaj/TVS)", "/catalogue/raznova-export-parts-catalogue.pdf")}
 ${link("Request a wholesale quote", "/en/quote")}
+
+## Hero-fitment export markets
+
+Raznova supplies Hero-fitment two-wheeler spare parts to markets where Hero MotoCorp has an established or growing rider base, including Colombia, the Philippines, Mexico, Guatemala, Nigeria and the DR Congo. Coverage centres on the Splendor and HF Deluxe commuter platforms, with premium models such as the Hunk 160R and Xpulse 200 where imported.
+
+${link("Hero-fitment parts for export markets", "/hero-fitment-parts-export")}
 
 ## Export markets (country pages)
 

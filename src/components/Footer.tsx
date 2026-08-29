@@ -43,8 +43,9 @@ function navGroups(locale: Locale) {
   }));
 
   // Landing pages are English-only; link them from the /en tree only.
+  // `about` is surfaced as an explicit Company link, not under fitment ranges.
   const countryLandings = LANDINGS.filter((l) => l.slug.startsWith("motorcycle-spare-parts-") && l.slug !== "motorcycle-spare-parts-exporter-india");
-  const rangeLandings = LANDINGS.filter((l) => !countryLandings.includes(l));
+  const rangeLandings = LANDINGS.filter((l) => !countryLandings.includes(l) && l.slug !== "about");
 
   return { vehicleLinks, partLinks, countryLandings, rangeLandings };
 }
@@ -134,6 +135,16 @@ export default function Footer({ locale, t }: { locale: Locale; t: Translations 
                   {t.partsIndex.linkLabel}
                 </Link>
               </li>
+              {showLandings && (
+                <li>
+                  <Link
+                    href="/about"
+                    className="font-medium text-[var(--ink)]/85 transition-colors hover:text-[var(--accent)]"
+                  >
+                    About Raznova Exports
+                  </Link>
+                </li>
+              )}
             </ul>
           </div>
 
