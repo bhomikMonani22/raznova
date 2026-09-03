@@ -16,7 +16,10 @@ export function proxy(request: NextRequest) {
   const hasLocale = LOCALES.some(
     (locale) => pathname === `/${locale}` || pathname.startsWith(`/${locale}/`)
   );
-  if (hasLocale || LANDING_PATHS.has(pathname)) return NextResponse.next();
+  // /insights is the private, un-prefixed analytics dashboard — serve directly.
+  if (hasLocale || LANDING_PATHS.has(pathname) || pathname === "/insights") {
+    return NextResponse.next();
+  }
 
   const url = request.nextUrl.clone();
   url.pathname = `/${DEFAULT_LOCALE}${pathname}`;

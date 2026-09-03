@@ -22,6 +22,8 @@ export default function Analytics() {
 
   useEffect(() => {
     if (!pathname || pathname === lastTrackedPath) return;
+    // The private /insights dashboard must not record itself as visitor traffic.
+    if (pathname.startsWith("/insights")) return;
     lastTrackedPath = pathname;
     track(QUOTE_PATH.test(pathname) ? "quote_page_view" : "page_view");
   }, [pathname]);

@@ -30,15 +30,15 @@ export default function robots(): MetadataRoute.Robots {
   return {
     rules: [
       // Everyone (search engines included) may crawl everything but /api.
-      { userAgent: "*", allow: "/", disallow: ["/api/"] },
+      { userAgent: "*", allow: "/", disallow: ["/api/", "/insights"] },
       // Bing powers its own search plus ChatGPT Search and other AI answers,
       // so it is welcomed explicitly (already covered by * above).
-      { userAgent: "Bingbot", allow: "/", disallow: ["/api/"] },
+      { userAgent: "Bingbot", allow: "/", disallow: ["/api/", "/insights"] },
       // Explicit welcome for AI crawlers — same access, stated unambiguously.
       ...AI_CRAWLERS.map((userAgent) => ({
         userAgent,
         allow: "/",
-        disallow: ["/api/"],
+        disallow: ["/api/", "/insights"],
       })),
     ],
     host: SITE_URL,
