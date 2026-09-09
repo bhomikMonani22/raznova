@@ -278,5 +278,15 @@
     "title": "JK Tyre — 2W & 3W Catalogue FY27",
     "pdf_url": "https://lsnudhxlyypugunlgwxi.supabase.co/storage/v1/object/public/raznova-catalogs/brand/JK%20Tyre/FY27%20Catalogue%202W%20&%203W.pdf",
     "sort_order": 27
+  },
+  {
+    "id": 101,
+    "catalog_type": "vehicle",
+    "vehicle_type": "motorcycle",
+    "brand": "Hero",
+    "model": "Complete Range",
+    "title": "Hero-Fitment Export Catalogue — 11,251 part references (all models)",
+    "pdf_url": "/catalogue/raznova-hero-fitment-export-catalogue.pdf",
+    "sort_order": 3
   }
 ]
