@@ -10,7 +10,15 @@ import { whatsappLink, mailtoLink } from "@/lib/config";
  * copy, visible FAQ (native <details> — accessible, crawlable, zero JS), an
  * internal-link mesh and a WhatsApp CTA, plus WebPage / BreadcrumbList /
  * FAQPage JSON-LD. Server component. */
-export default function LandingPage({ data }: { data: Landing }) {
+export default function LandingPage({
+  data,
+  children,
+}: {
+  data: Landing;
+  /** Optional page-specific block rendered under the primary CTA (e.g. the
+   *  Colombia lane's Hero conversion block). Most landings pass nothing. */
+  children?: React.ReactNode;
+}) {
   const pageUrl = `${SITE_URL}/${data.slug}`;
 
   return (
@@ -50,6 +58,8 @@ export default function LandingPage({ data }: { data: Landing }) {
           Email us
         </a>
       </div>
+
+      {children}
 
       <div className="mt-14 space-y-12">
         {data.sections.map((section) => (

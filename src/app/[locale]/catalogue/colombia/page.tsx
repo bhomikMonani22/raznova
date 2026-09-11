@@ -9,6 +9,7 @@ import JsonLd from "@/components/JsonLd";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import { webPage, breadcrumbs } from "@/lib/schema";
 import FitmentDisclaimer from "@/components/FitmentDisclaimer";
+import ColombiaHeroCTA from "@/components/ColombiaHeroCTA";
 
 type CatalogueItem = {
   partNo: string;
@@ -142,6 +143,11 @@ export default async function ColombiaCataloguePage({
           </Link>
         </div>
       </header>
+
+      <ColombiaHeroCTA
+        locale={isEs ? "es" : "en"}
+        heroHref={`/${locale}/catalog/motorcycle/Hero`}
+      />
 
       <div className="mt-12 space-y-12">
         {groups.map((group) => (

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import LandingPage from "@/components/LandingPage";
+import ColombiaHeroCTA from "@/components/ColombiaHeroCTA";
 import { getLanding } from "@/lib/landings";
 import { SITE_URL } from "@/lib/seo";
 
@@ -21,5 +22,10 @@ export function generateMetadata(): Metadata {
 export default function Page() {
   const data = getLanding(SLUG);
   if (!data) notFound();
-  return <LandingPage data={data} />;
+  // English-only landing; the CTA links to the Hero catalogue on /en.
+  return (
+    <LandingPage data={data}>
+      <ColombiaHeroCTA locale="en" heroHref="/en/catalog/motorcycle/Hero" />
+    </LandingPage>
+  );
 }
