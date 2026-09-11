@@ -330,32 +330,22 @@ html.intro-lifting .intro-mark {
   position: relative;
   overflow: hidden;
 }
+/* Static glow — the blur is rasterised once, so scrolling past it never
+   re-blurs. Animating a blurred element is what caused scroll jank. */
 .hero-spotlight::before {
   content: "";
   position: absolute;
-  top: -35%;
+  top: -30%;
   left: 50%;
-  width: 55%;
+  width: 50%;
   aspect-ratio: 1;
   transform: translateX(-50%);
-  background: radial-gradient(circle, rgba(151, 129, 219, 0.3), transparent 62%);
-  filter: blur(34px);
-  animation: spotlight-glow 9s var(--ease-reveal) infinite;
+  background: radial-gradient(circle, rgba(151, 129, 219, 0.26), transparent 62%);
+  filter: blur(30px);
   pointer-events: none;
 }
-@keyframes spotlight-glow {
-  0%,
-  100% {
-    opacity: 0.5;
-    transform: translateX(-50%) scale(1);
-  }
-  50% {
-    opacity: 1;
-    transform: translateX(-53%) scale(1.15);
-  }
-}
 
-/* Expanding ring behind the big count-up number. */
+/* Expanding ring behind the count-up — transform/opacity only (composited). */
 .spotlight-ring::after {
   content: "";
   position: absolute;
@@ -376,7 +366,7 @@ html.intro-lifting .intro-mark {
   }
 }
 
-/* Light sheen sweeping across the primary CTA. */
+/* CTA sheen — animates transform (not `left`), so no per-frame layout. */
 .spotlight-cta {
   position: relative;
   overflow: hidden;
@@ -385,51 +375,53 @@ html.intro-lifting .intro-mark {
   content: "";
   position: absolute;
   top: 0;
-  left: -60%;
+  left: 0;
   width: 45%;
   height: 100%;
   background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.4), transparent);
-  transform: skewX(-18deg);
+  transform: translateX(-250%) skewX(-18deg);
   animation: spotlight-sheen 4.5s ease-in-out infinite;
   pointer-events: none;
 }
 @keyframes spotlight-sheen {
   0%,
   55% {
-    left: -60%;
+    transform: translateX(-250%) skewX(-18deg);
   }
   100% {
-    left: 140%;
+    transform: translateX(420%) skewX(-18deg);
   }
 }
 
-/* Soft pulse on the floating WhatsApp button. */
-@keyframes wa-pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.5);
-  }
-  70% {
-    box-shadow: 0 0 0 14px rgba(37, 211, 102, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(37, 211, 102, 0);
-  }
+/* Floating WhatsApp pulse — a composited ring (transform/opacity), never an
+   animated box-shadow (which repaints every frame and janks scrolling). */
+.wa-float::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: 999px;
+  background: #25d366;
+  animation: wa-ping 2.6s ease-out infinite;
+  pointer-events: none;
 }
-.wa-float {
-  animation: wa-pulse 2.6s ease-out infinite;
+@keyframes wa-ping {
+  0% {
+    transform: scale(1);
+    opacity: 0.45;
+  }
+  70%,
+  100% {
+    transform: scale(1.3);
+    opacity: 0;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .hero-spotlight::before {
-    animation: none;
-    opacity: 0.6;
-  }
   .spotlight-ring::after,
-  .spotlight-cta::after {
+  .spotlight-cta::after,
+  .wa-float::before {
     display: none;
-  }
-  .wa-float {
-    animation: none;
   }
 }
 
