@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { isLocale } from "@/i18n/locales";
 import { getTranslations } from "@/i18n/translations";
 import QuoteForm from "@/components/QuoteForm";
+import HeroCrossSell from "@/components/HeroCrossSell";
 import { QUOTE_META, canonical, languageAlternates } from "@/lib/seo";
 import JsonLd from "@/components/JsonLd";
 import { webPage } from "@/lib/schema";
@@ -47,6 +48,11 @@ export default async function QuotePage({
       <p className="mt-3 text-[var(--muted)]">{t.quote.subtitle}</p>
       <div className="mt-10">
         <QuoteForm locale={locale} t={t} />
+      </div>
+
+      {/* Every RFQ path gets a Hero nudge. */}
+      <div className="mt-10">
+        <HeroCrossSell locale={locale} />
       </div>
     </div>
   );

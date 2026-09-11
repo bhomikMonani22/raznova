@@ -6,6 +6,7 @@ import { getTranslations } from "@/i18n/translations";
 import catalogs from "@/data/catalogs.json";
 import type { CatalogEntry } from "@/lib/types";
 import CatalogList from "@/components/CatalogList";
+import HeroCrossSell from "@/components/HeroCrossSell";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import { catalogMeta, canonical, languageAlternates, brandLanding, SITE_URL } from "@/lib/seo";
 import JsonLd from "@/components/JsonLd";
@@ -108,6 +109,13 @@ export default async function BrandCatalogPage({
       <div className="mt-8">
         <CatalogList entries={entries} t={t} />
       </div>
+
+      {/* Cross-sell Hero on the other brands' pages (not on Hero's own). */}
+      {brandName !== "Hero" && (
+        <div className="mt-12">
+          <HeroCrossSell locale={locale} />
+        </div>
+      )}
     </div>
   );
 }
