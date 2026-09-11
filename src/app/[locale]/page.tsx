@@ -75,6 +75,7 @@ function buildShowcaseGroups(locale: string): ShowcaseGroup[] {
 // HTML, but their hydration JS (framer-motion et al.) loads after the shell,
 // keeping the hero's critical path lean (mobile LCP budget).
 const TrustStrip = dynamic(() => import("@/components/TrustStrip"));
+const HeroSpotlight = dynamic(() => import("@/components/HeroSpotlight"));
 const InventoryGrid = dynamic(() => import("@/components/InventoryGrid"));
 const ProductCategories = dynamic(() => import("@/components/ProductCategories"));
 const Showcase = dynamic(() => import("@/components/Showcase"));
@@ -103,6 +104,7 @@ export default async function HomePage({
       <JsonLd data={webPage(locale, "", meta.title, meta.description)} />
       <Hero t={t} />
       <TrustStrip t={t} />
+      <HeroSpotlight locale={locale} />
       <InventoryGrid t={t} />
       <ProductCategories t={t} />
       <Showcase

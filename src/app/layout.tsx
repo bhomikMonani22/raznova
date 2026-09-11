@@ -5,6 +5,7 @@ import { Analytics as VercelAnalytics } from "@vercel/analytics/next";
 import LenisProvider from "@/components/LenisProvider";
 import Analytics from "@/components/Analytics";
 import RevealRescan from "@/components/RevealRescan";
+import FloatingWhatsApp from "@/components/FloatingWhatsApp";
 import { BRAND_NAME } from "@/lib/config";
 
 // Display: Geist (600/700, -2% tracking via .font-display) for confident,
@@ -70,7 +71,7 @@ const HEAD_GATE = `try{var e=document.documentElement,m=location.pathname.match(
 // hydration cost: [data-reveal] observer, [data-countup] counter, magnetic
 // CTA pull, and the intro-curtain lift.
 const BOOT = `(function(){var d=document,dE=d.documentElement,R=matchMedia("(prefers-reduced-motion: reduce)").matches;
-function reveal(){var n=d.querySelectorAll("[data-reveal]:not(.is-visible)");if(R||!("IntersectionObserver"in window)){n.forEach(function(e){e.classList.add("is-visible")});return}var o=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add("is-visible");o.unobserve(e.target)}})},{rootMargin:"0px 0px -8% 0px"});n.forEach(function(e){o.observe(e)});var c=d.querySelectorAll("[data-countup]:not([data-counted])");if(!c.length)return;var co=new IntersectionObserver(function(es){es.forEach(function(en){if(!en.isIntersecting)return;co.unobserve(en.target);en.target.setAttribute("data-counted","1");var el=en.target,tv=parseInt(el.getAttribute("data-countup"),10)||0,sf=el.getAttribute("data-countup-suffix")||"",t0=0;function f(ts){if(!t0)t0=ts;var p=Math.min((ts-t0)/1200,1);el.textContent=Math.round(tv*(1-Math.pow(1-p,3)))+sf;if(p<1)requestAnimationFrame(f)}requestAnimationFrame(f)})},{rootMargin:"0px 0px -8% 0px"});c.forEach(function(e){co.observe(e)})}
+function reveal(){var n=d.querySelectorAll("[data-reveal]:not(.is-visible)");if(R||!("IntersectionObserver"in window)){n.forEach(function(e){e.classList.add("is-visible")});return}var o=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add("is-visible");o.unobserve(e.target)}})},{rootMargin:"0px 0px -8% 0px"});n.forEach(function(e){o.observe(e)});var c=d.querySelectorAll("[data-countup]:not([data-counted])");if(!c.length)return;var co=new IntersectionObserver(function(es){es.forEach(function(en){if(!en.isIntersecting)return;co.unobserve(en.target);en.target.setAttribute("data-counted","1");var el=en.target,tv=parseInt(el.getAttribute("data-countup"),10)||0,sf=el.getAttribute("data-countup-suffix")||"",t0=0;function f(ts){if(!t0)t0=ts;var p=Math.min((ts-t0)/1200,1);el.textContent=Math.round(tv*(1-Math.pow(1-p,3))).toLocaleString()+sf;if(p<1)requestAnimationFrame(f)}requestAnimationFrame(f)})},{rootMargin:"0px 0px -8% 0px"});c.forEach(function(e){co.observe(e)})}
 function magnetic(){if(R||!matchMedia("(pointer: fine)").matches)return;d.querySelectorAll("[data-magnetic]").forEach(function(el){if(el.__mag)return;el.__mag=1;el.addEventListener("mousemove",function(ev){var r=el.getBoundingClientRect(),x=Math.max(-1,Math.min(1,(ev.clientX-(r.left+r.width/2))/(r.width/2)))*6,y=Math.max(-1,Math.min(1,(ev.clientY-(r.top+r.height/2))/(r.height/2)))*6;el.style.transform="translate("+x.toFixed(1)+"px,"+y.toFixed(1)+"px)"});el.addEventListener("mouseleave",function(){el.style.transform=""})})}
 function curtain(){if(!dE.classList.contains("intro-pending"))return;setTimeout(function(){dE.classList.add("intro-lifting")},450);setTimeout(function(){dE.classList.remove("intro-pending","intro-lifting")},1000)}
 function boot(){reveal();magnetic();curtain()}
@@ -121,6 +122,7 @@ export default function RootLayout({
         <Analytics />
         <RevealRescan />
         {children}
+        <FloatingWhatsApp />
         <VercelAnalytics />
       </body>
     </html>

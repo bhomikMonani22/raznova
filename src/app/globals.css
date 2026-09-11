@@ -321,6 +321,119 @@ html.intro-lifting .intro-mark {
 }
 
 /* ---------------------------------------------------------------------
+   Hero spotlight — foregrounds the Hero-fitment range on the homepage.
+   All motion is transform/opacity only (compositor-friendly, no layout),
+   and is dropped entirely under prefers-reduced-motion. The OEM logo it
+   sits beside is always fitment-captioned (trademark rule).
+   --------------------------------------------------------------------- */
+.hero-spotlight {
+  position: relative;
+  overflow: hidden;
+}
+.hero-spotlight::before {
+  content: "";
+  position: absolute;
+  top: -35%;
+  left: 50%;
+  width: 55%;
+  aspect-ratio: 1;
+  transform: translateX(-50%);
+  background: radial-gradient(circle, rgba(151, 129, 219, 0.3), transparent 62%);
+  filter: blur(34px);
+  animation: spotlight-glow 9s var(--ease-reveal) infinite;
+  pointer-events: none;
+}
+@keyframes spotlight-glow {
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: translateX(-50%) scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: translateX(-53%) scale(1.15);
+  }
+}
+
+/* Expanding ring behind the big count-up number. */
+.spotlight-ring::after {
+  content: "";
+  position: absolute;
+  inset: -10px;
+  border: 1px solid rgba(151, 129, 219, 0.4);
+  border-radius: 999px;
+  animation: spotlight-ring 4.2s ease-out infinite;
+  pointer-events: none;
+}
+@keyframes spotlight-ring {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.85;
+  }
+  100% {
+    transform: scale(1.25);
+    opacity: 0;
+  }
+}
+
+/* Light sheen sweeping across the primary CTA. */
+.spotlight-cta {
+  position: relative;
+  overflow: hidden;
+}
+.spotlight-cta::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -60%;
+  width: 45%;
+  height: 100%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  transform: skewX(-18deg);
+  animation: spotlight-sheen 4.5s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes spotlight-sheen {
+  0%,
+  55% {
+    left: -60%;
+  }
+  100% {
+    left: 140%;
+  }
+}
+
+/* Soft pulse on the floating WhatsApp button. */
+@keyframes wa-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.5);
+  }
+  70% {
+    box-shadow: 0 0 0 14px rgba(37, 211, 102, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(37, 211, 102, 0);
+  }
+}
+.wa-float {
+  animation: wa-pulse 2.6s ease-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-spotlight::before {
+    animation: none;
+    opacity: 0.6;
+  }
+  .spotlight-ring::after,
+  .spotlight-cta::after {
+    display: none;
+  }
+  .wa-float {
+    animation: none;
+  }
+}
+
+/* ---------------------------------------------------------------------
    Scroll reveal, CSS-only. One shared IntersectionObserver (inline script
    in the root layout) adds .is-visible to [data-reveal] elements; the
    animation itself is pure CSS. This keeps reveal-only sections as server
