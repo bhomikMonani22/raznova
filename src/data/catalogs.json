@@ -288,5 +288,35 @@
     "title": "Hero-Fitment Export Catalogue — 11,251 part references (all models)",
     "pdf_url": "/catalogue/raznova-hero-fitment-export-catalogue.pdf",
     "sort_order": 3
+  },
+  {
+    "id": 102,
+    "catalog_type": "vehicle",
+    "vehicle_type": "motorcycle",
+    "brand": "Hero",
+    "model": "Full Catalogue (all brands)",
+    "title": "Full Export Catalogue — Hero · Bajaj · TVS (13,643 references)",
+    "pdf_url": "/catalogue/raznova-total-parts-catalogue.pdf",
+    "sort_order": 2
+  },
+  {
+    "id": 103,
+    "catalog_type": "vehicle",
+    "vehicle_type": "motorcycle",
+    "brand": "Bajaj",
+    "model": "Full Catalogue (all brands)",
+    "title": "Full Export Catalogue — Hero · Bajaj · TVS (13,643 references)",
+    "pdf_url": "/catalogue/raznova-total-parts-catalogue.pdf",
+    "sort_order": 2
+  },
+  {
+    "id": 104,
+    "catalog_type": "vehicle",
+    "vehicle_type": "motorcycle",
+    "brand": "TVS",
+    "model": "Full Catalogue (all brands)",
+    "title": "Full Export Catalogue — Hero · Bajaj · TVS (13,643 references)",
+    "pdf_url": "/catalogue/raznova-total-parts-catalogue.pdf",
+    "sort_order": 2
   }
 ]
