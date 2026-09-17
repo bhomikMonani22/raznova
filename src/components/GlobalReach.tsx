@@ -61,7 +61,7 @@ export default function GlobalReach({ t }: { t: Translations }) {
 
         <div
           data-reveal
-          className="relative mt-12 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--line)] bg-[#08080a]"
+          className="relative mt-12 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--line)] bg-[#0a0d18]"
         >
           {/* Land layer — cached external asset, lazily fetched. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
