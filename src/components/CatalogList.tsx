@@ -95,7 +95,7 @@ export default function CatalogList({
                   <a
                     href={entry.pdf_url}
                     target="_blank"
-                    rel="noopener noreferrer"
+                    rel="noopener noreferrer nofollow"
                     className="rounded-[var(--radius-md)] bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-[var(--accent-ink)] transition-transform duration-200 hover:scale-[1.02]"
                   >
                     {t.catalog.viewPdf}
@@ -103,6 +103,7 @@ export default function CatalogList({
                   <a
                     href={entry.pdf_url}
                     download
+                    rel="nofollow"
                     className="rounded-[var(--radius-md)] border border-[var(--line)] px-4 py-2 text-sm font-medium text-[var(--ink)]/85 transition-colors hover:border-[var(--line-strong)] hover:text-[var(--ink)]"
                   >
                     {t.catalog.download}
