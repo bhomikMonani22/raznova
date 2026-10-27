@@ -375,43 +375,14 @@
     *, *::before, *::after { animation: none !important; transition: none !important; }
     .shot { display: none; }
   }
-  /* ---- Shootaround ---- */
+  /* ---- EasyBuckets Hoops (the 3D game, game/hoops.js) ---- */
   .playpill { margin-top: 9px; display: inline-flex; align-items: center; gap: 7px; appearance: none; border: 0; cursor: pointer;
               font: 800 14px/1 var(--display); letter-spacing: .07em; text-transform: uppercase; color: var(--amber);
               background: #0c1830; padding: 5px 12px 5px 5px; border-radius: 999px; box-shadow: 0 3px 10px rgba(40, 20, 4, .35);
               -webkit-tap-highlight-color: transparent; }
   .playpill svg { width: 19px; height: 19px; flex: none; }
   .playpill:active { transform: scale(.95); }
-  .game { position: fixed; inset: 0; z-index: 35; display: flex; flex-direction: column; background: #0a1529;
-          animation: sheet-in .3s var(--ease) both; overscroll-behavior: contain; }
-  .game[hidden] { display: none; }
-  .game .gbar { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--seam); }
-  .game .ttl { flex: 1; font: 900 24px/1 var(--display); text-transform: uppercase; letter-spacing: .02em; }
-  .game .wind { display: flex; align-items: center; gap: 6px; font: 800 18px/1 var(--display); color: var(--sky); }
-  .game .wind svg { width: 30px; height: 18px; transition: transform .3s var(--ease); }
-  .game .ghud { display: grid; grid-template-columns: repeat(3, 1fr); margin: 10px auto 0; width: calc(100% - 32px); max-width: 520px;
-                border-radius: 10px; overflow: hidden;
-                border: 1px solid #22385f;
-                background: radial-gradient(rgba(255, 255, 255, .06) 1px, transparent 1.3px) 0 0 / 5px 5px, #08111f; }
-  .game .ghud div { text-align: center; padding: 6px 4px; border-left: 1px solid #1a2c4b; }
-  .game .ghud div:first-child { border-left: 0; }
-  .game .ghud .d { display: block; font: 800 28px/1 var(--display); color: var(--amber); text-shadow: 0 0 12px rgba(255, 194, 75, .45);
-                   font-variant-numeric: tabular-nums; }
-  .game .ghud .l { display: block; font-size: 11px; color: var(--mist); margin-top: 2px; }
-  .gstage { position: relative; flex: 1; min-height: 0; }
-  .gstage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
-  .gmsg { position: absolute; left: 0; right: 0; top: 38%; text-align: center; pointer-events: none;
-          font: 900 54px/1 var(--display); text-transform: uppercase; letter-spacing: .02em; opacity: 0; }
-  .gmsg.show { animation: pop 1s var(--ease) both; }
-  .gmsg.good { color: var(--make); text-shadow: 0 0 24px rgba(54, 211, 153, .6); }
-  .gmsg.bad { color: var(--net); font-size: 34px; text-shadow: 0 2px 0 rgba(0, 0, 0, .4); }
-  @keyframes pop { 0% { opacity: 0; transform: scale(.6); } 18% { opacity: 1; transform: scale(1.08); } 32% { transform: scale(1); }
-                   75% { opacity: 1; } 100% { opacity: 0; transform: translateY(-18px); } }
-  .ghelp { position: absolute; left: 16px; right: 16px; bottom: 16px; max-width: 460px; margin: 0 auto; text-align: center;
-           color: var(--mist); font-size: 13px; text-shadow: 0 1px 2px rgba(0, 0, 0, .6);
-           line-height: 1.4; pointer-events: none; transition: opacity .4s; }
-  .ghelp.gone { opacity: 0; }
-  @media (prefers-reduced-motion: reduce) { .gmsg.show { opacity: 1; } }
+  #game[hidden] { display: none; }
 </style>
 </head>
 <body>
@@ -420,9 +391,9 @@
     <div class="mark">
       <h1>Easy<span>Buckets</span></h1>
       <p class="sub">NBA props for the group, priced against the sharp books</p>
-      <button class="playpill" id="play" type="button"><svg viewBox="0 0 26 26" aria-hidden="true"><circle cx="13" cy="13" r="12" fill="#f47b20"/><path d="M1 13h24M13 1v24M4.5 4.5c4.5 4 4.5 13 0 17M21.5 4.5c-4.5 4-4.5 13 0 17" stroke="#3a1a05" stroke-width="1.5" fill="none"/></svg>Shootaround</button>
+      <button class="playpill" id="play" type="button"><svg viewBox="0 0 26 26" aria-hidden="true"><circle cx="13" cy="13" r="12" fill="#f47b20"/><path d="M1 13h24M13 1v24M4.5 4.5c4.5 4 4.5 13 0 17M21.5 4.5c-4.5 4-4.5 13 0 17" stroke="#3a1a05" stroke-width="1.5" fill="none"/></svg>Play Hoops</button>
     </div>
-    <div class="hoop" id="hoop" role="button" tabindex="0" aria-label="Play Shootaround">
+    <div class="hoop" id="hoop" role="button" tabindex="0" aria-label="Play EasyBuckets Hoops">
       <svg viewBox="0 0 132 120" aria-hidden="true">
         <rect x="34" y="2" width="96" height="62" rx="5" fill="rgba(255,255,255,.93)" stroke="#9fb0c8" stroke-width="1.5"/>
         <rect x="64" y="25" width="36" height="26" fill="none" stroke="#f47b20" stroke-width="3"/>
@@ -592,24 +563,7 @@
   </div></div>
   <div class="wrap" id="sheet-body" style="padding-bottom: 32px"></div>
 </div>
-<div class="game" id="game" role="dialog" aria-modal="true" aria-labelledby="game-title" hidden>
-  <div class="gbar">
-    <button class="close" id="game-close" type="button" aria-label="Close the game">×</button>
-    <div class="ttl" id="game-title">Shootaround</div>
-    <div class="wind" id="game-wind" aria-live="polite"></div>
-  </div>
-  <div class="ghud">
-    <div><span class="d" id="g-made">0</span><span class="l">made</span></div>
-    <div><span class="d" id="g-streak">0</span><span class="l">streak</span></div>
-    <div><span class="d" id="g-best">0</span><span class="l">best streak</span></div>
-  </div>
-  <div class="gstage">
-    <canvas id="game-canvas" aria-label="Swipe up on the ball to shoot"></canvas>
-    <div class="gmsg" id="game-msg" aria-live="polite"></div>
-    <div class="ghelp" id="game-help">Swipe up from the ball to shoot. A longer swipe throws harder; the angle aims left or
-      right. Only clean swishes and clean banks count. Touch the rim and it rattles out. Watch the wind.</div>
-  </div>
-</div>
+<div id="game" role="dialog" aria-modal="true" aria-label="EasyBuckets Hoops" hidden></div>
 <footer class="wrap">Research and paper tracking only. Nothing here is a bet placed for you. 18+.</footer>
 <script>
 (function () {
@@ -2243,363 +2197,38 @@
     if (m) openSheet(m[1], true);
   }
 
-  // ---- Shootaround: paper toss with a basketball. A real arc at a regulation rim from the free-throw line; only a
-  // clean swish (or a clean bank off the glass) counts, any touch of the rim rattles out. Metres and seconds. ----
-  var Shoot = (function () {
-    var P = { g: 9.81, rb: 0.12, R: 0.229, rt: 0.009, rimY: 3.05, rimZ: 4.6, boardZ: 4.98, boardHW: 0.915,
-              boardY0: 2.90, boardY1: 3.97, sy: 1.15, elev: 60 * Math.PI / 180, eRim: 0.55, eBoard: 0.75 };
-    var V_STAR = 8.306, S_STAR = 0.5, K_POW = 1.0, LAT = 0.2;      // the middle swipe throws the centre of the swish window
-    var CAM_Y = 1.55, CAM_Z = -1.6;
-    var game = document.getElementById("game"), cv = document.getElementById("game-canvas");
-    var ctx = cv.getContext("2d");
-    var W = 0, H = 0, F = 0, HC = 0, DPR = 1;
-    var ball = null, phase = "ready", wind = 0, drag = null, trail = [], lastTrail = [], netT = 0, waitT = 0;
-    var raf = 0, lastTs = 0, spin = 0, opened = false, pushed = false, crowd = [];
-    var stats = { made: 0, taken: 0, streak: 0, best: 0 };
-    try { var saved = JSON.parse(localStorage.getItem("eb.shoot") || "null"); if (saved) stats.best = saved.best || 0; } catch (e) {}
-    var elMade = document.getElementById("g-made"), elStreak = document.getElementById("g-streak"),
-        elBest = document.getElementById("g-best"), elWind = document.getElementById("game-wind"),
-        elMsg = document.getElementById("game-msg"), elHelp = document.getElementById("game-help");
-
-    function proj(x, y, z) { var s = F / (z - CAM_Z); return [W / 2 + x * s, HC - (y - CAM_Y) * s, s]; }
-    function resize() {
-      var r = cv.getBoundingClientRect();
-      DPR = Math.min(window.devicePixelRatio || 1, 2.5);
-      W = r.width; H = r.height;
-      cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
-      ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-      F = Math.min(W * 1.75, H * 0.92);
-      HC = H * 0.5;
-      crowd = [];
-      for (var i = 0; i < Math.round(W / 5); i++) crowd.push([Math.random() * W, Math.random(), Math.random()]);
+  // ---- EasyBuckets Hoops: the 3D game (site/basketball/game), loaded only when someone opens it ----
+  var gameEl = document.getElementById("game"), gamePushed = false, gameLoading = false;
+  function openGame(fromHistory) {
+    if (!gameEl.hidden || gameLoading) return;
+    gameLoading = true;
+    gameEl.hidden = false;
+    document.body.classList.add("lock");
+    if (!fromHistory) { try { history.pushState({ shoot: 1 }, "", "#shoot"); gamePushed = true; } catch (e) {} }
+    import("/basketball/game/hoops.js").then(function (m) {
+      return m.open(gameEl, { onExit: function () { closeGame(false); } });
+    }).catch(function (e) {
+      gameEl.textContent = "The game couldn't load (" + (e && e.message ? e.message : e) + "). Close and try again.";
+      gameEl.style.cssText = "position:fixed;inset:0;z-index:45;background:#060b16;color:#eef2f8;padding:40px 20px;font:16px/1.5 var(--body)";
+      gameEl.addEventListener("click", function () { closeGame(false); }, { once: true });
+    }).then(function () { gameLoading = false; });
+  }
+  function closeGame(fromHistory) {
+    if (gameEl.hidden) return;
+    gameEl.hidden = true;
+    document.body.classList.remove("lock");
+    if (!fromHistory && location.hash === "#shoot") {
+      try { if (gamePushed) { gamePushed = false; history.back(); } else history.replaceState(null, "", location.pathname + location.search); } catch (e) {}
     }
-    function hud() {
-      elMade.textContent = stats.made + "/" + stats.taken;
-      elStreak.textContent = String(stats.streak);
-      elBest.textContent = String(stats.best);
-      elWind.replaceChildren();
-      if (Math.abs(wind) < 0.02) { elWind.appendChild(document.createTextNode("No wind")); return; }
-      var s = svg("svg", { viewBox: "0 0 30 18", "aria-hidden": "true" });
-      s.appendChild(svg("path", { d: "M2 9h22M17 3l7 6-7 6", stroke: "currentColor", "stroke-width": 3, fill: "none",
-        "stroke-linecap": "round", "stroke-linejoin": "round" }));
-      s.style.transform = wind < 0 ? "scaleX(-1)" : "none";
-      elWind.appendChild(document.createTextNode("Wind " + (Math.abs(wind) * 10).toFixed(1)));
-      elWind.appendChild(s);
-    }
-    function newWind() {
-      if (stats.taken < 2) { wind = 0; return; }
-      var max = Math.min(0.6, 0.15 + 0.06 * stats.streak);
-      wind = (Math.random() * 2 - 1) * max;
-    }
-    function reset() {
-      ball = { x: 0, y: P.sy, z: 0, vx: 0, vy: 0, vz: 0, rim: false, board: false, made: false, crossed: null,
-               bounces: 0, done: false, t: 0, maxY: P.sy };
-      phase = "ready"; trail = [];
-      hud();
-    }
-    function launch(swipe, alpha) {
-      var v = V_STAR + (swipe - S_STAR) * K_POW;
-      var phi = Math.max(-1.1, Math.min(1.1, alpha)) * LAT;
-      var vh = v * Math.cos(P.elev);
-      ball.vx = vh * Math.sin(phi); ball.vz = vh * Math.cos(phi); ball.vy = v * Math.sin(P.elev);
-      phase = "flying"; stats.taken++;
-      elHelp.classList.add("gone");
-      hud();
-    }
-    function step(b, dt) {
-      var py = b.y;
-      b.vx += wind * dt; b.vy -= P.g * dt;
-      if (b.made && b.y < P.rimY && b.y > P.rimY - 0.5) {                   // the net catches it and keeps it
-        var nh = Math.sqrt(b.x * b.x + (b.z - P.rimZ) * (b.z - P.rimZ));
-        if (nh > 0.1) { b.x *= 0.1 / nh; b.z = P.rimZ + (b.z - P.rimZ) * 0.1 / nh; }
-        b.vx *= 0.9; b.vz *= 0.9; b.vy *= 0.985;
-      }
-      b.x += b.vx * dt; b.y += b.vy * dt; b.z += b.vz * dt; b.t += dt;
-      if (b.y > b.maxY) b.maxY = b.y;
-      if (!b.made && b.vz > 0 && b.z + P.rb > P.boardZ && b.z < P.boardZ + 0.1 && Math.abs(b.x) < P.boardHW + P.rb * 0.5 &&
-          b.y > P.boardY0 - P.rb * 0.5 && b.y < P.boardY1 + P.rb * 0.5) {
-        b.z = P.boardZ - P.rb; b.vz = -P.eBoard * b.vz; b.vx *= 0.9; b.vy *= 0.9; b.board = true;
-      }
-      var cx = b.x, cz = b.z - P.rimZ, h = Math.sqrt(cx * cx + cz * cz) || 1e-9;
-      var px = P.R * cx / h, pz = P.rimZ + P.R * cz / h;
-      var dx = b.x - px, dy = b.y - P.rimY, dz = b.z - pz, d = Math.sqrt(dx * dx + dy * dy + dz * dz), lim = P.rb + P.rt;
-      if (d < lim && !b.made) {
-        var nx = dx / d, ny = dy / d, nz = dz / d, vn = b.vx * nx + b.vy * ny + b.vz * nz;
-        if (vn < 0) {
-          b.vx -= (1 + P.eRim) * vn * nx; b.vy -= (1 + P.eRim) * vn * ny; b.vz -= (1 + P.eRim) * vn * nz;
-          b.vx += cx / h * 0.9; b.vz += cz / h * 0.9; b.vy += 0.6;          // only perfect shots go in
-          if (!b.rim && b === ball) rimShake = 0.25;
-        }
-        b.x = px + nx * lim; b.y = P.rimY + ny * lim; b.z = pz + nz * lim;
-        if (!b.rim) { b.rimAt = b.t; b.rimHit = [px, pz - P.rimZ]; }
-        b.rim = true;
-      }
-      if (py > P.rimY && b.y <= P.rimY && b.vy < 0 && b.crossed === null) {
-        b.crossed = { dx: b.x, dz: b.z - P.rimZ, h: Math.sqrt(b.x * b.x + (b.z - P.rimZ) * (b.z - P.rimZ)), t: b.t };
-        if (!b.rim && b.crossed.h <= P.R - P.rb - P.rt * 0.5) { b.made = true; if (b === ball) netT = 0.7; }
-      }
-      if (b.y < P.rb) {
-        b.y = P.rb; b.vy = -0.55 * b.vy; b.vx *= 0.8; b.vz *= 0.8; b.bounces++;
-        if (b.bounces >= 3 || Math.abs(b.vy) < 0.6) b.done = true;
-      }
-      if (b.z > 9 || b.z < -3 || Math.abs(b.x) > 6 || b.t > 6) b.done = true;
-    }
-    var rimShake = 0;
-    function verdict(b) {
-      if (b.made) return b.board ? ["Bank!", true] : ["Swish!", true];
-      if (b.rim) {
-        var rh = b.rimHit || [0, 0];
-        return [Math.abs(rh[0]) > Math.abs(rh[1]) ? (rh[0] < 0 ? "Left rim" : "Right rim") : (rh[1] < 0 ? "Front rim" : "Back rim"), false];
-      }
-      if (b.board) return ["Off the glass", false];
-      if (!b.crossed) return [b.maxY < P.rimY ? "Airball" : "Long", false];
-      var c = b.crossed, parts = [];
-      if (c.dz < -P.R * 0.6) parts.push("short"); else if (c.dz > P.R * 0.6) parts.push("long");
-      if (c.dx < -P.R * 0.6) parts.push("left"); else if (c.dx > P.R * 0.6) parts.push("right");
-      var t = parts.join(" and ") || "Rim";
-      return [t.charAt(0).toUpperCase() + t.slice(1), false];
-    }
-    // the call is made as soon as it is certain: a clean make at once, a rim touch once it has rattled, a miss
-    // just after it drops past the rim, an airball once it falls away short
-    function decided(b) {
-      if (b.made || b.done) return true;
-      if (b.rim) return b.t - b.rimAt > 0.35;
-      if (b.crossed) return b.t - b.crossed.t > 0.12;
-      return b.vy < 0 && b.maxY < P.rimY && b.y < P.rimY - 0.5;
-    }
-    function finish() {
-      var v = verdict(ball);
-      if (v[1]) {
-        stats.made++; stats.streak++;
-        if (stats.streak > stats.best) stats.best = stats.streak;
-        try { if (navigator.vibrate) navigator.vibrate(25); } catch (e) {}
-      } else { stats.streak = 0; }
-      try { localStorage.setItem("eb.shoot", JSON.stringify({ best: stats.best })); } catch (e) {}
-      elMsg.className = "gmsg";
-      void elMsg.offsetWidth;
-      elMsg.textContent = v[0] + (v[1] && stats.streak >= 3 ? " ×" + stats.streak : "");
-      elMsg.className = "gmsg show " + (v[1] ? "good" : "bad");
-      lastTrail = trail.slice();
-      newWind();
-      phase = "wait"; waitT = 1.0;
-      hud();
-    }
-
-    // ---- drawing ----
-    function line(a, b, w, col) { ctx.strokeStyle = col; ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); }
-    function poly(pts, fill, stroke, w) {
-      ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
-      for (var i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
-      ctx.closePath();
-      if (fill) { ctx.fillStyle = fill; ctx.fill(); }
-      if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = w || 1; ctx.stroke(); }
-    }
-    function drawCourt() {
-      var g = ctx.createLinearGradient(0, 0, 0, H);
-      g.addColorStop(0, "#08142a"); g.addColorStop(0.5, "#10264a"); g.addColorStop(1, "#0a1529");
-      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-      var rimP = proj(0, P.rimY, P.rimZ);
-      var spot = ctx.createRadialGradient(rimP[0], rimP[1] - 40, 10, rimP[0], rimP[1], Math.max(W, H) * 0.7);
-      spot.addColorStop(0, "rgba(120, 170, 255, .18)"); spot.addColorStop(1, "rgba(120, 170, 255, 0)");
-      ctx.fillStyle = spot; ctx.fillRect(0, 0, W, H);
-      var far = proj(0, 0, 16)[1];
-      var st = ctx.createLinearGradient(0, far - 70, 0, far);
-      st.addColorStop(0, "rgba(6, 12, 26, 0)"); st.addColorStop(1, "rgba(6, 12, 26, .85)");
-      ctx.fillStyle = st; ctx.fillRect(0, far - 70, W, 70);
-      var heads = ["#2a3f63", "#33496f", "#3d2f45", "#2c4a52", "#4a3a2e"];
-      crowd.forEach(function (c) {
-        var row = c[1] < 0.5 ? 0 : 1, y = far - 12 - row * 15 - c[2] * 3;
-        ctx.fillStyle = heads[Math.floor(c[2] * heads.length)];
-        ctx.beginPath(); ctx.arc(c[0], y, 3.2 - row * 0.6, 0, Math.PI * 2); ctx.fill();
-      });
-      var wood = ctx.createLinearGradient(0, far, 0, H);
-      wood.addColorStop(0, "#7a5230"); wood.addColorStop(0.35, "#b67b44"); wood.addColorStop(1, "#d9a46b");
-      ctx.fillStyle = wood; ctx.fillRect(0, far, W, H - far);
-      ctx.save(); ctx.beginPath(); ctx.rect(0, far, W, H - far); ctx.clip();
-      var FT = P.rimZ - 4.19, BASE = P.boardZ + 1.22;
-      for (var x = -8; x <= 8; x += 0.32) line(proj(x, 0, -1.1), proj(x, 0, 16), 1, "rgba(60, 30, 8, .18)");
-      poly([proj(-2.44, 0, FT), proj(2.44, 0, FT), proj(2.44, 0, BASE), proj(-2.44, 0, BASE)],
-           "rgba(20, 54, 110, .9)", "rgba(255, 255, 255, .9)", 2);
-      line(proj(-7.6, 0, BASE), proj(7.6, 0, BASE), 2, "rgba(255, 255, 255, .8)");
-      var inner = [], nearL = [], nearR = [];
-      for (var a = 0; a <= Math.PI + 1e-9; a += Math.PI / 32) {
-        inner.push(proj(1.83 * Math.cos(a), 0, FT + 1.83 * Math.sin(a)));
-        var zn = FT - 1.83 * Math.sin(a);
-        if (zn - CAM_Z > 0.35) (a < Math.PI / 2 ? nearR : nearL).push(proj(1.83 * Math.cos(a), 0, zn));
-      }
-      ctx.setLineDash([9, 8]); strokePts(inner, 2, "rgba(255, 255, 255, .6)"); ctx.setLineDash([]);
-      if (nearR.length > 1) strokePts(nearR, 2, "rgba(255, 255, 255, .8)");
-      if (nearL.length > 1) strokePts(nearL, 2, "rgba(255, 255, 255, .8)");
-      ctx.restore();
-      // the stanchion and the glass
-      var base = proj(0, 0, 6.9), top = proj(0, 3.5, 6.9), arm = proj(0, 3.5, P.boardZ + 0.05);
-      line(base, top, Math.max(4, 0.16 * base[2]), "#101c33");
-      line(top, arm, Math.max(3, 0.1 * top[2]), "#101c33");
-      var b0 = proj(-P.boardHW, P.boardY0, P.boardZ), b1 = proj(P.boardHW, P.boardY0, P.boardZ),
-          b2 = proj(P.boardHW, P.boardY1, P.boardZ), b3 = proj(-P.boardHW, P.boardY1, P.boardZ);
-      poly([b0, b1, b2, b3], "rgba(236, 244, 255, .88)", "rgba(150, 168, 196, 1)", 2);
-      var q0 = proj(-0.295, P.rimY + 0.15, P.boardZ - 0.001), q1 = proj(0.295, P.rimY + 0.15, P.boardZ - 0.001),
-          q2 = proj(0.295, P.rimY + 0.6, P.boardZ - 0.001), q3 = proj(-0.295, P.rimY + 0.6, P.boardZ - 0.001);
-      poly([q0, q1, q2, q3], null, "#f47b20", 2.5);
-    }
-    function rimPts(from, to, shake) {
-      var pts = [];
-      for (var a = from; a <= to + 1e-9; a += Math.PI / 30) pts.push(proj(P.R * Math.cos(a), P.rimY + shake, P.rimZ + P.R * Math.sin(a)));
-      return pts;
-    }
-    function strokePts(pts, w, col) {
-      ctx.strokeStyle = col; ctx.lineWidth = w; ctx.lineCap = "round"; ctx.beginPath();
-      pts.forEach(function (q, i) { if (i) ctx.lineTo(q[0], q[1]); else ctx.moveTo(q[0], q[1]); }); ctx.stroke();
-    }
-    function drawNet(shake) {
-      var stretch = netT > 0 ? Math.sin((0.7 - netT) / 0.7 * Math.PI) * 0.16 : 0;
-      var sway = netT > 0 ? Math.sin((0.7 - netT) * 18) * 0.03 : 0;
-      var n = 12, depth = 0.42 + stretch, low = 0.13;
-      ctx.lineWidth = 1.2; ctx.strokeStyle = "rgba(244, 247, 251, .9)";
-      for (var i = 0; i < n; i++) {
-        var a = i / n * Math.PI * 2;
-        var t0 = proj(P.R * Math.cos(a), P.rimY + shake, P.rimZ + P.R * Math.sin(a));
-        var t1 = proj(low * Math.cos(a + 0.5) + sway, P.rimY - depth, P.rimZ + low * Math.sin(a + 0.5));
-        var t1b = proj(low * Math.cos(a - 0.5) + sway, P.rimY - depth, P.rimZ + low * Math.sin(a - 0.5));
-        ctx.beginPath(); ctx.moveTo(t0[0], t0[1]); ctx.lineTo(t1[0], t1[1]); ctx.stroke();
-        ctx.globalAlpha = 0.5; ctx.beginPath(); ctx.moveTo(t0[0], t0[1]); ctx.lineTo(t1b[0], t1b[1]); ctx.stroke(); ctx.globalAlpha = 1;
-      }
-      [0.45, 0.8].forEach(function (f) {
-        var r = P.R + (low - P.R) * f, y = P.rimY - depth * f, ring = [];
-        for (var a = 0; a <= Math.PI * 2 + 1e-9; a += Math.PI / 16) ring.push(proj(r * Math.cos(a) + sway * f, y, P.rimZ + r * Math.sin(a)));
-        strokePts(ring, 1, "rgba(244, 247, 251, .55)");
-      });
-    }
-    function drawBall(b) {
-      var q = proj(b.x, b.y, b.z), r = P.rb * q[2];
-      var sh = proj(b.x, 0, b.z);
-      ctx.fillStyle = "rgba(0, 0, 0, " + Math.max(0.08, 0.42 - b.y * 0.09).toFixed(3) + ")";
-      ctx.beginPath(); ctx.ellipse(sh[0], sh[1], r * 1.05, r * 0.32, 0, 0, Math.PI * 2); ctx.fill();
-      var g = ctx.createRadialGradient(q[0] - r * 0.35, q[1] - r * 0.35, r * 0.1, q[0], q[1], r);
-      g.addColorStop(0, "#ffb57a"); g.addColorStop(0.55, "#f47b20"); g.addColorStop(1, "#a9480b");
-      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(q[0], q[1], r, 0, Math.PI * 2); ctx.fill();
-      ctx.save(); ctx.beginPath(); ctx.arc(q[0], q[1], r, 0, Math.PI * 2); ctx.clip();
-      ctx.translate(q[0], q[1]); ctx.rotate(spin);
-      ctx.strokeStyle = "rgba(40, 16, 2, .85)"; ctx.lineWidth = Math.max(1, r * 0.07);
-      ctx.beginPath(); ctx.moveTo(-r, 0); ctx.lineTo(r, 0); ctx.moveTo(0, -r); ctx.lineTo(0, r); ctx.stroke();
-      ctx.beginPath(); ctx.arc(-r * 1.25, 0, r * 0.95, -0.9, 0.9); ctx.stroke();
-      ctx.beginPath(); ctx.arc(r * 1.25, 0, r * 0.95, Math.PI - 0.9, Math.PI + 0.9); ctx.stroke();
-      ctx.restore();
-    }
-    function drawTrail(pts, alpha) {
-      ctx.fillStyle = "rgba(255, 194, 75, " + alpha + ")";
-      pts.forEach(function (p, i) { if (i % 3) return; var q = proj(p[0], p[1], p[2]); ctx.beginPath(); ctx.arc(q[0], q[1], Math.max(1.5, Math.min(3.5, 0.012 * q[2])), 0, Math.PI * 2); ctx.fill(); });
-    }
-    function drawAim() {
-      if (!drag || phase !== "ready") return;
-      var q = proj(ball.x, ball.y, ball.z);
-      var dx = drag.x - drag.x0, dy = drag.y - drag.y0, L = Math.sqrt(dx * dx + dy * dy);
-      if (L < 6) return;
-      var ux = dx / L, uy = dy / L, len = Math.min(L, H * 0.6);
-      var tip = [q[0] + ux * len * 0.55, q[1] + uy * len * 0.55];
-      ctx.strokeStyle = "rgba(255, 194, 75, .9)"; ctx.lineWidth = 4; ctx.lineCap = "round";
-      ctx.beginPath(); ctx.moveTo(q[0], q[1]); ctx.lineTo(tip[0], tip[1]); ctx.stroke();
-      ctx.fillStyle = "rgba(255, 194, 75, .9)";
-      ctx.beginPath(); ctx.moveTo(tip[0] + ux * 10, tip[1] + uy * 10);
-      ctx.lineTo(tip[0] - uy * 7, tip[1] + ux * 7); ctx.lineTo(tip[0] + uy * 7, tip[1] - ux * 7); ctx.closePath(); ctx.fill();
-    }
-    function draw() {
-      ctx.clearRect(0, 0, W, H);
-      drawCourt();
-      var shake = rimShake > 0 ? Math.sin(rimShake * 80) * 0.012 * (rimShake / 0.25) : 0;
-      strokePts(rimPts(0, Math.PI, shake), Math.max(2, 0.022 * proj(0, P.rimY, P.rimZ)[2]), "#d4600f");
-      line(proj(0, P.rimY + shake, P.rimZ + P.R), proj(0, P.rimY, P.boardZ), 3, "#c55a10");
-      drawTrail(lastTrail, 0.5);
-      var inside = ball && Math.sqrt(ball.x * ball.x + (ball.z - P.rimZ) * (ball.z - P.rimZ)) < P.R + P.rb && ball.y < P.rimY + 0.25;
-      var behind = ball && (ball.z > P.rimZ + 0.05 || inside);
-      if (ball && behind) drawBall(ball);
-      drawNet(shake);
-      strokePts(rimPts(Math.PI, Math.PI * 2, shake), Math.max(2.4, 0.026 * proj(0, P.rimY, P.rimZ)[2]), "#f47b20");
-      if (ball && !behind) drawBall(ball);
-      drawAim();
-    }
-    function frame(ts) {
-      if (!opened) return;
-      var dt = Math.min(0.05, lastTs ? (ts - lastTs) / 1000 : 0.016);
-      lastTs = ts;
-      if (phase === "flying" || phase === "wait") {
-        var n = Math.max(1, Math.round(dt * 240));
-        for (var i = 0; i < n && !ball.done; i++) step(ball, dt / n);
-        if (!ball.done) spin += dt * 9;
-        if (phase === "flying") {
-          if (trail.length < 400) trail.push([ball.x, ball.y, ball.z]);
-          if (decided(ball)) finish();
-        } else {
-          waitT -= dt;
-          if (waitT <= 0) reset();
-        }
-      }
-      if (netT > 0) netT = Math.max(0, netT - dt);
-      if (rimShake > 0) rimShake = Math.max(0, rimShake - dt);
-      draw();
-      raf = requestAnimationFrame(frame);
-    }
-    // ---- input: swipe up from the ball ----
-    function pt(ev) { var r = cv.getBoundingClientRect(); return [ev.clientX - r.left, ev.clientY - r.top]; }
-    cv.addEventListener("pointerdown", function (ev) {
-      if (phase !== "ready") return;
-      var p = pt(ev);
-      if (p[1] < H * 0.35) return;
-      drag = { x0: p[0], y0: p[1], x: p[0], y: p[1] };
-      try { cv.setPointerCapture(ev.pointerId); } catch (e) {}
-    });
-    cv.addEventListener("pointermove", function (ev) { if (drag) { var p = pt(ev); drag.x = p[0]; drag.y = p[1]; } });
-    function release() {
-      if (!drag) return;
-      var dx = drag.x - drag.x0, dy = drag.y - drag.y0;
-      drag = null;
-      if (dy > -24) return;                                       // not a shot: swipe up
-      launch(Math.sqrt(dx * dx + dy * dy) / (0.55 * H), Math.atan2(dx, -dy));
-    }
-    cv.addEventListener("pointerup", release);
-    cv.addEventListener("pointercancel", function () { drag = null; });
-
-    function open(fromHistory) {
-      if (opened) return;
-      opened = true;
-      game.hidden = false;
-      document.body.classList.add("lock");
-      resize(); newWind(); reset(); lastTs = 0;
-      raf = requestAnimationFrame(frame);
-      if (!fromHistory) { try { history.pushState({ shoot: 1 }, "", "#shoot"); pushed = true; } catch (e) {} }
-      document.getElementById("game-close").focus();
-    }
-    function close(fromHistory) {
-      if (!opened) return;
-      opened = false;
-      cancelAnimationFrame(raf);
-      game.hidden = true;
-      document.body.classList.remove("lock");
-      if (!fromHistory && location.hash === "#shoot") {
-        try { if (pushed) { pushed = false; history.back(); } else history.replaceState(null, "", location.pathname + location.search); } catch (e) {}
-      }
-    }
-    window.addEventListener("resize", function () { if (opened) resize(); });
-    document.getElementById("game-close").addEventListener("click", function () { close(false); });
-    document.addEventListener("keydown", function (e) { if (e.key === "Escape" && opened) close(false); });
-    window.addEventListener("popstate", function () { if (location.hash === "#shoot") open(true); else close(true); });
-    // tests and tuning: the same physics, no drawing
-    window.__ebShot = function (swipe, alpha, w) {
-      var keep = wind; wind = w || 0;
-      var b = { x: 0, y: P.sy, z: 0, vx: 0, vy: 0, vz: 0, rim: false, board: false, made: false, crossed: null,
-                bounces: 0, done: false, t: 0, maxY: P.sy };
-      var v = V_STAR + (swipe - S_STAR) * K_POW, phi = Math.max(-1.1, Math.min(1.1, alpha)) * LAT, vh = v * Math.cos(P.elev);
-      b.vx = vh * Math.sin(phi); b.vz = vh * Math.cos(phi); b.vy = v * Math.sin(P.elev);
-      for (var i = 0; i < 6 * 240 && !decided(b); i++) step(b, 1 / 240);
-      wind = keep;
-      return verdict(b)[0];
-    };
-    return { open: open, close: close };
-  })();
-  hoop.addEventListener("click", function () { Shoot.open(false); });
-  hoop.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); Shoot.open(false); } });
-  document.getElementById("play").addEventListener("click", function () { Shoot.open(false); });
-  if (location.hash === "#shoot") Shoot.open(true);
+  }
+  hoop.addEventListener("click", function () { openGame(false); });
+  hoop.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openGame(false); } });
+  document.getElementById("play").addEventListener("click", function () { openGame(false); });
+  window.addEventListener("popstate", function () {
+    if (location.hash === "#shoot") openGame(true);
+    else if (!gameEl.hidden) { if (window.__hoops) window.__hoops.close(); closeGame(true); }
+  });
+  if (location.hash === "#shoot") openGame(true);
 
   fetch(DATA_URL + "?t=" + Date.now(), { cache: "no-store" })
     .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
