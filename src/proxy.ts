@@ -18,8 +18,10 @@ export function proxy(request: NextRequest) {
   );
   // /insights is the private, un-prefixed analytics dashboard — serve directly.
   // /basketball is the owner's private NBA research board (static files in public/basketball) — serve directly.
+  // /fantasy is the owner's private NBA + IPL friends' league (static page in public/fantasy + /api/fantasy).
   const isBasketball = pathname === "/basketball" || pathname.startsWith("/basketball/");
-  if (hasLocale || LANDING_PATHS.has(pathname) || pathname === "/insights" || isBasketball) {
+  const isFantasy = pathname === "/fantasy" || pathname.startsWith("/fantasy/");
+  if (hasLocale || LANDING_PATHS.has(pathname) || pathname === "/insights" || isBasketball || isFantasy) {
     return NextResponse.next();
   }
 

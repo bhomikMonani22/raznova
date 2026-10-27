@@ -10,10 +10,14 @@ const nextConfig: NextConfig = {
     formats: ["image/avif", "image/webp"],
     qualities: [65, 68, 75],
   },
-  // /basketball: the owner's private NBA research board, plain static files in public/basketball. Serve its index
-  // file at the folder URL, never cache its data, and keep every page of it out of search engines.
+  // /basketball: the owner's private NBA research board, plain static files in public/basketball. /fantasy: his
+  // friends' NBA + IPL league, a static page in public/fantasy talking to /api/fantasy. Serve each index file at
+  // the folder URL, never cache their data, and keep every page of them out of search engines.
   async rewrites() {
-    return [{ source: "/basketball", destination: "/basketball/index.html" }];
+    return [
+      { source: "/basketball", destination: "/basketball/index.html" },
+      { source: "/fantasy", destination: "/fantasy/index.html" },
+    ];
   },
   async headers() {
     const noindex = [{ key: "X-Robots-Tag", value: "noindex, nofollow" }];
@@ -21,6 +25,9 @@ const nextConfig: NextConfig = {
       { source: "/basketball", headers: noindex },
       { source: "/basketball/:path*", headers: noindex },
       { source: "/basketball/data/:path*", headers: [{ key: "Cache-Control", value: "no-store, max-age=0" }] },
+      { source: "/fantasy", headers: noindex },
+      { source: "/fantasy/:path*", headers: noindex },
+      { source: "/fantasy/data/:path*", headers: [{ key: "Cache-Control", value: "no-store, max-age=0" }] },
     ];
   },
 };
