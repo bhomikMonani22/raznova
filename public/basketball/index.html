@@ -325,6 +325,9 @@
     if (tops.length) {
       take.textContent = tops.length + (tops.length === 1 ? " pick" : " picks") + " tonight. Top: " + tops[0].player + " " +
         tops[0].side + " " + tops[0].line + " " + tops[0].market + ", " + pct(tops[0].chance) + " to hit.";
+    } else if (s.preview) {
+      take.textContent = "Top picks are taken at the " + (s.next_refresh || "evening") + " check, once the sharp books " +
+        "have the full board. Every prop's confidence is on All props now.";
     } else if (s.stake_props_listed == null) {
       take.textContent = "No prices checked yet for tonight. Next check: " + (s.next_refresh || "this evening") + ".";
     } else if (s.stake_props_listed > 0 && s.stake_props_open < 0.2 * s.stake_props_listed) {
