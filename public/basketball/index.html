@@ -131,6 +131,61 @@
   .kv div { background: var(--surface-2); border-radius: 8px; padding: 5px 6px; }
   .kv .k { font-size: 10.5px; color: var(--muted); display: block; }
   .kv .v { font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .why { list-style: none; margin: 10px 0 0; padding: 8px 10px; font-size: 12.5px; color: var(--muted);
+         background: var(--surface-2); border-radius: 10px; }
+  .why .h { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 2px; }
+  .why li { display: flex; gap: 6px; padding: 2px 0; }
+  .why .mk { flex: none; width: 14px; text-align: center; font-weight: 800; }
+  .why li.for .mk { color: var(--good); } .why li.against .mk { color: var(--bad); }
+  [data-aid] { cursor: pointer; }
+  .tap { font-size: 11.5px; color: var(--accent); font-weight: 600; margin-top: 8px; }
+  .gamehead { margin-top: 18px; }
+  .gamehead .t { font-weight: 700; font-size: 16px; }
+  .team-h { font-size: 12.5px; font-weight: 700; color: var(--muted); margin: 12px 2px 6px; text-transform: uppercase;
+            letter-spacing: .04em; }
+  .prow { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; font: inherit; color: inherit;
+          background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 9px 10px;
+          margin-top: 6px; cursor: pointer; }
+  .prow .nm { font-weight: 650; }
+  .prow .num { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+  .chip.muted { color: var(--muted); }
+  body.lock { overflow: hidden; }
+  .sheet { position: fixed; inset: 0; z-index: 30; background: var(--bg); overflow-y: auto; -webkit-overflow-scrolling: touch;
+           overscroll-behavior: contain; }
+  .sheet[hidden] { display: none; }
+  .sheet .bar { position: sticky; top: 0; z-index: 2; background: var(--bg); border-bottom: 1px solid var(--border); }
+  .sheet .bar .wrap { display: flex; align-items: center; gap: 10px; padding-top: 10px; padding-bottom: 10px; }
+  .close { appearance: none; flex: none; width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--border);
+           background: var(--surface); color: var(--text); font-size: 20px; line-height: 1; cursor: pointer; }
+  .sheet .av.xl { width: 76px; height: 76px; }
+  .sheet .av.xl .ini { font-size: 24px; }
+  .sheet h3 { margin: 0; font-size: 21px; letter-spacing: -.01em; }
+  .scroll-x { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .sheet table { font-size: 12.5px; }
+  .sheet th, .sheet td { padding: 7px 4px; white-space: nowrap; }
+  .sheet th:first-child, .sheet td:first-child { padding-left: 0; }
+  .sheet th:last-child, .sheet td:last-child { padding-right: 0; }
+  .scroll-x table.wide { min-width: 460px; }
+  .mkts { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+  .mkts::-webkit-scrollbar { display: none; }
+  .mkts button { flex: none; appearance: none; font: inherit; font-size: 12.5px; font-weight: 600; padding: 6px 10px;
+                 border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text);
+                 cursor: pointer; }
+  .mkts button[aria-pressed="true"] { background: var(--text); color: var(--bg); border-color: var(--text); }
+  .mkts button .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--accent);
+                      margin-left: 5px; vertical-align: middle; }
+  .stepper { display: flex; align-items: center; gap: 10px; margin: 12px 0 4px; }
+  .stepper button { appearance: none; width: 40px; height: 40px; border-radius: 12px; border: 1px solid var(--border);
+                    background: var(--surface); color: var(--text); font-size: 20px; cursor: pointer; }
+  .stepper .lv { font-size: 22px; font-weight: 800; min-width: 64px; text-align: center; font-variant-numeric: tabular-nums; }
+  .stepper .lk { font-size: 12px; color: var(--muted); }
+  .chart { max-width: 560px; margin-top: 6px; }
+  .chart svg { width: 100%; height: auto; display: block; }
+  .chart .bar-over { fill: var(--good); } .chart .bar-under { fill: var(--bad); } .chart .bar-push { fill: var(--muted); }
+  .chart .lbl { fill: var(--muted); font-size: 8.5px; }
+  .chart .val { fill: var(--text); font-size: 10px; font-weight: 700; }
+  .chart .ln { stroke: var(--text); stroke-width: 1.2; stroke-dasharray: 4 3; }
+  .small { font-size: 12px; color: var(--muted); margin-top: 8px; }
   @media (min-width: 560px) { .tiles { grid-template-columns: repeat(4, 1fr); } .selects { grid-template-columns: 1fr 1fr 1.4fr; } }
 </style>
 </head>
@@ -144,8 +199,9 @@
   <p class="status" id="status">Loading tonight's board…</p>
 </header>
 <nav class="tabs" aria-label="Sections"><div class="wrap" role="tablist">
-  <button role="tab" id="tb-picks" aria-controls="tab-picks" aria-selected="true">Top picks</button>
-  <button role="tab" id="tb-props" aria-controls="tab-props" aria-selected="false">All props</button>
+  <button role="tab" id="tb-picks" aria-controls="tab-picks" aria-selected="true">Picks</button>
+  <button role="tab" id="tb-props" aria-controls="tab-props" aria-selected="false">Props</button>
+  <button role="tab" id="tb-players" aria-controls="tab-players" aria-selected="false">Players</button>
   <button role="tab" id="tb-roles" aria-controls="tab-roles" aria-selected="false">Roles</button>
   <button role="tab" id="tb-results" aria-controls="tab-results" aria-selected="false">Results</button>
 </div></nav>
@@ -172,6 +228,17 @@
     </div>
     <p class="count" id="count"></p>
     <div class="stack" id="props"></div>
+  </section>
+  <section id="tab-players" role="tabpanel" aria-labelledby="tb-players" hidden>
+    <p class="take">Everyone in tonight's games</p>
+    <p class="lead">Tap a player for his last 15 games against any line, splits, the matchup and every Stake prop on
+      him. Players show here even before Stake posts their lines.</p>
+    <div class="filters">
+      <div class="seg" id="p-games" role="group" aria-label="Game"></div>
+      <input type="search" id="p-q" placeholder="Search player" aria-label="Search player">
+      <label class="toggle"><input type="checkbox" id="p-lined"> Only players with a Stake line</label>
+    </div>
+    <div id="players"></div>
   </section>
   <section id="tab-roles" role="tabpanel" aria-labelledby="tb-roles" hidden>
     <p class="take">Role changes this season</p>
@@ -205,6 +272,13 @@
       and 30% recent form (last 5, 10, 15 and 20 games at that line, home or away, and against tonight's opponent, each
       pulled toward 50% so a few games don't count for much). Without a sharp price, or when the player is Questionable,
       the tier stops at Medium. The model column is our points model's chance.</p>
+    <p><b>Players</b>: every player who has played for one of tonight's teams this season, and anyone on tonight's
+      injury report. Tap one for his last 15 games against any line you set, season and home/away averages, his games
+      against tonight's opponent, the opponent's defence against his position (last 20 games against the league), the
+      game's pace and rest. All-Star games are left out.</p>
+    <p><b>For / against</b> on a prop: context, not part of the confidence number. ✓ supports the lean, ✗ goes against
+      it: his last-10 median against the line, his minutes over the last 5 games against the 15 before (3+ a game), the
+      opponent's defence against his position (5%+ off the league) and the pace (2%+ off the league).</p>
     <p><b>Roles</b>: a player is flagged when his minutes moved 5+ a game against last season, or, with minutes
       steady, his share of shots moved 25%+ (3+ games this season, 20+ last season). Shown on his cards; the flag
       does not change any rating yet.</p>
@@ -212,11 +286,19 @@
       a reason, and the tier table shows whether higher confidence actually hits more often.</p>
   </details>
 </main>
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-name" hidden>
+  <div class="bar"><div class="wrap">
+    <button class="close" id="sheet-close" type="button" aria-label="Close">×</button>
+    <div class="grow ell" id="sheet-title"></div>
+  </div></div>
+  <div class="wrap" id="sheet-body" style="padding-bottom: 32px"></div>
+</div>
 <footer class="wrap">Research and paper tracking only. Nothing here is a bet placed for you. 18+.</footer>
 <script>
 (function () {
   "use strict";
   var DATA_URL = "/basketball/data/latest.json";
+  var CARDS_URL = "/basketball/data/cards.json";
   var TIERS = ["Very high", "High", "Medium", "Low"];
   var TIER_CLASS = { "Very high": "t-vh", "High": "t-hi", "Medium": "t-md", "Low": "t-lo" };
   var state = { tier: "", game: "", market: "", q: "", sharp: false };
@@ -279,20 +361,25 @@
   function recall(k) { try { return localStorage.getItem("eb." + k); } catch (e) { return null; } }
 
   // ---- tabs ----
-  var tabs = ["picks", "props", "roles", "results"];
+  var tabs = ["picks", "props", "players", "roles", "results"];
   function show(name) {
     tabs.forEach(function (t) {
       document.getElementById("tb-" + t).setAttribute("aria-selected", String(t === name));
       document.getElementById("tab-" + t).hidden = t !== name;
     });
     store("tab", name);
+    if (name === "players" && data) loadCards();
   }
   tabs.forEach(function (t) { document.getElementById("tb-" + t).addEventListener("click", function () { show(t); }); });
   show(tabs.indexOf(recall("tab")) >= 0 ? recall("tab") : "picks");
 
   // ---- picks ----
+  function tappable(node, aid) {
+    if (aid !== null && aid !== undefined) node.setAttribute("data-aid", String(aid));
+    return node;
+  }
   function pickCard(p, hero) {
-    var c = el("div", "card" + (hero ? " hero" : ""));
+    var c = tappable(el("div", "card" + (hero ? " hero" : "")), p.athlete_id);
     var row = el("div", "row");
     var txt = el("div", "grow");
     txt.appendChild(el("div", "who", p.player));
@@ -341,7 +428,7 @@
     var list = document.getElementById("toplist");
     list.replaceChildren();
     tops.slice(1).forEach(function (p) {
-      var it = el("div", "item");
+      var it = tappable(el("div", "item"), p.athlete_id);
       it.appendChild(el("div", "rank", String(p.rank)));
       it.appendChild(avatar(p.athlete_id, p.player, "sm"));
       var mid = el("div", "grow");
@@ -385,8 +472,8 @@
     d.appendChild(el("span", "v" + (n ? "" : " na"), n ? h + "/" + n : "–"));
     return d;
   }
-  function propCard(r) {
-    var c = el("div", "card");
+  function propCard(r, inSheet) {
+    var c = inSheet ? el("div", "card") : tappable(el("div", "card"), r.athlete_id);
     var row = el("div", "row");
     var txt = el("div", "grow");
     txt.appendChild(el("div", "who", r.player));
@@ -429,6 +516,18 @@
       });
       c.appendChild(fl);
     }
+    if (r.why && r.why.length) {
+      var w = el("ul", "why");
+      w.appendChild(el("li", "h", "For / against the " + r.lean.toLowerCase()));
+      r.why.forEach(function (n) {
+        var li = el("li", n.s > 0 ? "for" : n.s < 0 ? "against" : "");
+        li.appendChild(el("span", "mk", n.s > 0 ? "✓" : n.s < 0 ? "✗" : "•"));
+        li.appendChild(el("span", null, n.t));
+        w.appendChild(li);
+      });
+      c.appendChild(w);
+    }
+    if (!inSheet && r.athlete_id !== null && r.athlete_id !== undefined) c.appendChild(el("div", "tap", "Tap for his games and splits ›"));
     return c;
   }
   function renderProps() {
@@ -497,7 +596,7 @@
     box.replaceChildren();
     box.hidden = !rev.length;
     rev.forEach(function (p) {
-      var it = el("div", "item");
+      var it = tappable(el("div", "item"), p.athlete_id);
       it.appendChild(avatar(p.athlete_id, p.player, "sm"));
       var mid = el("div", "grow");
       mid.appendChild(el("div", null, p.player + " · " + (p.side ? p.side + " " + p.line + " " : "") + p.market));
@@ -540,7 +639,7 @@
   function kv(k, v) { var d = el("div"); d.appendChild(el("span", "k", k)); d.appendChild(el("span", "v", v)); return d; }
   function roleCard(r) {
     var p = player(r.athlete_id) || {};
-    var c = el("div", "card");
+    var c = tappable(el("div", "card"), r.athlete_id);
     var txt = el("div", "grow");
     txt.appendChild(el("div", "who", p.name || "Player"));
     txt.appendChild(el("div", "meta", (r.abbr_now || p.team || "") + (r.moved && r.abbr_prev ? " · was " + r.abbr_prev : "") +
@@ -569,6 +668,374 @@
   }
   document.getElementById("r-tonight").addEventListener("change", function () { renderRoles(); });
 
+  // ---- players and the detail sheet (data: cards.json, lab/research/player_cards.py) ----
+  var cards = null, cardsState = "idle", pendingAid = null;
+  var POSN = { G: "Guard", F: "Forward", C: "Centre" };
+  var POSP = { G: "guards", F: "forwards", C: "centres" };
+  var pstate = { game: "", q: "", lined: false };
+  var MKTS = [["Points", ["pts"]], ["Rebounds", ["reb"]], ["Assists", ["ast"]], ["3-pointers", ["3pm"]],
+    ["Pts+Reb+Ast", ["pts", "reb", "ast"]], ["Pts+Reb", ["pts", "reb"]], ["Pts+Ast", ["pts", "ast"]],
+    ["Reb+Ast", ["reb", "ast"]], ["Steals", ["stl"]], ["Blocks", ["blk"]], ["Steals+Blocks", ["stl", "blk"]],
+    ["Turnovers", ["tov"]], ["1Q Points", ["q1pts"]], ["1Q Rebounds", ["q1reb"]], ["1Q Assists", ["q1ast"]],
+    ["1Q 3-pointers", ["q13pm"]]];
+
+  function loadCards() {
+    if (cardsState !== "idle") return;
+    cardsState = "loading";
+    fetch(CARDS_URL + "?t=" + Date.now(), { cache: "no-store" })
+      .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(function (d) { cards = d; cardsState = "ready"; renderPlayers(); if (pendingAid) { var a = pendingAid; pendingAid = null; openSheet(a, true); } })
+      .catch(function () { cardsState = "missing"; renderPlayers(); if (pendingAid) { var a = pendingAid; pendingAid = null; openSheet(a, true); } });
+  }
+  function propsFor(aid) {
+    return (data.confidence || []).filter(function (r) { return r.key !== "none" && String(r.athlete_id) === String(aid); });
+  }
+  function seasonOf(p) {
+    var labels = Object.keys(p.season || {});
+    for (var i = 0; i < labels.length; i++) {
+      var v = p.season[labels[i]];
+      if (v && v[0]) return { label: labels[i], v: v, current: i === 0 };
+    }
+    return null;
+  }
+  function fmt1(x) { return x === null || x === undefined ? "–" : (Math.round(x * 10) / 10).toString(); }
+  function playerRow(aid, p) {
+    var it = el("button", "prow");
+    it.type = "button";
+    it.setAttribute("data-aid", aid);
+    it.appendChild(avatar(aid, p.name, "sm"));
+    var mid = el("div", "grow");
+    mid.appendChild(el("div", "nm ell", p.name));
+    var s = seasonOf(p);
+    mid.appendChild(el("div", "meta ell", (POSN[p.pos] || "") + " · " + (s
+      ? Math.round(s.v[1]) + " min · " + fmt1(s.v[2]) + " pts · " + fmt1(s.v[3]) + " reb · " + fmt1(s.v[4]) + " ast" +
+        (s.current ? "" : " (" + s.label + ")")
+      : "no games yet")));
+    it.appendChild(mid);
+    var right = el("div", "num");
+    var n = propsFor(aid).length;
+    right.appendChild(el("span", "chip" + (n ? "" : " muted"), n ? n + (n === 1 ? " prop" : " props") : "No line yet"));
+    if (p.status) right.appendChild(el("span", "chip " + (p.status === "Out" ? "bad" : "warn"), p.status));
+    var rc = roleChip(aid);
+    if (rc) right.appendChild(rc);
+    it.appendChild(right);
+    return it;
+  }
+  function restText(g) {
+    return [g.away, g.home].map(function (t) {
+      var r = g.rest ? g.rest[t] : null;
+      return t + (r === null || r === undefined ? " –" : r === 1 ? " back-to-back" : " " + (r - 1) + "d rest");
+    }).join(" · ");
+  }
+  function renderPlayers() {
+    var box = document.getElementById("players");
+    box.replaceChildren();
+    var seg = document.getElementById("p-games");
+    seg.replaceChildren();
+    if (cardsState !== "ready") {
+      box.appendChild(el("div", "empty", cardsState === "missing" ? "Player pages aren't published for tonight yet." : "Loading players…"));
+      return;
+    }
+    var games = cards.games || [];
+    [{ game_id: "", game: "All games" }].concat(games).forEach(function (g) {
+      var b = el("button", null, g.game);
+      b.setAttribute("aria-pressed", String(pstate.game === String(g.game_id)));
+      b.addEventListener("click", function () { pstate.game = String(g.game_id); renderPlayers(); });
+      seg.appendChild(b);
+    });
+    var shown = 0;
+    games.forEach(function (g) {
+      if (pstate.game && pstate.game !== String(g.game_id)) return;
+      var head = el("div", "card gamehead");
+      head.appendChild(el("div", "t", g.game));
+      head.appendChild(el("div", "meta", ist(g.tip) + (g.pace_vs !== null && g.pace_vs !== undefined
+        ? " · pace " + (g.pace_vs >= 0 ? "+" : "") + Math.round(g.pace_vs * 100) + "% vs league" : "")));
+      head.appendChild(el("div", "meta", restText(g)));
+      var any = false, frag = document.createDocumentFragment();
+      [g.away, g.home].forEach(function (team) {
+        var list = Object.keys(cards.players).filter(function (aid) {
+          var p = cards.players[aid];
+          return p.game_id === g.game_id && p.team === team &&
+            (!pstate.q || p.name.toLowerCase().indexOf(pstate.q) >= 0) && (!pstate.lined || propsFor(aid).length);
+        }).sort(function (a, b) { return (cards.players[b].mpg || 0) - (cards.players[a].mpg || 0); });
+        if (!list.length) return;
+        any = true;
+        frag.appendChild(el("div", "team-h", team + " · " + list.length + " players"));
+        list.forEach(function (aid) { frag.appendChild(playerRow(aid, cards.players[aid])); shown++; });
+      });
+      if (any) { box.appendChild(head); box.appendChild(frag); }
+    });
+    if (!shown) box.appendChild(el("div", "empty", "No players match."));
+  }
+  document.getElementById("p-q").addEventListener("input", function (e) { pstate.q = e.target.value.trim().toLowerCase(); renderPlayers(); });
+  document.getElementById("p-lined").addEventListener("change", function (e) { pstate.lined = e.target.checked; renderPlayers(); });
+
+  // ---- sheet ----
+  var sheet = document.getElementById("sheet"), sheetBody = document.getElementById("sheet-body");
+  var sheetState = { aid: null, mkt: "Points", line: null }, pushed = false;
+  function colIdx() { var m = {}; (cards.log_cols || []).forEach(function (c, i) { m[c] = i; }); return m; }
+  function statOf(row, cols, idx) {
+    var s = 0;
+    for (var i = 0; i < cols.length; i++) {
+      var v = row[idx[cols[i]]];
+      if (v === null || v === undefined) return null;
+      s += v;
+    }
+    return s;
+  }
+  function hits(vals, line) {
+    var h = 0, n = 0;
+    vals.forEach(function (v) { if (v === null || v === line) return; n++; if (v > line) h++; });
+    return [h, n];
+  }
+  function svg(tag, attrs, text) {
+    var e = document.createElementNS("http://www.w3.org/2000/svg", tag);
+    Object.keys(attrs || {}).forEach(function (k) { e.setAttribute(k, attrs[k]); });
+    if (text !== undefined) e.textContent = text;
+    return e;
+  }
+  function chart(rows, cols, idx, line) {
+    var data_ = rows.slice().reverse();
+    var W = 340, H = 168, T = 16, B = 24, L = 2, R = 2, n = Math.max(data_.length, 1);
+    var vals = data_.map(function (r) { return statOf(r, cols, idx); });
+    var max = Math.max.apply(null, [line * 1.3, 1].concat(vals.filter(function (v) { return v !== null; })));
+    var ih = H - T - B, bw = (W - L - R) / n;
+    var s = svg("svg", { viewBox: "0 0 " + W + " " + H, role: "img",
+      "aria-label": "Last " + data_.length + " games against the line " + line });
+    data_.forEach(function (r, i) {
+      var v = vals[i], x = L + i * bw;
+      if (v !== null) {
+        var h = Math.max(v / max * ih, v > 0 ? 2 : 0), y = T + ih - h;
+        s.appendChild(svg("rect", { x: (x + bw * 0.14).toFixed(1), y: y.toFixed(1), width: (bw * 0.72).toFixed(1),
+          height: h.toFixed(1), rx: 2, "class": v > line ? "bar-over" : v < line ? "bar-under" : "bar-push" }));
+        s.appendChild(svg("text", { x: (x + bw / 2).toFixed(1), y: (y - 3).toFixed(1), "text-anchor": "middle", "class": "val" }, String(v)));
+      }
+      s.appendChild(svg("text", { x: (x + bw / 2).toFixed(1), y: H - (i % 2 ? 3 : 13), "text-anchor": "middle",
+        "class": "lbl" }, (r[idx.ha] === "A" ? "@" : "") + r[idx.opp]));
+    });
+    var ly = T + ih - line / max * ih;
+    s.appendChild(svg("line", { x1: L, x2: W - R, y1: ly.toFixed(1), y2: ly.toFixed(1), "class": "ln" }));
+    var box = el("div", "chart");
+    box.appendChild(s);
+    return box;
+  }
+  function table(head, rows, rightFrom) {
+    var t = el("table"), th = el("thead"), tr = el("tr");
+    head.forEach(function (h, i) { tr.appendChild(el("th", i >= rightFrom ? "r" : null, h)); });
+    th.appendChild(tr); t.appendChild(th);
+    var tb = el("tbody");
+    rows.forEach(function (r) {
+      var x = el("tr");
+      r.forEach(function (v, i) { x.appendChild(el("td", i >= rightFrom ? "r" : null, v === null || v === undefined ? "–" : String(v))); });
+      tb.appendChild(x);
+    });
+    t.appendChild(tb);
+    return t;
+  }
+  function wide(t) { t.className = "wide"; return t; }
+  function shortDate(d) {
+    try { return new Date(d + "T12:00:00Z").toLocaleDateString("en-IN", { day: "numeric", month: "short", timeZone: "UTC" }); }
+    catch (e) { return d; }
+  }
+  function explorer(aid, p, idx) {
+    var wrap = el("div");
+    var props = propsFor(aid);
+    var lineFor = {};
+    props.forEach(function (r) { if (!(r.label in lineFor)) lineFor[r.label] = r.line; });
+    var mk = MKTS.filter(function (m) { return m[0] === sheetState.mkt; })[0] || MKTS[0];
+    var log = p.log || [];
+    var vals = log.map(function (r) { return statOf(r, mk[1], idx); });
+    if (sheetState.line === null) {
+      if (mk[0] in lineFor) sheetState.line = lineFor[mk[0]];
+      else {
+        var got = vals.slice(0, 10).filter(function (v) { return v !== null; });
+        var avg = got.length ? got.reduce(function (a, b) { return a + b; }, 0) / got.length : 0.5;
+        sheetState.line = Math.floor(avg) + 0.5;
+      }
+    }
+    var line = sheetState.line;
+    var bar = el("div", "mkts");
+    MKTS.forEach(function (m) {
+      var b = el("button", null, m[0]);
+      b.type = "button";
+      if (m[0] in lineFor) b.appendChild(el("span", "dot"));
+      b.setAttribute("aria-pressed", String(m[0] === mk[0]));
+      b.addEventListener("click", function () { sheetState.mkt = m[0]; sheetState.line = null; renderSheet(); });
+      bar.appendChild(b);
+    });
+    wrap.appendChild(bar);
+    var st = el("div", "stepper");
+    var minus = el("button", null, "−"); minus.type = "button"; minus.setAttribute("aria-label", "Lower line");
+    var plus = el("button", null, "+"); plus.type = "button"; plus.setAttribute("aria-label", "Raise line");
+    minus.addEventListener("click", function () { sheetState.line = Math.max(0.5, sheetState.line - 0.5); renderSheet(); });
+    plus.addEventListener("click", function () { sheetState.line = sheetState.line + 0.5; renderSheet(); });
+    var lv = el("div");
+    lv.appendChild(el("div", "lv", String(line)));
+    lv.appendChild(el("div", "lk", mk[0] in lineFor && lineFor[mk[0]] === line ? "Stake's line" : "your line"));
+    st.appendChild(minus); st.appendChild(lv); st.appendChild(plus);
+    wrap.appendChild(st);
+    var f = el("div", "form");
+    [5, 10, 15].forEach(function (k) {
+      var hn = hits(vals.slice(0, k), line);
+      f.appendChild(formCell("L" + k, hn[0], hn[1]));
+    });
+    var home = [], away = [];
+    log.forEach(function (r, i) { (r[idx.ha] === "H" ? home : away).push(vals[i]); });
+    var hh = hits(home, line), aa = hits(away, line);
+    f.appendChild(formCell("Home", hh[0], hh[1]));
+    f.appendChild(formCell("Away", aa[0], aa[1]));
+    var vsVals = (p.vs || []).map(function (r) {
+      var m = { pts: r[2], reb: r[3], ast: r[4], "3pm": r[5] };
+      var s2 = 0;
+      for (var i = 0; i < mk[1].length; i++) { if (!(mk[1][i] in m)) return null; s2 += m[mk[1][i]]; }
+      return s2;
+    });
+    var vv = hits(vsVals, line);
+    f.appendChild(formCell("vs " + p.opp, vv[0], vv[1]));
+    wrap.appendChild(f);
+    wrap.appendChild(chart(log, mk[1], idx, line));
+    wrap.appendChild(el("p", "small", "Green: over the line · red: under · last " + log.length +
+      " games, oldest left (dates in the game log). Counts leave out games landing exactly on the line."));
+    return wrap;
+  }
+  function renderSheet() {
+    var aid = sheetState.aid;
+    var p = cards && cards.players ? cards.players[String(aid)] : null;
+    var face = player(aid) || {};
+    sheetBody.replaceChildren();
+    var name = (p && p.name) || face.name || "Player";
+    document.getElementById("sheet-title").textContent = name;
+    var head = el("div", "row");
+    head.style.marginTop = "14px";
+    var txt = el("div", "grow");
+    var h3 = el("h3", null, name); h3.id = "sheet-name";
+    txt.appendChild(h3);
+    if (p) {
+      var g = (cards.games || []).filter(function (x) { return x.game_id === p.game_id; })[0];
+      txt.appendChild(el("div", "meta", p.team + " · " + (POSN[p.pos] || "") + (p.mpg ? " · " + p.mpg + " min a game" : "")));
+      if (g) txt.appendChild(el("div", "meta", (p.venue === "home" ? "vs " : "@ ") + p.opp + " · " + ist(g.tip)));
+    } else {
+      txt.appendChild(el("div", "meta", face.team || ""));
+    }
+    var idb = ident(aid, name, "xl", txt);
+    idb.className = "id grow";
+    head.appendChild(idb);
+    sheetBody.appendChild(head);
+    var chips = el("div", "chips");
+    if (p && p.status) chips.appendChild(el("span", "chip " + (p.status === "Out" ? "bad" : "warn"), p.status + " (injury report)"));
+    var rc = roleChip(aid);
+    if (rc) chips.appendChild(rc);
+    if (chips.children.length) sheetBody.appendChild(chips);
+    if (!p) {
+      sheetBody.appendChild(el("div", "empty", "Player pages cover tonight's games; " + name + " is not in one."));
+      return;
+    }
+    var idx = colIdx();
+    var props = propsFor(aid);
+    sheetBody.appendChild(el("h2", null, "Against a line"));
+    var ex = el("div", "card");
+    ex.appendChild(explorer(aid, p, idx));
+    sheetBody.appendChild(ex);
+    sheetBody.appendChild(el("h2", null, props.length ? "Stake props tonight (" + props.length + ")" : "Stake props tonight"));
+    if (props.length) {
+      var st = el("div", "stack");
+      props.forEach(function (r) { st.appendChild(propCard(r, true)); });
+      sheetBody.appendChild(st);
+    } else {
+      sheetBody.appendChild(el("div", "card empty", "No Stake line for him yet. Stake posts most props by the evening; the 7:36 pm check rates them."));
+    }
+    sheetBody.appendChild(el("h2", null, "Season averages"));
+    var sc = el("div", "card scroll-x");
+    sc.appendChild(wide(table(["Season", "G", "MIN", "PTS", "REB", "AST", "3PM", "STL", "BLK", "TO"],
+      Object.keys(p.season || {}).filter(function (k) { return p.season[k]; }).map(function (k) {
+        var v = p.season[k];
+        return [k, v[0], fmt1(v[1]), fmt1(v[2]), fmt1(v[3]), fmt1(v[4]), fmt1(v[5]), fmt1(v[6]), fmt1(v[7]), fmt1(v[8])];
+      }), 1)));
+    sheetBody.appendChild(sc);
+    sheetBody.appendChild(el("h2", null, "Home and away (last " + ((cards.constants || {}).split_n || 40) + " games)"));
+    var sp = el("div", "card scroll-x");
+    sp.appendChild(table(["", "G", "MIN", "PTS", "REB", "AST", "3PM"], [["Home", "home"], ["Away", "away"]].filter(function (x) {
+      return p.split && p.split[x[1]];
+    }).map(function (x) { var v = p.split[x[1]]; return [x[0], v[0], fmt1(v[1]), fmt1(v[2]), fmt1(v[3]), fmt1(v[4]), fmt1(v[5])]; }), 1));
+    sheetBody.appendChild(sp);
+    sheetBody.appendChild(el("h2", null, "Matchup"));
+    var mu = el("div", "card");
+    var d = cards.dvp && cards.dvp[p.opp] ? cards.dvp[p.opp][p.pos] : null;
+    if (d) {
+      mu.appendChild(el("div", "meta", p.opp + " against " + (POSP[p.pos] || "his position") + ", allowed a game over its last " +
+        ((cards.constants || {}).dvp_n || 20) + " games, against the league:"));
+      var kvb = el("div", "kv");
+      [["Points", "points"], ["Rebounds", "rebounds"], ["Assists", "assists"], ["Threes", "threes"]].forEach(function (x) {
+        var v = d[x[1]];
+        var cell = kv(x[0], v === null || v === undefined ? "–" : (v >= 0 ? "+" : "") + Math.round(v * 100) + "%");
+        kvb.appendChild(cell);
+      });
+      mu.appendChild(kvb);
+    }
+    var gm = (cards.games || []).filter(function (x) { return x.game_id === p.game_id; })[0];
+    if (gm) {
+      mu.appendChild(el("div", "small", "Pace: " + (gm.pace_vs === null || gm.pace_vs === undefined ? "–" :
+        (gm.pace_vs >= 0 ? "+" : "") + Math.round(gm.pace_vs * 100) + "% against the league") + " · " + restText(gm)));
+    }
+    var outs = Object.keys(cards.players).filter(function (a) {
+      var q = cards.players[a];
+      return q.team === p.team && q.status === "Out" && a !== String(aid);
+    }).map(function (a) { return cards.players[a].name; });
+    if (outs.length) mu.appendChild(el("div", "small", "His team out tonight: " + outs.join(", ")));
+    sheetBody.appendChild(mu);
+    if (p.vs && p.vs.length) {
+      sheetBody.appendChild(el("h2", null, "Against " + p.opp));
+      var vc = el("div", "card scroll-x");
+      vc.appendChild(table(["Date", "MIN", "PTS", "REB", "AST", "3PM"], p.vs.map(function (r) {
+        return [shortDate(r[0]), r[1], r[2], r[3], r[4], r[5]];
+      }), 1));
+      sheetBody.appendChild(vc);
+    }
+    sheetBody.appendChild(el("h2", null, "Game log (last " + (p.log || []).length + ")"));
+    var lc = el("div", "card scroll-x");
+    lc.appendChild(wide(table(["Date", "Opp", "MIN", "PTS", "REB", "AST", "3PM", "STL", "BLK", "TO"], (p.log || []).map(function (r) {
+      return [shortDate(r[idx.date]), (r[idx.ha] === "A" ? "@" : "vs ") + r[idx.opp], r[idx.min], r[idx.pts], r[idx.reb],
+        r[idx.ast], r[idx["3pm"]], r[idx.stl], r[idx.blk], r[idx.tov]];
+    }), 2)));
+    sheetBody.appendChild(lc);
+    sheetBody.appendChild(el("p", "small", "Box scores from ESPN via hoopR, through " + (cards.box_through || "–") +
+      ". Regular season, play-in and playoffs; All-Star games left out."));
+  }
+  function openSheet(aid, fromHistory) {
+    if (cardsState === "idle" || cardsState === "loading") { pendingAid = aid; loadCards(); return; }
+    sheetState = { aid: String(aid), mkt: "Points", line: null };
+    var props = propsFor(aid);
+    if (props.length) sheetState.mkt = props[0].label;
+    if (!MKTS.some(function (m) { return m[0] === sheetState.mkt; })) sheetState.mkt = "Points";
+    renderSheet();
+    sheet.hidden = false;
+    sheet.scrollTop = 0;
+    document.body.classList.add("lock");
+    if (!fromHistory) { try { history.pushState({ aid: String(aid) }, "", "#p=" + aid); pushed = true; } catch (e) {} }
+    document.getElementById("sheet-close").focus();
+  }
+  function closeSheet(fromHistory) {
+    if (sheet.hidden) return;
+    sheet.hidden = true;
+    document.body.classList.remove("lock");
+    if (fromHistory || !/^#p=/.test(location.hash)) return;
+    try {
+      if (pushed) { pushed = false; history.back(); }
+      else history.replaceState(null, "", location.pathname + location.search);   // opened from a shared #p= link
+    } catch (e) {}
+  }
+  document.getElementById("sheet-close").addEventListener("click", function () { closeSheet(false); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeSheet(false); });
+  window.addEventListener("popstate", function () {
+    var m = /^#p=(\d+)/.exec(location.hash);
+    if (m) openSheet(m[1], true); else closeSheet(true);
+  });
+  document.addEventListener("click", function (e) {
+    var t = e.target.closest ? e.target.closest("[data-aid]") : null;
+    if (!t || sheet.contains(t)) return;
+    openSheet(t.getAttribute("data-aid"), false);
+  });
+
   function render() {
     var s = data.summary || {};
     var st = document.getElementById("status");
@@ -577,6 +1044,9 @@
     st.appendChild(el("b", null, s.tonight || "–"));
     st.appendChild(document.createTextNode(" · prices checked " + (s.updated || "–") + " · next: " + (s.next_refresh || "–")));
     renderPicks(); setupFilters(); renderProps(); renderRoles(); renderResults();
+    if (recall("tab") === "players") loadCards();
+    var m = /^#p=(\d+)/.exec(location.hash);
+    if (m) openSheet(m[1], true);
   }
 
   fetch(DATA_URL + "?t=" + Date.now(), { cache: "no-store" })
