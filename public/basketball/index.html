@@ -4,240 +4,419 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
-<meta name="theme-color" content="#0b0f17" media="(prefers-color-scheme: dark)">
-<meta name="theme-color" content="#f6f7f9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0c1830">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=Big+Shoulders+Display:wght@600..900&display=swap">
 <title>EasyBuckets · NBA props</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%23ea580c'/%3E%3Cpath d='M2 16h28M16 2v28M6 6c5 4 5 16 0 20M26 6c-5 4-5 16 0 20' stroke='%23111' stroke-width='1.6' fill='none'/%3E%3C/svg%3E">
 <style>
+  /* EasyBuckets: an arena at night. Hardwood only in the hero, the scoreboard's amber for live numbers, the shot
+     clock's green and red for makes and misses, the ball's orange for whatever you can press. */
   :root {
-    --bg: #f6f7f9; --surface: #ffffff; --surface-2: #f1f3f6; --text: #0f172a; --muted: #5b6474; --border: #e3e7ee;
-    --accent: #ea580c; --accent-soft: #fff1e8; --good: #15803d; --good-soft: #e8f6ec; --bad: #c62828; --bad-soft: #fdecec;
-    --warn: #b45309; --warn-soft: #fdf3e2; --vh: #15803d; --hi: #0e7490; --md: #b45309; --lo: #6b7280;
-    --radius: 14px; --shadow: 0 1px 2px rgba(15, 23, 42, .06), 0 4px 14px rgba(15, 23, 42, .05);
-  }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --bg: #0b0f17; --surface: #121826; --surface-2: #19212f; --text: #e6e9ef; --muted: #9aa4b5; --border: #232d3d;
-      --accent: #fb923c; --accent-soft: #2a1a10; --good: #4ade80; --good-soft: #10241a; --bad: #f87171; --bad-soft: #2a1414;
-      --warn: #fbbf24; --warn-soft: #2a2110; --vh: #4ade80; --hi: #38bdf8; --md: #fbbf24; --lo: #9ca3af;
-      --shadow: none;
-    }
+    color-scheme: dark;
+    --arena: #0c1830; --tunnel: #13233f; --raised: #1b2e50; --seam: #27406a;
+    --net: #eef2f8; --mist: #94a5bf;
+    --ball: #f47b20; --ball-soft: rgba(244, 123, 32, .16);
+    --amber: #ffc24b; --amber-soft: rgba(255, 194, 75, .14);
+    --make: #36d399; --make-soft: rgba(54, 211, 153, .15);
+    --miss: #ff5b61; --miss-soft: rgba(255, 91, 97, .15);
+    --warn: #ffb020; --warn-soft: rgba(255, 176, 32, .15);
+    --sky: #4cc3ff;
+    --wood: #c98b4c; --wood-2: #ddaa70; --wood-3: #b9793d;
+    --display: "Big Shoulders Display", "Archivo Narrow", "Arial Narrow", sans-serif;
+    --body: "Archivo", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    /* legacy names the scripts use */
+    --bg: var(--arena); --surface: var(--tunnel); --surface-2: var(--raised); --text: var(--net); --muted: var(--mist);
+    --border: var(--seam); --accent: var(--ball); --accent-soft: var(--ball-soft); --good: var(--make);
+    --good-soft: var(--make-soft); --bad: var(--miss); --bad-soft: var(--miss-soft);
+    --vh: var(--make); --hi: var(--sky); --md: var(--amber); --lo: #6f81a0;
+    --radius: 16px; --ease: cubic-bezier(.2, .8, .2, 1);
   }
   * { box-sizing: border-box; }
-  html { -webkit-text-size-adjust: 100%; }
-  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI",
-         Roboto, "Helvetica Neue", Arial, sans-serif; padding-bottom: env(safe-area-inset-bottom); }
+  html { -webkit-text-size-adjust: 100%; background: var(--arena); }
+  body { margin: 0; background: radial-gradient(120% 60% at 50% -10%, #17305a 0%, var(--arena) 55%) fixed, var(--arena);
+         color: var(--net); font: 15px/1.5 var(--body); font-stretch: 100%; padding-bottom: env(safe-area-inset-bottom);
+         -webkit-font-smoothing: antialiased; }
+  button, input, select { font-family: var(--body); }
+  :focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; border-radius: 8px; }
   .wrap { max-width: 760px; margin: 0 auto; padding: 0 16px; }
-  header { padding: 18px 0 10px; }
-  .brand { display: flex; align-items: center; gap: 10px; }
-  .ball { width: 30px; height: 30px; flex: none; }
-  h1 { font-size: 20px; margin: 0; letter-spacing: -.01em; }
-  .sub { color: var(--muted); font-size: 13px; margin: 2px 0 0; }
-  .status { margin: 12px 0 0; font-size: 13px; color: var(--muted); }
-  .status b { color: var(--text); font-weight: 600; }
-  nav.tabs { position: sticky; top: 0; z-index: 5; background: var(--bg); border-bottom: 1px solid var(--border); }
-  nav.tabs .wrap { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; }
+
+  /* ---- hero: hardwood, the hoop, the scoreboard ---- */
+  .court { position: relative; overflow: hidden; border-bottom: 3px solid #8a5526;
+           background:
+             linear-gradient(180deg, rgba(12, 24, 48, .0) 40%, rgba(12, 24, 48, .55) 100%),
+             repeating-linear-gradient(90deg, rgba(0, 0, 0, .10) 0 1px, transparent 1px 46px),
+             repeating-linear-gradient(90deg, var(--wood) 0 46px, var(--wood-2) 46px 92px, var(--wood-3) 92px 138px, var(--wood-2) 138px 184px),
+             var(--wood); }
+  .court::after { content: ""; position: absolute; inset: 0; pointer-events: none;
+                  background: repeating-linear-gradient(0deg, rgba(255, 255, 255, .035) 0 2px, transparent 2px 7px); }
+  .court .wrap { position: relative; z-index: 1; display: flex; align-items: flex-end; justify-content: space-between;
+                 gap: 12px; padding-top: 14px; padding-bottom: 12px; min-height: 124px; }
+  .mark h1 { margin: 0; font: 900 40px/0.86 var(--display); letter-spacing: .01em; color: #fff; text-transform: uppercase;
+             text-shadow: 0 2px 0 rgba(84, 44, 12, .55); }
+  .mark h1 span { display: block; color: #1b1007; text-shadow: none; -webkit-text-stroke: 0; }
+  .mark .sub { margin: 7px 0 0; color: #2a1608; font-weight: 600; font-size: 12.5px; max-width: 26ch; }
+  .hoop { flex: none; width: 116px; height: 106px; position: relative; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .hoop svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+  .hoop .net { transform-origin: 66px 60px; }
+  .hoop.swish .net { animation: swish .6s var(--ease); }
+  @keyframes swish { 0% { transform: scaleY(1); } 30% { transform: scaleY(1.22) scaleX(.9); } 60% { transform: scaleY(.95); } 100% { transform: scaleY(1); } }
+  .shot { position: fixed; left: 0; top: 0; width: 26px; height: 26px; z-index: 40; pointer-events: none; will-change: transform; }
+  .board { margin-top: 10px; display: grid; grid-template-columns: repeat(4, 1fr); border-radius: 10px; overflow: hidden;
+           border: 1px solid #22385f;
+           background: radial-gradient(rgba(255, 255, 255, .06) 1px, transparent 1.3px) 0 0 / 5px 5px, #08111f; }
+  .board .cell { padding: 7px 4px 6px; text-align: center; border-left: 1px solid #1a2c4b; }
+  .board .cell:first-child { border-left: 0; }
+  .board .d { display: block; font: 800 27px/1 var(--display); color: var(--amber); font-variant-numeric: tabular-nums;
+              text-shadow: 0 0 12px rgba(255, 194, 75, .45); letter-spacing: .02em; }
+  .board .d.time { font-size: 20px; padding: 4px 0 3px; }
+  .board .l { display: block; margin-top: 4px; font-size: 11px; color: var(--mist); font-stretch: 85%; }
+  .status { margin: 10px 0 0; font-size: 12.5px; color: var(--mist); }
+  .status b { color: var(--net); font-weight: 600; }
+
+  /* ---- tabs: the ball-orange bar slides to the tab you pick ---- */
+  nav.tabs { position: sticky; top: 0; z-index: 5; background: rgba(12, 24, 48, .92); backdrop-filter: blur(10px);
+             -webkit-backdrop-filter: blur(10px); border-bottom: 1px solid var(--seam); }
+  nav.tabs .wrap { position: relative; display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; }
   nav.tabs .wrap::-webkit-scrollbar { display: none; }
-  nav.tabs button { flex: 1 0 auto; appearance: none; border: 0; background: none; color: var(--muted); font: inherit;
-                    font-size: 14.5px; font-weight: 600; padding: 12px 6px 11px; border-bottom: 3px solid transparent;
-                    cursor: pointer; white-space: nowrap; }
-  nav.tabs button[aria-selected="true"] { color: var(--text); border-bottom-color: var(--accent); }
-  main { padding: 14px 0 28px; }
+  nav.tabs button { flex: 1 0 auto; appearance: none; border: 0; background: none; color: var(--mist);
+                    font: 700 18px/1 var(--display); letter-spacing: .02em; padding: 14px 9px 13px; cursor: pointer;
+                    white-space: nowrap; transition: color .2s; text-transform: uppercase; }
+  nav.tabs button[aria-selected="true"] { color: var(--net); }
+  .tab-ind { position: absolute; bottom: 0; left: 0; height: 3px; width: 40px; border-radius: 3px 3px 0 0;
+             background: var(--ball); box-shadow: 0 0 12px rgba(244, 123, 32, .7);
+             transition: transform .32s var(--ease), width .32s var(--ease); }
+  main { padding: 16px 0 28px; }
   section[hidden] { display: none; }
-  h2 { font-size: 15px; margin: 22px 0 10px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
-  .take { font-size: 16px; font-weight: 600; margin: 4px 0 2px; }
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow);
-          padding: 14px; }
-  .stack > * + * { margin-top: 10px; }
-  .hero { border-color: var(--accent); background: linear-gradient(180deg, var(--accent-soft), var(--surface) 70%); }
-  .row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-  .who { font-weight: 700; font-size: 16px; }
-  .hero .who { font-size: 19px; }
-  .bet { font-size: 15px; margin-top: 2px; }
-  .bet b { font-weight: 700; }
-  .meta { color: var(--muted); font-size: 12.5px; margin-top: 3px; }
-  .big { text-align: right; flex: none; }
-  .pct { font-size: 22px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
-  .hero .pct { font-size: 30px; }
-  .pct-label { font-size: 11px; color: var(--muted); margin-top: 3px; }
-  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
-  .chip { font-size: 12px; padding: 3px 8px; border-radius: 999px; background: var(--surface-2); color: var(--text);
-          border: 1px solid var(--border); white-space: nowrap; font-variant-numeric: tabular-nums; }
-  .chip.good { background: var(--good-soft); color: var(--good); border-color: transparent; }
-  .chip.bad { background: var(--bad-soft); color: var(--bad); border-color: transparent; }
-  .chip.warn { background: var(--warn-soft); color: var(--warn); border-color: transparent; }
-  .tier { font-size: 11.5px; font-weight: 700; padding: 3px 8px; border-radius: 999px; color: #fff; display: inline-block;
-          margin-top: 6px; }
-  .t-vh { background: var(--vh); } .t-hi { background: var(--hi); } .t-md { background: var(--md); } .t-lo { background: var(--lo); }
-  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .tier { color: #0b0f17; } }
-  .form { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; margin-top: 10px; }
-  .form div { background: var(--surface-2); border-radius: 8px; padding: 5px 2px; text-align: center; }
-  .form .k { font-size: 10.5px; color: var(--muted); display: block; }
-  .form .v { font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
-  .form .v.na { color: var(--muted); font-weight: 500; }
-  .flags { font-size: 12.5px; margin-top: 8px; color: var(--muted); }
-  .flags .warn { color: var(--warn); font-weight: 600; }
-  .list .item { display: flex; align-items: center; gap: 10px; padding: 11px 0; border-top: 1px solid var(--border); }
-  .list .item:first-child { border-top: 0; padding-top: 2px; }
-  .rank { width: 26px; height: 26px; flex: none; border-radius: 50%; background: var(--surface-2); display: grid;
-          place-items: center; font-weight: 700; font-size: 13px; }
-  .grow { flex: 1; min-width: 0; }
+  section.enter { animation: enter .26s var(--ease) both; }
+  @keyframes enter { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  /* ---- type ---- */
+  h2 { font: 800 21px/1.1 var(--display); letter-spacing: .02em; text-transform: uppercase; margin: 26px 0 10px; color: var(--net); }
+  .take { font: 800 26px/1.05 var(--display); letter-spacing: .01em; margin: 2px 0 6px; text-transform: uppercase; }
+  #take, #review-take { font: 600 16px/1.42 var(--body); text-transform: none; letter-spacing: 0; margin: 18px 0 6px; max-width: 60ch; }
+  .lead { color: var(--mist); font-size: 14px; margin: 2px 0 12px; max-width: 62ch; }
+  .meta { color: var(--mist); font-size: 12.5px; margin-top: 3px; }
+  .small { font-size: 12px; color: var(--mist); margin-top: 8px; }
   .ell { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .grow { flex: 1; min-width: 0; }
+  .err { color: var(--miss); }
+
+  /* ---- surfaces ---- */
+  .card { background: linear-gradient(180deg, rgba(255, 255, 255, .025), transparent 40%), var(--tunnel);
+          border: 1px solid var(--seam); border-radius: var(--radius); padding: 14px; }
+  .stack > * + * { margin-top: 10px; }
+  .hero { border-color: rgba(244, 123, 32, .6); background: linear-gradient(160deg, rgba(244, 123, 32, .18), transparent 55%), var(--tunnel); }
+  .row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+  .who { font: 800 21px/1.05 var(--display); letter-spacing: .01em; }
+  .hero .who { font-size: 26px; }
+  .bet { font-size: 14.5px; margin-top: 4px; }
+  .bet b { font-weight: 700; color: var(--net); }
+  .big { text-align: right; flex: none; }
+  .pct { font: 800 30px/1 var(--display); font-variant-numeric: tabular-nums; color: var(--amber); }
+  .hero .pct { font-size: 40px; }
+  .pct-label { font-size: 11px; color: var(--mist); margin-top: 3px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .chip { font-size: 12px; padding: 4px 9px; border-radius: 999px; background: var(--raised); color: var(--net);
+          border: 1px solid transparent; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .chip.good, .chip.up { background: var(--make-soft); color: var(--make); font-weight: 600; }
+  .chip.bad, .chip.down { background: var(--miss-soft); color: var(--miss); font-weight: 600; }
+  .chip.warn { background: var(--warn-soft); color: var(--warn); }
+  .chip.new { background: var(--ball-soft); color: var(--ball); font-weight: 600; }
+  .chip.muted { color: var(--mist); }
+  .tier { font: 700 13px/1 var(--display); letter-spacing: .04em; text-transform: uppercase; padding: 4px 8px;
+          border-radius: 6px; color: #08111f; display: inline-block; margin-top: 6px; }
+  .t-vh { background: var(--vh); } .t-hi { background: var(--hi); } .t-md { background: var(--md); } .t-lo { background: var(--lo); color: var(--net); }
+
+  /* confidence ring */
+  .ring { position: relative; width: 64px; height: 64px; flex: none; }
+  .ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .ring .trk { fill: none; stroke: var(--raised); stroke-width: 6; }
+  .ring .arc { fill: none; stroke-width: 6; stroke-linecap: round; transition: stroke-dashoffset 1s var(--ease); }
+  .ring .n { position: absolute; inset: 0; display: grid; place-items: center; font: 800 20px/1 var(--display); color: var(--net); }
+  .hero .ring { width: 78px; height: 78px; }
+  .hero .ring .n { font-size: 25px; }
+
+  /* the L5..L20 grid */
+  .form { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; margin-top: 10px; }
+  .form div { background: var(--raised); border-radius: 8px; padding: 6px 2px 5px; text-align: center; transition: background .25s; }
+  .form .k { font-size: 10.5px; color: var(--mist); display: block; font-stretch: 85%; }
+  .form .v { font: 700 16px/1.1 var(--display); font-variant-numeric: tabular-nums; }
+  .form .v.na { color: var(--mist); font-weight: 600; }
+  .form div.hot { background: var(--make-soft); } .form div.cold { background: var(--miss-soft); }
+  .flags { font-size: 12.5px; margin-top: 8px; color: var(--mist); }
+  .flags .warn { color: var(--warn); font-weight: 600; }
+
+  /* lists */
+  .list .item { display: flex; align-items: center; gap: 10px; padding: 11px 0; border-top: 1px solid var(--seam); }
+  .list .item:first-child { border-top: 0; padding-top: 2px; }
+  .rank { width: 28px; height: 28px; flex: none; border-radius: 8px; background: var(--raised); display: grid;
+          place-items: center; font: 800 16px/1 var(--display); color: var(--amber); }
   .num { text-align: right; flex: none; font-variant-numeric: tabular-nums; }
-  .num .pct { font-size: 17px; }
-  .pill { font-size: 11.5px; font-weight: 700; padding: 3px 8px; border-radius: 999px; }
-  .pill.hit { background: var(--good-soft); color: var(--good); }
-  .pill.miss { background: var(--bad-soft); color: var(--bad); }
-  .pill.open, .pill.void { background: var(--surface-2); color: var(--muted); }
-  .empty { color: var(--muted); font-size: 14px; padding: 14px; text-align: center; }
+  .num .pct { font-size: 22px; }
+  .pill { font: 700 13px/1 var(--display); letter-spacing: .04em; text-transform: uppercase; padding: 5px 8px; border-radius: 6px; }
+  .pill.hit { background: var(--make-soft); color: var(--make); }
+  .pill.miss { background: var(--miss-soft); color: var(--miss); }
+  .pill.open, .pill.void { background: var(--raised); color: var(--mist); }
+  .empty { color: var(--mist); font-size: 14px; padding: 16px; text-align: center; }
+
+  /* filters */
   .filters { display: flex; flex-direction: column; gap: 8px; }
-  .seg { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
-  .seg::-webkit-scrollbar { display: none; }
-  .seg button { flex: none; appearance: none; font: inherit; font-size: 13px; font-weight: 600; padding: 7px 12px;
-                border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text);
-                cursor: pointer; }
-  .seg button[aria-pressed="true"] { background: var(--text); color: var(--bg); border-color: var(--text); }
+  .seg, .mkts { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+  .seg::-webkit-scrollbar, .mkts::-webkit-scrollbar { display: none; }
+  .seg button, .mkts button { flex: none; appearance: none; font-size: 13px; font-weight: 600; padding: 8px 12px;
+                border-radius: 999px; border: 1px solid var(--seam); background: var(--tunnel); color: var(--net); cursor: pointer;
+                transition: background .2s, color .2s, border-color .2s, transform .12s; }
+  .seg button:active, .mkts button:active { transform: scale(.96); }
+  .seg button[aria-pressed="true"], .mkts button[aria-pressed="true"] { background: var(--ball); color: #1a0b02; border-color: var(--ball); }
+  .mkts button .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--amber);
+                      margin-left: 5px; vertical-align: middle; }
   .selects { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-  select, input[type="search"] { width: 100%; font: inherit; font-size: 14px; padding: 9px 10px; border-radius: 10px;
-                                 border: 1px solid var(--border); background: var(--surface); color: var(--text); min-width: 0; }
-  label.toggle { display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--muted); }
-  .count { font-size: 13px; color: var(--muted); margin: 12px 2px 8px; }
+  select, input[type="search"] { width: 100%; font-size: 14px; padding: 10px 12px; border-radius: 12px;
+                                 border: 1px solid var(--seam); background: var(--tunnel); color: var(--net); min-width: 0; }
+  label.toggle { display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--mist); }
+  input[type="checkbox"] { accent-color: var(--ball); width: 16px; height: 16px; }
+  .count { font-size: 13px; color: var(--mist); margin: 12px 2px 8px; }
+
+  /* tiles and tables */
   .tiles { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
-  .tile .k { font-size: 12px; color: var(--muted); }
-  .tile .v { font-size: 22px; font-weight: 800; margin-top: 2px; font-variant-numeric: tabular-nums; }
-  .tile .s { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .tile .k { font-size: 12px; color: var(--mist); }
+  .tile .v { font: 800 30px/1.05 var(--display); margin-top: 2px; font-variant-numeric: tabular-nums; color: var(--amber); }
+  .tile .s { font-size: 12px; color: var(--mist); margin-top: 2px; }
   table { width: 100%; border-collapse: collapse; font-size: 13.5px; font-variant-numeric: tabular-nums; }
-  th, td { text-align: left; padding: 8px 6px; border-top: 1px solid var(--border); }
-  th { color: var(--muted); font-weight: 600; font-size: 12px; border-top: 0; }
+  th, td { text-align: left; padding: 8px 6px; border-top: 1px solid var(--seam); }
+  th { color: var(--mist); font-weight: 600; font-size: 12px; border-top: 0; }
   td.r, th.r { text-align: right; }
-  details { margin-top: 18px; }
-  summary { cursor: pointer; font-weight: 600; }
-  .how p { color: var(--muted); font-size: 13.5px; margin: 8px 0 0; }
-  footer { color: var(--muted); font-size: 12px; padding: 8px 0 28px; }
-  .err { color: var(--bad); }
+  details { margin-top: 22px; }
+  summary { cursor: pointer; font: 700 19px/1.2 var(--display); text-transform: uppercase; letter-spacing: .02em; }
+  .how p { color: var(--mist); font-size: 13.5px; margin: 8px 0 0; max-width: 70ch; }
+  footer { color: var(--mist); font-size: 12px; padding: 8px 0 28px; }
+
+  /* faces */
   .id { display: flex; align-items: center; gap: 10px; min-width: 0; }
-  .av { position: relative; width: 46px; height: 46px; border-radius: 50%; border: 2px solid var(--border); flex: none;
-        overflow: hidden; background: var(--surface-2); }
-  .hero .av { width: 58px; height: 58px; }
-  .av.sm { width: 34px; height: 34px; }
+  .av { position: relative; width: 48px; height: 48px; border-radius: 50%; border: 2px solid var(--seam); flex: none;
+        overflow: hidden; background: radial-gradient(circle at 50% 30%, #2b4573, var(--raised)); }
+  .hero .av { width: 60px; height: 60px; }
+  .av.sm { width: 36px; height: 36px; }
   .av img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 12%; }
-  .av .ini { position: absolute; inset: 0; display: grid; place-items: center; color: #fff; font-weight: 800;
-             font-size: 15px; letter-spacing: .02em; }
-  .av.sm .ini { font-size: 12px; }
+  .av .ini { position: absolute; inset: 0; display: grid; place-items: center; color: #fff; font: 800 17px/1 var(--display); }
+  .av.sm .ini { font-size: 13px; }
   .av .ini[hidden] { display: none; }
-  .chip.up { background: var(--good-soft); color: var(--good); border-color: transparent; font-weight: 600; }
-  .chip.down { background: var(--bad-soft); color: var(--bad); border-color: transparent; font-weight: 600; }
-  .chip.new { background: var(--accent-soft); color: var(--accent); border-color: transparent; font-weight: 600; }
-  .lead { color: var(--muted); font-size: 13.5px; margin: 2px 0 10px; }
   .kv { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-top: 8px; }
-  .kv div { background: var(--surface-2); border-radius: 8px; padding: 5px 6px; }
-  .kv .k { font-size: 10.5px; color: var(--muted); display: block; }
-  .kv .v { font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
-  .why { list-style: none; margin: 10px 0 0; padding: 8px 10px; font-size: 12.5px; color: var(--muted);
-         background: var(--surface-2); border-radius: 10px; }
-  .why .h { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 2px; }
-  .why li { display: flex; gap: 6px; padding: 2px 0; }
+  .kv div { background: var(--raised); border-radius: 8px; padding: 6px 7px; }
+  .kv .k { font-size: 10.5px; color: var(--mist); display: block; }
+  .kv .v { font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+  /* for / against */
+  .why { list-style: none; margin: 10px 0 0; padding: 9px 11px; font-size: 12.5px; color: var(--mist);
+         background: rgba(8, 17, 31, .55); border-radius: 12px; }
+  .why .h { font-size: 11px; color: var(--mist); margin-bottom: 3px; font-stretch: 85%; }
+  .why li { display: flex; gap: 7px; padding: 2px 0; }
   .why .mk { flex: none; width: 14px; text-align: center; font-weight: 800; }
-  .why li.for .mk { color: var(--good); } .why li.against .mk { color: var(--bad); }
+  .why li.for { color: var(--net); } .why li.for .mk { color: var(--make); } .why li.against .mk { color: var(--miss); }
   [data-aid] { cursor: pointer; }
-  .tap { font-size: 11.5px; color: var(--accent); font-weight: 600; margin-top: 8px; }
+  .tap { font-size: 12px; color: var(--ball); font-weight: 600; margin-top: 10px; }
+  .acts { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .btn { appearance: none; border: 1px solid var(--seam); background: var(--raised); color: var(--net); border-radius: 10px;
+         padding: 8px 12px; font-size: 13px; font-weight: 600; cursor: pointer; transition: transform .12s, background .2s; }
+  .btn:active { transform: scale(.96); }
+  .btn.go-lab { background: var(--ball); color: #1a0b02; border-color: var(--ball); }
+
+  /* players */
   .gamehead { margin-top: 18px; }
-  .gamehead .t { font-weight: 700; font-size: 16px; }
-  .team-h { font-size: 12.5px; font-weight: 700; color: var(--muted); margin: 12px 2px 6px; text-transform: uppercase;
-            letter-spacing: .04em; }
-  .prow { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; font: inherit; color: inherit;
-          background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 9px 10px;
-          margin-top: 6px; cursor: pointer; }
-  .prow .nm { font-weight: 650; }
+  .gamehead .t { font: 800 22px/1.05 var(--display); text-transform: uppercase; }
+  .team-h { font: 700 15px/1 var(--display); color: var(--mist); margin: 14px 2px 6px; text-transform: uppercase; letter-spacing: .04em; }
+  .prow { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; color: inherit;
+          background: var(--tunnel); border: 1px solid var(--seam); border-radius: 14px; padding: 9px 10px;
+          margin-top: 6px; cursor: pointer; transition: transform .12s, border-color .2s; }
+  .prow:active { transform: scale(.985); border-color: var(--ball); }
+  .prow .nm { font-weight: 700; }
   .prow .num { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
-  .chip.muted { color: var(--muted); }
+
+  /* the player sheet slides up */
   body.lock { overflow: hidden; }
-  .sheet { position: fixed; inset: 0; z-index: 30; background: var(--bg); overflow-y: auto; -webkit-overflow-scrolling: touch;
-           overscroll-behavior: contain; }
+  .sheet { position: fixed; inset: 0; z-index: 30; background: var(--arena); overflow-y: auto; -webkit-overflow-scrolling: touch;
+           overscroll-behavior: contain; animation: sheet-in .3s var(--ease) both; }
   .sheet[hidden] { display: none; }
-  .sheet .bar { position: sticky; top: 0; z-index: 2; background: var(--bg); border-bottom: 1px solid var(--border); }
+  @keyframes sheet-in { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+  .sheet .bar { position: sticky; top: 0; z-index: 2; background: rgba(12, 24, 48, .94); backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px); border-bottom: 1px solid var(--seam); }
   .sheet .bar .wrap { display: flex; align-items: center; gap: 10px; padding-top: 10px; padding-bottom: 10px; }
-  .close { appearance: none; flex: none; width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--border);
-           background: var(--surface); color: var(--text); font-size: 20px; line-height: 1; cursor: pointer; }
-  .sheet .av.xl { width: 76px; height: 76px; }
-  .sheet .av.xl .ini { font-size: 24px; }
-  .sheet h3 { margin: 0; font-size: 21px; letter-spacing: -.01em; }
+  .sheet .bar #sheet-title { font: 800 20px/1 var(--display); text-transform: uppercase; }
+  .close { appearance: none; flex: none; width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--seam);
+           background: var(--tunnel); color: var(--net); font-size: 22px; line-height: 1; cursor: pointer; }
+  .sheet .av.xl { width: 84px; height: 84px; border-width: 3px; }
+  .sheet .av.xl .ini { font-size: 28px; }
+  .sheet h3 { margin: 0; font: 900 32px/0.95 var(--display); text-transform: uppercase; }
   .scroll-x { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .sheet table { font-size: 12.5px; }
   .sheet th, .sheet td { padding: 7px 4px; white-space: nowrap; }
   .sheet th:first-child, .sheet td:first-child { padding-left: 0; }
   .sheet th:last-child, .sheet td:last-child { padding-right: 0; }
   .scroll-x table.wide { min-width: 460px; }
-  .mkts { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
-  .mkts::-webkit-scrollbar { display: none; }
-  .mkts button { flex: none; appearance: none; font: inherit; font-size: 12.5px; font-weight: 600; padding: 6px 10px;
-                 border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text);
-                 cursor: pointer; }
-  .mkts button[aria-pressed="true"] { background: var(--text); color: var(--bg); border-color: var(--text); }
-  .mkts button .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--accent);
-                      margin-left: 5px; vertical-align: middle; }
   .stepper { display: flex; align-items: center; gap: 10px; margin: 12px 0 4px; }
-  .stepper button { appearance: none; width: 40px; height: 40px; border-radius: 12px; border: 1px solid var(--border);
-                    background: var(--surface); color: var(--text); font-size: 20px; cursor: pointer; }
-  .stepper .lv { font-size: 22px; font-weight: 800; min-width: 64px; text-align: center; font-variant-numeric: tabular-nums; }
-  .stepper .lk { font-size: 12px; color: var(--muted); }
-  .chart { max-width: 560px; margin-top: 6px; }
-  .chart svg { width: 100%; height: auto; display: block; }
-  .chart .bar-over { fill: var(--good); } .chart .bar-under { fill: var(--bad); } .chart .bar-push { fill: var(--muted); }
-  .chart .lbl { fill: var(--muted); font-size: 8.5px; }
-  .chart .val { fill: var(--text); font-size: 10px; font-weight: 700; }
-  .chart .ln { stroke: var(--text); stroke-width: 1.2; stroke-dasharray: 4 3; }
-  .small { font-size: 12px; color: var(--muted); margin-top: 8px; }
-  .brief .item { align-items: flex-start; cursor: pointer; }
-  .brief .tag { flex: none; font-size: 10.5px; font-weight: 800; letter-spacing: .03em; text-transform: uppercase;
-                padding: 3px 7px; border-radius: 999px; margin-top: 1px; background: var(--surface-2); color: var(--muted); }
-  .brief .tag.injury { background: var(--bad-soft); color: var(--bad); }
-  .brief .tag.pick { background: var(--good-soft); color: var(--good); }
-  .brief .tag.lean, .brief .tag.prop { background: var(--accent-soft); color: var(--accent); }
+  .stepper button { appearance: none; width: 44px; height: 44px; border-radius: 12px; border: 1px solid var(--seam);
+                    background: var(--raised); color: var(--net); font-size: 22px; cursor: pointer; transition: transform .12s; }
+  .stepper button:active { transform: scale(.92); }
+  .stepper .lv { font: 800 30px/1 var(--display); min-width: 70px; text-align: center; color: var(--amber); font-variant-numeric: tabular-nums; }
+  .stepper .lk { font-size: 12px; color: var(--mist); text-align: center; }
+
+  /* charts: bars grow, the line slides, colours follow it */
+  .chart { max-width: 620px; margin-top: 8px; }
+  .chart svg { width: 100%; height: auto; display: block; touch-action: pan-y; }
+  .chart rect.bar-over, .chart rect.bar-under, .chart rect.bar-push { transition: fill .25s, y .45s var(--ease), height .45s var(--ease); }
+  .chart .bar-over { fill: var(--make); } .chart .bar-under { fill: var(--miss); } .chart .bar-push { fill: var(--mist); }
+  .chart .lbl { fill: var(--mist); font: 600 8.5px var(--body); }
+  .chart .val { fill: var(--net); font: 700 10.5px var(--display); }
+  .chart .ln { stroke: var(--amber); stroke-width: 1.6; stroke-dasharray: 5 4; transition: transform .2s var(--ease); }
+  .chart .lntag { fill: var(--amber); font: 800 11px var(--display); }
+  .chart .knob { fill: var(--ball); stroke: #ffd2ad; stroke-width: 2; transition: r .15s; }
+  .chart .knob.on { r: 11; }
+  .chart .grab { fill: transparent; cursor: ns-resize; touch-action: none; }
+
+  /* briefing */
+  .brief .item { align-items: flex-start; cursor: pointer; transition: background .2s; }
+  .brief .item:active { background: rgba(255, 255, 255, .04); }
+  .brief .tag { flex: none; font: 700 13px/1 var(--display); letter-spacing: .04em; text-transform: uppercase;
+                padding: 5px 7px; border-radius: 6px; margin-top: 1px; background: var(--raised); color: var(--mist); }
+  .brief .tag.injury { background: var(--miss-soft); color: var(--miss); }
+  .brief .tag.pick { background: var(--make-soft); color: var(--make); }
+  .brief .tag.lean, .brief .tag.prop { background: var(--ball-soft); color: var(--ball); }
   .brief .tag.blowout, .brief .tag.rest { background: var(--warn-soft); color: var(--warn); }
-  .brief .txt { font-size: 14px; line-height: 1.4; }
-  .brief .go { flex: none; color: var(--muted); font-size: 18px; line-height: 1; margin-top: 1px; }
-  .gcard { padding: 0; overflow: hidden; scroll-margin-top: 58px; }
+  .brief .tag.role { background: rgba(76, 195, 255, .14); color: var(--sky); }
+  .brief .txt { font-size: 14.5px; line-height: 1.42; }
+  .brief .go { flex: none; color: var(--mist); font-size: 20px; line-height: 1; margin-top: 1px; }
+
+  /* games */
+  .gcard { padding: 0; overflow: hidden; scroll-margin-top: 62px; transition: border-color .2s; }
+  .gcard.open { border-color: rgba(244, 123, 32, .55); }
   .gcard .ghead { display: block; width: 100%; text-align: left; appearance: none; border: 0; background: none;
-                  font: inherit; color: inherit; padding: 14px; cursor: pointer; }
+                  color: inherit; padding: 14px; cursor: pointer; }
   .gcard .gtitle { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
-  .gcard .gtitle b { font-size: 17px; }
-  .gcard .chev { color: var(--muted); font-size: 13px; white-space: nowrap; }
-  .lines { display: grid; grid-template-columns: auto 1fr 1fr; gap: 4px 10px; margin-top: 10px; font-size: 13px;
+  .gcard .gtitle b { font: 900 28px/1 var(--display); letter-spacing: .01em; text-transform: uppercase; }
+  .gcard .chev { color: var(--mist); font-size: 13px; white-space: nowrap; transition: color .2s; }
+  .gcard.open .chev { color: var(--ball); }
+  .lines { display: grid; grid-template-columns: auto 1fr 1fr; gap: 5px 12px; margin-top: 12px; font-size: 13.5px;
            font-variant-numeric: tabular-nums; align-items: baseline; }
-  .lines .h { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
-  .lines .k { color: var(--muted); font-weight: 600; }
-  .badge { display: inline-block; margin-top: 10px; font-size: 13px; font-weight: 700; padding: 6px 10px;
-           border-radius: 10px; }
-  .badge.pick { background: var(--good-soft); color: var(--good); }
-  .badge.lean { background: var(--accent-soft); color: var(--accent); }
-  .badge.none { background: var(--surface-2); color: var(--muted); font-weight: 600; }
-  .gbody { border-top: 1px solid var(--border); padding: 4px 14px 14px; }
-  .gbody h4 { margin: 14px 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
-  .gcard.open .chev { color: var(--accent); }
-  .ek { flex: none; font-size: 11px; font-weight: 700; padding: 3px 7px; border-radius: 999px; background: var(--accent-soft);
-        color: var(--accent); white-space: nowrap; }
+  .lines .h { font-size: 11px; color: var(--mist); font-stretch: 85%; }
+  .lines .k { color: var(--mist); font-weight: 600; }
+  .badge { display: inline-block; margin-top: 12px; font-size: 13.5px; font-weight: 700; padding: 8px 11px; border-radius: 10px; }
+  .badge.pick { background: var(--make-soft); color: var(--make); }
+  .badge.lean { background: var(--ball-soft); color: var(--ball); }
+  .badge.none { background: var(--raised); color: var(--mist); font-weight: 600; }
+  .gbody { border-top: 1px solid var(--seam); padding: 4px 14px 14px; animation: enter .25s var(--ease) both; }
+  .gbody h4 { margin: 16px 0 6px; font: 700 15px/1 var(--display); text-transform: uppercase; letter-spacing: .04em; color: var(--mist); }
+  .ek { flex: none; font: 700 12px/1 var(--display); letter-spacing: .04em; text-transform: uppercase; padding: 5px 7px;
+        border-radius: 6px; background: var(--ball-soft); color: var(--ball); white-space: nowrap; }
   #edges .meta + .meta { margin-top: 1px; }
   #edges-seg { margin-bottom: 8px; }
-  @media (min-width: 560px) { .tiles { grid-template-columns: repeat(4, 1fr); } .selects { grid-template-columns: 1fr 1fr 1.4fr; } }
+
+  /* ---- Line Lab ---- */
+  .lab-pick { position: relative; }
+  .lab-results { position: absolute; left: 0; right: 0; top: calc(100% + 6px); z-index: 6; max-height: 320px; overflow-y: auto;
+                 background: var(--tunnel); border: 1px solid var(--seam); border-radius: 14px; padding: 4px;
+                 box-shadow: 0 18px 40px rgba(0, 0, 0, .45); }
+  .lab-results[hidden] { display: none; }
+  .lab-results button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px; border: 0; background: none;
+                        color: var(--net); text-align: left; border-radius: 10px; cursor: pointer; }
+  .lab-results button:hover, .lab-results button.on { background: var(--raised); }
+  .lab-who { display: flex; align-items: center; gap: 12px; margin-top: 14px; }
+  .lab-who .nm { font: 900 30px/0.95 var(--display); text-transform: uppercase; }
+  .readout { display: grid; grid-template-columns: auto 1fr; gap: 4px 16px; align-items: end; margin-top: 14px; }
+  .readout .hr { font: 900 64px/0.85 var(--display); font-variant-numeric: tabular-nums; color: var(--net); transition: color .25s; }
+  .readout .hr.hot { color: var(--make); } .readout .hr.cold { color: var(--miss); }
+  .readout .of { font-size: 13px; color: var(--mist); }
+  .readout .side { font: 800 20px/1.05 var(--display); text-transform: uppercase; }
+  .readout .ref { font-size: 13px; color: var(--mist); margin-top: 4px; }
+  .lab-line { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+  .lab-line .btn { width: 48px; height: 48px; font-size: 24px; padding: 0; border-radius: 14px; }
+  .lab-line .val { font: 900 40px/1 var(--display); color: var(--amber); min-width: 86px; text-align: center; font-variant-numeric: tabular-nums;
+                   text-shadow: 0 0 14px rgba(255, 194, 75, .35); }
+  .lab-line .val small { display: block; font: 600 11px/1.2 var(--body); color: var(--mist); text-shadow: none; }
+  input[type="range"].line { -webkit-appearance: none; appearance: none; width: 100%; height: 34px; background: transparent; margin: 6px 0 0; }
+  input[type="range"].line::-webkit-slider-runnable-track { height: 6px; border-radius: 6px;
+    background: linear-gradient(90deg, var(--ball) 0 var(--fill, 50%), var(--raised) var(--fill, 50%) 100%); }
+  input[type="range"].line::-moz-range-track { height: 6px; border-radius: 6px; background: var(--raised); }
+  input[type="range"].line::-moz-range-progress { height: 6px; border-radius: 6px; background: var(--ball); }
+  input[type="range"].line::-webkit-slider-thumb { -webkit-appearance: none; width: 28px; height: 28px; margin-top: -11px; border-radius: 50%;
+    border: 0; cursor: grab; background: radial-gradient(circle at 35% 30%, #ffb06a, var(--ball) 55%, #b4520d);
+    box-shadow: 0 0 0 4px rgba(244, 123, 32, .25), 0 4px 10px rgba(0, 0, 0, .4); }
+  input[type="range"].line::-moz-range-thumb { width: 28px; height: 28px; border-radius: 50%; border: 0; cursor: grab;
+    background: radial-gradient(circle at 35% 30%, #ffb06a, var(--ball) 55%, #b4520d); }
+  .strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 12px; }
+  .strip button { appearance: none; border: 1px solid var(--seam); background: var(--tunnel); color: var(--net); border-radius: 12px;
+                  padding: 8px 4px 7px; cursor: pointer; text-align: center; transition: border-color .2s, transform .12s, background .2s; }
+  .strip button:active { transform: scale(.96); }
+  .strip button[aria-pressed="true"] { border-color: var(--ball); background: var(--ball-soft); }
+  .strip .w { display: block; font-size: 11px; color: var(--mist); font-stretch: 85%; }
+  .strip .p { display: block; font: 800 22px/1.05 var(--display); font-variant-numeric: tabular-nums; }
+  .strip .p.hot { color: var(--make); } .strip .p.cold { color: var(--miss); }
+  .strip .c { display: block; font-size: 11px; color: var(--mist); }
+  .venue { margin-top: 10px; }
+  .stake-chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin-top: 10px; }
+  .stake-chips::-webkit-scrollbar { display: none; }
+  .stake-chips button { flex: none; appearance: none; border: 1px solid rgba(255, 194, 75, .45); background: var(--amber-soft);
+                        color: var(--amber); border-radius: 999px; padding: 6px 10px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+  .tipbox { margin-top: 8px; font-size: 12.5px; color: var(--net); background: rgba(8, 17, 31, .65); border: 1px solid var(--seam);
+            border-radius: 10px; padding: 8px 10px; }
+  .tipbox[hidden] { display: none; }
+  .loader { display: grid; place-items: center; padding: 40px 0; }
+  .loader i { width: 22px; height: 22px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #ffb06a, var(--ball) 55%, #b4520d);
+              animation: dribble .6s cubic-bezier(.5, 0, .5, 1) infinite alternate; }
+  @keyframes dribble { from { transform: translateY(-18px); } to { transform: translateY(14px) scaleY(.88); } }
+
+  @media (min-width: 560px) {
+    .tiles { grid-template-columns: repeat(4, 1fr); } .selects { grid-template-columns: 1fr 1fr 1.4fr; }
+    .mark h1 { font-size: 58px; } .court .wrap { min-height: 176px; } .hoop { width: 160px; height: 140px; }
+    .strip { grid-template-columns: repeat(8, 1fr); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+    .shot { display: none; }
+  }
 </style>
 </head>
 <body>
-<header class="wrap">
-  <div class="brand">
-    <svg class="ball" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="14" fill="var(--accent)"/>
-      <path d="M2 16h28M16 2v28M6 6c5 4 5 16 0 20M26 6c-5 4-5 16 0 20" stroke="#111" stroke-width="1.6" fill="none" opacity=".75"/></svg>
-    <div><h1>EasyBuckets</h1><p class="sub">NBA player props · Stake prices against the sharp books · paper-tracked</p></div>
+<header class="court">
+  <div class="wrap">
+    <div class="mark">
+      <h1>Easy<span>Buckets</span></h1>
+      <p class="sub">NBA props for the group, priced against the sharp books</p>
+    </div>
+    <div class="hoop" id="hoop" role="button" tabindex="0" aria-label="Shoot again">
+      <svg viewBox="0 0 132 120" aria-hidden="true">
+        <rect x="34" y="2" width="96" height="62" rx="5" fill="rgba(255,255,255,.93)" stroke="#9fb0c8" stroke-width="1.5"/>
+        <rect x="64" y="25" width="36" height="26" fill="none" stroke="#f47b20" stroke-width="3"/>
+        <path d="M82 64 v-6" stroke="#9fb0c8" stroke-width="3"/>
+        <g class="net" fill="none" stroke="#f4f7fb" stroke-width="1.3" stroke-linecap="round" opacity=".95">
+          <path d="M62 66 L69 96 M68 67 L73 96 M75 67.5 L78 96 M82 67.6 L82 96 M89 67.5 L86 96 M96 67 L91 96 M102 66 L95 96"/>
+          <path d="M62 66 L73 96 M68 67 L78 96 M75 67.5 L82 96 M82 67.6 L86 96 M89 67.5 L91 96 M96 67 L95 96 M102 66 L69 96" opacity=".45"/>
+          <path d="M64 76 Q82 81 100 76 M66 86 Q82 90 98 86 M69 95 Q82 98 95 95"/>
+        </g>
+        <ellipse cx="82" cy="66" rx="21" ry="5" fill="none" stroke="#f47b20" stroke-width="3.4"/>
+      </svg>
+    </div>
+  </div>
+</header>
+<div class="wrap">
+  <div class="board" id="board" aria-live="polite">
+    <div class="cell"><span class="d" id="sb-games">0</span><span class="l">games tonight</span></div>
+    <div class="cell"><span class="d" id="sb-props">0</span><span class="l">props rated</span></div>
+    <div class="cell"><span class="d" id="sb-picks">0</span><span class="l">picks</span></div>
+    <div class="cell"><span class="d time" id="sb-next">--:--</span><span class="l">next check</span></div>
   </div>
   <p class="status" id="status">Loading tonight's board…</p>
-</header>
-<nav class="tabs" aria-label="Sections"><div class="wrap" role="tablist">
-  <button role="tab" id="tb-picks" aria-controls="tab-picks" aria-selected="true">Picks</button>
+</div>
+<nav class="tabs" aria-label="Sections"><div class="wrap" role="tablist" id="tablist">
+  <button role="tab" id="tb-picks" aria-controls="tab-picks" aria-selected="true">Tonight</button>
+  <button role="tab" id="tb-lab" aria-controls="tab-lab" aria-selected="false">Line Lab</button>
   <button role="tab" id="tb-games" aria-controls="tab-games" aria-selected="false">Games</button>
   <button role="tab" id="tb-props" aria-controls="tab-props" aria-selected="false">Props</button>
   <button role="tab" id="tb-players" aria-controls="tab-players" aria-selected="false">Players</button>
   <button role="tab" id="tb-roles" aria-controls="tab-roles" aria-selected="false">Roles</button>
   <button role="tab" id="tb-results" aria-controls="tab-results" aria-selected="false">Results</button>
+  <span class="tab-ind" id="tab-ind" aria-hidden="true"></span>
 </div></nav>
 <main class="wrap">
   <section id="tab-picks" role="tabpanel" aria-labelledby="tb-picks">
@@ -262,6 +441,17 @@
     <p class="lead" id="moves-lead" hidden>Our frozen injury model on the latest official report: whose points, rebounds or
       assists tonight's new absences move by 8% or more, with or without a Stake line yet. Context, not picks.</p>
     <div class="card list" id="moves" hidden></div>
+  </section>
+  <section id="tab-lab" role="tabpanel" aria-labelledby="tb-lab" hidden>
+    <p class="take">Line Lab</p>
+    <p class="lead">Pick a player and a stat, then drag the line on the chart or the slider. Every hit rate updates as you
+      go. Stake's line for him is one tap away.</p>
+    <div class="lab-pick">
+      <input type="search" id="lab-q" placeholder="Find a player in tonight's games" autocomplete="off" aria-label="Find a player"
+             aria-controls="lab-results">
+      <div class="lab-results" id="lab-results" role="listbox" hidden></div>
+    </div>
+    <div id="lab-body"></div>
   </section>
   <section id="tab-games" role="tabpanel" aria-labelledby="tb-games" hidden>
     <p class="take">Tonight's games</p>
@@ -433,14 +623,18 @@
   function recall(k) { try { return localStorage.getItem("eb." + k); } catch (e) { return null; } }
 
   // ---- tabs ----
-  var tabs = ["picks", "games", "props", "players", "roles", "results"];
+  var tabs = ["picks", "lab", "games", "props", "players", "roles", "results"];
   function show(name) {
     tabs.forEach(function (t) {
       document.getElementById("tb-" + t).setAttribute("aria-selected", String(t === name));
       document.getElementById("tab-" + t).hidden = t !== name;
     });
     store("tab", name);
-    if ((name === "players" || name === "games") && data) loadCards();
+    var sec = document.getElementById("tab-" + name);
+    sec.classList.remove("enter"); void sec.offsetWidth; sec.classList.add("enter");
+    if (typeof placeInd === "function") placeInd();
+    if ((name === "players" || name === "games" || name === "lab") && data) loadCards();
+    if (name === "lab" && data) renderLab();
   }
   tabs.forEach(function (t) { document.getElementById("tb-" + t).addEventListener("click", function () { show(t); }); });
   show(tabs.indexOf(recall("tab")) >= 0 ? recall("tab") : "picks");
@@ -537,6 +731,526 @@
     document.getElementById("best-h").hidden = !best.children.length;
   }
 
+
+
+  // ---- motion: one opening shot, then motion only where you act ----
+  var REDUCED = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function countUp(node, to, fmt, ms) {
+    fmt = fmt || function (v) { return String(Math.round(v)); };
+    if (REDUCED || !isFinite(to)) { node.textContent = fmt(to); return; }
+    var from = parseFloat(node.getAttribute("data-v") || "0") || 0, t0 = null, dur = ms || 700;
+    node.setAttribute("data-v", String(to));
+    function step(t) {
+      if (t0 === null) t0 = t;
+      var k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+      node.textContent = fmt(from + (to - from) * e);
+      if (k < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+  var TIER_COLOR = { "Very high": "var(--make)", "High": "var(--sky)", "Medium": "var(--amber)", "Low": "#6f81a0" };
+  function ring(score, tierName) {
+    var r = 26, C = 2 * Math.PI * r;
+    var w = el("div", "ring");
+    var s = svg("svg", { viewBox: "0 0 64 64", "aria-hidden": "true" });
+    s.appendChild(svg("circle", { cx: 32, cy: 32, r: r, "class": "trk" }));
+    var arc = svg("circle", { cx: 32, cy: 32, r: r, "class": "arc", "stroke-dasharray": C.toFixed(2),
+      "stroke-dashoffset": C.toFixed(2) });
+    arc.style.stroke = TIER_COLOR[tierName] || "var(--amber)";
+    s.appendChild(arc);
+    w.appendChild(s);
+    var n = el("div", "n", REDUCED ? Math.round(score * 100) + "%" : "0%");
+    w.appendChild(n);
+    w.setAttribute("aria-label", Math.round(score * 100) + "% confidence");
+    var go = function () {
+      arc.setAttribute("stroke-dashoffset", (C * (1 - Math.max(0, Math.min(1, score)))).toFixed(2));
+      countUp(n, score * 100, function (v) { return Math.round(v) + "%"; }, 900);
+    };
+    if (REDUCED) { go(); return w; }
+    if ("IntersectionObserver" in window) {
+      var io = new IntersectionObserver(function (es) {
+        es.forEach(function (e) { if (e.isIntersecting) { io.disconnect(); requestAnimationFrame(go); } });
+      }, { threshold: 0.3 });
+      requestAnimationFrame(function () { io.observe(w); });
+    } else { requestAnimationFrame(go); }
+    return w;
+  }
+
+  // the opening shot: the ball arcs from the floor into the hoop, the net swishes, the scoreboard lights up
+  var hoop = document.getElementById("hoop"), shooting = false, boardLit = false;
+  function ballSvg() {
+    var s = svg("svg", { viewBox: "0 0 26 26", "class": "shot", "aria-hidden": "true" });
+    s.appendChild(svg("circle", { cx: 13, cy: 13, r: 12, fill: "#f47b20", stroke: "#7a3609", "stroke-width": 1 }));
+    s.appendChild(svg("path", { d: "M1 13h24M13 1v24M4.5 4.5c4.5 4 4.5 13 0 17M21.5 4.5c-4.5 4-4.5 13 0 17",
+      stroke: "#3a1a05", "stroke-width": 1.3, fill: "none", opacity: ".8" }));
+    return s;
+  }
+  function shoot(after) {
+    if (shooting) return;
+    if (REDUCED) { if (after) after(); return; }
+    shooting = true;
+    var hb = hoop.getBoundingClientRect(), court = hoop.closest(".court").getBoundingClientRect();
+    var sx = court.left + 18, sy = court.bottom - 30;
+    var rx = hb.left + hb.width * (82 / 132) - 13, ry = hb.top + hb.height * (66 / 120) - 13;
+    var apexY = Math.min(sy, ry) - 70;
+    var ball = ballSvg();
+    document.body.appendChild(ball);
+    var t0 = null, flight = 950, drop = 380;
+    function pos(k) {
+      var x = sx + (rx - sx) * k;
+      var y = (1 - k) * (1 - k) * sy + 2 * (1 - k) * k * apexY * 1 + k * k * (ry - 4);
+      return [x, y];
+    }
+    function frame(t) {
+      if (t0 === null) t0 = t;
+      var el_ = t - t0;
+      if (el_ < flight) {
+        var k = el_ / flight, p = pos(k);
+        ball.style.transform = "translate(" + p[0] + "px," + p[1] + "px) rotate(" + (k * 540) + "deg)";
+      } else if (el_ < flight + drop) {
+        if (!hoop.classList.contains("swish")) { hoop.classList.add("swish"); }
+        var k2 = (el_ - flight) / drop;
+        ball.style.transform = "translate(" + rx + "px," + (ry - 4 + k2 * 46) + "px) scale(" + (1 - k2 * 0.25) + ") rotate(" + (540 + k2 * 90) + "deg)";
+        ball.style.opacity = String(1 - k2);
+      } else {
+        ball.remove();
+        hoop.classList.remove("swish");
+        shooting = false;
+        if (after) after();
+        return;
+      }
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  }
+  hoop.addEventListener("click", function () { shoot(); });
+  hoop.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); shoot(); } });
+
+  function nextTime(s) {
+    var m = /(\d{1,2}:\d{2})\s*(am|pm)/i.exec(s || "");
+    return m ? m[1] + (m[2].toLowerCase() === "pm" ? "p" : "a") : "--:--";
+  }
+  function lightBoard() {
+    var s = data.summary || {};
+    var tonight = (data.picks || []).filter(function (r) { return r.night === s.tonight && r.kind === "Top 10"; }).length;
+    var gp = ((data.game_picks || {}).rows || []).filter(function (r) { return r.night === s.tonight; }).length;
+    var nGames = (data.game_lines || []).length || new Set((data.confidence || []).map(function (r) { return r.game; })).size;
+    var nProps = (data.confidence || []).filter(function (r) { return r.key !== "none"; }).length;
+    countUp(document.getElementById("sb-games"), nGames, null, 600);
+    countUp(document.getElementById("sb-props"), nProps, null, 900);
+    countUp(document.getElementById("sb-picks"), tonight + gp, null, 700);
+    document.getElementById("sb-next").textContent = nextTime(s.next_refresh);
+    boardLit = true;
+  }
+
+  // the tab bar's sliding bar
+  var tabInd = document.getElementById("tab-ind");
+  function placeInd() {
+    var cur = document.querySelector('nav.tabs button[aria-selected="true"]');
+    if (!cur || !tabInd) return;
+    tabInd.style.width = Math.max(24, cur.offsetWidth - 14) + "px";
+    tabInd.style.transform = "translateX(" + (cur.offsetLeft + 7) + "px)";
+    var bar = cur.parentNode;
+    if (cur.offsetLeft < bar.scrollLeft || cur.offsetLeft + cur.offsetWidth > bar.scrollLeft + bar.clientWidth) {
+      bar.scrollTo({ left: cur.offsetLeft - 40, behavior: REDUCED ? "auto" : "smooth" });
+    }
+  }
+  window.addEventListener("resize", placeInd);
+
+  // ---- Line Lab: your own line against his games (counts in the page, from cards.json's game logs) ----
+  var labState = { aid: null, mkt: null, line: null, win: "L10", venue: "all" };
+  var LAB_WINS = [["L5", 5], ["L10", 10], ["L15", 15], ["L20", 20], ["Season", "szn"], ["H2H", "h2h"]];
+  var SEASON_START = "2026-10-01";
+  var lab = {};                                   // live nodes for the fast path while dragging
+  function labCandidates() {
+    if (!cards || !cards.players) return [];
+    var rated = {};
+    (data.confidence || []).forEach(function (r) {
+      if (r.athlete_id !== null && r.athlete_id !== undefined) rated[String(r.athlete_id)] = Math.max(rated[String(r.athlete_id)] || 0, r.score);
+    });
+    return Object.keys(cards.players).sort(function (a, b) {
+      var ra = rated[a] || 0, rb = rated[b] || 0;
+      if ((ra > 0) !== (rb > 0)) return rb > 0 ? 1 : -1;
+      if (ra !== rb) return rb - ra;
+      return (cards.players[b].mpg || 0) - (cards.players[a].mpg || 0);
+    });
+  }
+  function openLab(aid, mkt, line) {
+    labState.aid = String(aid);
+    labState.mkt = mkt || null;
+    labState.line = line === undefined ? null : line;
+    if (!sheet.hidden) closeSheet(false);
+    show("lab");
+    renderLab();
+    window.scrollTo({ top: document.querySelector("nav.tabs").offsetTop, behavior: REDUCED ? "auto" : "smooth" });
+  }
+  function labRows(p, idx) {
+    var venue = labState.venue, w = labState.win, rows;
+    var okVenue = function (r) { return venue === "all" || (venue === "home" ? r[idx.ha] === "H" : r[idx.ha] === "A"); };
+    if (w === "H2H") rows = (p.vs || []).filter(okVenue);
+    else if (w === "Season") rows = (p.log || []).filter(function (r) { return r[idx.date] >= SEASON_START && okVenue(r); });
+    else rows = (p.log || []).filter(okVenue).slice(0, parseInt(w.slice(1), 10));
+    return rows;
+  }
+  function windowRows(p, idx, w, venue) {
+    var save = [labState.win, labState.venue];
+    labState.win = w; labState.venue = venue;
+    var rows = labRows(p, idx);
+    labState.win = save[0]; labState.venue = save[1];
+    return rows;
+  }
+  function valsOf(rows, cols, idx) {
+    return rows.map(function (r) { return statOf(r, cols, idx); }).filter(function (v) { return v !== null; });
+  }
+  function median(xs) {
+    if (!xs.length) return null;
+    var s = xs.slice().sort(function (a, b) { return a - b; }), m = Math.floor(s.length / 2);
+    return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+  }
+  function stakeProp(aid, label) {
+    return (data.confidence || []).filter(function (r) {
+      return r.key !== "none" && String(r.athlete_id) === String(aid) && r.label === label;
+    })[0] || null;
+  }
+  function labSearch(q) {
+    var box = document.getElementById("lab-results");
+    box.replaceChildren();
+    q = (q || "").trim().toLowerCase();
+    if (!cards || !cards.players) { box.hidden = true; return; }
+    var ids = labCandidates().filter(function (a) { return !q || cards.players[a].name.toLowerCase().indexOf(q) >= 0; }).slice(0, 8);
+    ids.forEach(function (a, i) {
+      var p = cards.players[a];
+      var b = el("button");
+      b.type = "button";
+      b.setAttribute("role", "option");
+      if (i === 0) b.className = "on";
+      b.appendChild(avatar(a, p.name, "sm"));
+      var mid = el("div", "grow");
+      mid.appendChild(el("div", "ell", p.name));
+      var n = propsFor(a).length;
+      mid.appendChild(el("div", "meta ell", p.team + (p.venue === "home" ? " vs " : " @ ") + p.opp + (n ? " · " + n + " Stake prop" + (n === 1 ? "" : "s") : "")));
+      b.appendChild(mid);
+      b.addEventListener("click", function () {
+        box.hidden = true;
+        document.getElementById("lab-q").value = "";
+        labState.aid = a; labState.mkt = null; labState.line = null;
+        renderLab();
+      });
+      box.appendChild(b);
+    });
+    box.hidden = !ids.length;
+  }
+  var labQ = document.getElementById("lab-q");
+  labQ.addEventListener("input", function () { labSearch(labQ.value); });
+  labQ.addEventListener("focus", function () { labSearch(labQ.value); });
+  labQ.addEventListener("keydown", function (e) {
+    if (e.key === "Enter") { var f = document.querySelector("#lab-results button"); if (f) f.click(); }
+    if (e.key === "Escape") document.getElementById("lab-results").hidden = true;
+  });
+  document.addEventListener("click", function (e) {
+    if (!e.target.closest || !e.target.closest(".lab-pick")) document.getElementById("lab-results").hidden = true;
+  });
+
+  function labChart(rows, cols, idx, line) {
+    var data_ = rows.slice().reverse();
+    var W = 360, H = 212, T = 20, B = 34, L = 4, R = 30, n = Math.max(data_.length, 1);
+    var vals = data_.map(function (r) { return statOf(r, cols, idx); });
+    var got = vals.filter(function (v) { return v !== null; });
+    var max = Math.max.apply(null, [line * 1.25, 1].concat(got)) * 1.12;
+    var ih = H - T - B, bw = (W - L - R) / n;
+    var s = svg("svg", { viewBox: "0 0 " + W + " " + H, role: "img",
+      "aria-label": data_.length + " games against the line " + line + "; drag up or down to move the line" });
+    s.appendChild(svg("rect", { x: 0, y: 0, width: W, height: H, fill: "transparent" }));
+    var bars = [];
+    data_.forEach(function (r, i) {
+      var v = vals[i], x = L + i * bw;
+      if (v !== null) {
+        var h = Math.max(v / max * ih, v > 0 ? 3 : 1), y = T + ih - h;
+        var rc = svg("rect", { x: (x + bw * 0.13).toFixed(1), y: y.toFixed(1), width: (bw * 0.74).toFixed(1),
+          height: h.toFixed(1), rx: 3, "class": v > line ? "bar-over" : v < line ? "bar-under" : "bar-push" });
+        if (!REDUCED) {
+          rc.style.transformBox = "fill-box"; rc.style.transformOrigin = "50% 100%";
+          rc.animate([{ transform: "scaleY(0)" }, { transform: "scaleY(1)" }],
+                     { duration: 420, delay: i * 22, easing: "cubic-bezier(.2,.8,.2,1)", fill: "backwards" });
+        }
+        rc.addEventListener("click", function (ev) {
+          ev.stopPropagation();
+          var tip = lab.tip;
+          if (!tip) return;
+          var parts = [shortDate(r[idx.date]) + " " + (r[idx.ha] === "A" ? "@ " : "vs ") + r[idx.opp], v + " " + labState.mkt.toLowerCase(),
+            r[idx.min] + " min", r[idx.pts] + " pts", r[idx.reb] + " reb", r[idx.ast] + " ast"];
+          tip.textContent = parts.join(" · ");
+          tip.hidden = false;
+        });
+        s.appendChild(rc);
+        bars.push([rc, v]);
+        s.appendChild(svg("text", { x: (x + bw / 2).toFixed(1), y: (y - 4).toFixed(1), "text-anchor": "middle", "class": "val" }, String(v)));
+      }
+      if (n <= 20 || i % 2 === 0) {
+        s.appendChild(svg("text", { x: (x + bw / 2).toFixed(1), y: H - (n > 12 && i % 2 ? 4 : 16), "text-anchor": "middle",
+          "class": "lbl" }, (r[idx.ha] === "A" ? "@" : "") + r[idx.opp]));
+      }
+    });
+    var ly = T + ih - line / max * ih;
+    var ln = svg("line", { x1: L, x2: W - R + 4, y1: ly.toFixed(1), y2: ly.toFixed(1), "class": "ln" });
+    var knob = svg("circle", { cx: W - R / 2, cy: ly.toFixed(1), r: 9, "class": "knob" });
+    var tag = svg("text", { x: W - R / 2, y: Math.max(11, ly - 13).toFixed(1), "text-anchor": "middle", "class": "lntag" }, String(line));
+    var grab = svg("rect", { x: W - R - 6, y: 0, width: R + 6, height: H, "class": "grab" });
+    s.appendChild(ln); s.appendChild(knob); s.appendChild(tag); s.appendChild(grab);
+    var box = el("div", "chart");
+    box.appendChild(s);
+    lab.chart = { svg: s, bars: bars, ln: ln, knob: knob, tag: tag, max: max, T: T, ih: ih, H: H };
+    function fromEvent(ev) {
+      var rect = s.getBoundingClientRect();
+      var y = (ev.clientY - rect.top) / rect.height * H;
+      var v = (T + ih - y) / ih * max;
+      return Math.max(0.5, Math.round(v * 2) / 2);
+    }
+    // tap anywhere off the bars to put the line there; drag the knob on the right to slide it
+    s.addEventListener("click", function (ev) {
+      var cls = ev.target.getAttribute && ev.target.getAttribute("class");
+      if (cls && cls.indexOf("bar-") === 0) return;
+      setLine(fromEvent(ev));
+    });
+    var dragging = false;
+    grab.addEventListener("pointerdown", function (ev) {
+      dragging = true;
+      try { grab.setPointerCapture(ev.pointerId); } catch (e) {}
+      knob.classList.add("on");
+      setLine(fromEvent(ev));
+    });
+    grab.addEventListener("pointermove", function (ev) { if (dragging) { ev.preventDefault(); setLine(fromEvent(ev)); } });
+    ["pointerup", "pointercancel"].forEach(function (t) {
+      grab.addEventListener(t, function () { dragging = false; knob.classList.remove("on"); });
+    });
+    return box;
+  }
+  function setLine(v) {
+    if (v === labState.line) return;
+    labState.line = v;
+    labUpdate();
+  }
+  function hitText(h, n) { return n ? Math.round(h / n * 100) + "%" : "–"; }
+  function heat(h, n) { return !n ? "" : h / n >= 0.6 ? "hot" : h / n <= 0.4 ? "cold" : ""; }
+  function labUpdate() {
+    var p = cards.players[labState.aid], idx = colIdx();
+    var mk = MKTS.filter(function (m) { return m[0] === labState.mkt; })[0] || MKTS[0];
+    var line = labState.line;
+    var rows = labRows(p, idx), vals = valsOf(rows, mk[1], idx);
+    var hn = hits(vals, line);
+    // readout
+    var hr = lab.hr;
+    if (hr) {
+      var pctOver = hn[1] ? hn[0] / hn[1] * 100 : NaN;
+      hr.className = "hr " + heat(hn[0], hn[1]);
+      if (isFinite(pctOver)) countUp(hr, pctOver, function (v) { return Math.round(v) + "%"; }, 260);
+      else hr.textContent = "–";
+      lab.of.textContent = hn[1] ? hn[0] + " of " + hn[1] + " went over " + line + (vals.length > hn[1] ? " (" + (vals.length - hn[1]) + " landed on it)" : "")
+                                 : "No games in this window";
+      var avg = vals.length ? vals.reduce(function (a, b) { return a + b; }, 0) / vals.length : null;
+      lab.ref.textContent = (avg === null ? "" : "Average " + fmt1(avg) + " · median " + fmt1(median(vals))) +
+        (lab.stake ? " · Stake " + lab.stake.line + ": Over needs " + Math.round(100 / (lab.stake.odds_over || 2)) + "% at " + odds(lab.stake.odds_over) : "");
+    }
+    // the value, slider and chart line
+    if (lab.val) { lab.val.firstChild.textContent = String(line); }
+    if (lab.valNote) lab.valNote.textContent = lab.stake && lab.stake.line === line ? "Stake's line" : "your line";
+    if (lab.slider) {
+      lab.slider.value = String(line);
+      var mn = parseFloat(lab.slider.min), mx = parseFloat(lab.slider.max);
+      lab.slider.style.setProperty("--fill", ((line - mn) / (mx - mn) * 100).toFixed(1) + "%");
+    }
+    if (lab.chart && (line > lab.chart.max * 0.9 || (lab.chart.max > 8 && line < lab.chart.max * 0.18))) {
+      var host = lab.chart.svg.parentNode, rowsNow = labRows(p, idx);
+      if (host && rowsNow.length) {
+        var keep = REDUCED; REDUCED = true;                      // rescale without regrowing the bars
+        var fresh = labChart(rowsNow, mk[1], idx, line);
+        REDUCED = keep;
+        host.replaceWith(fresh);
+      }
+    }
+    if (lab.chart) {
+      var c = lab.chart, ly = c.T + c.ih - Math.min(line, c.max) / c.max * c.ih;
+      c.ln.setAttribute("y1", ly.toFixed(1)); c.ln.setAttribute("y2", ly.toFixed(1));
+      c.knob.setAttribute("cy", ly.toFixed(1));
+      c.tag.setAttribute("y", Math.max(11, ly - 13).toFixed(1)); c.tag.textContent = String(line);
+      c.bars.forEach(function (b) { b[0].setAttribute("class", b[1] > line ? "bar-over" : b[1] < line ? "bar-under" : "bar-push"); });
+    }
+    // every window at this line
+    (lab.strip || []).forEach(function (cell) {
+      var rws = windowRows(p, idx, cell.win, cell.venue);
+      var hh = hits(valsOf(rws, mk[1], idx), line);
+      cell.p.textContent = hitText(hh[0], hh[1]);
+      cell.p.className = "p " + heat(hh[0], hh[1]);
+      cell.c.textContent = hh[1] ? hh[0] + "/" + hh[1] : "no games";
+    });
+    try { history.replaceState(null, "", "#lab=" + labState.aid + "/" + encodeURIComponent(labState.mkt) + "/" + line); } catch (e) {}
+  }
+  function renderLab() {
+    var body = document.getElementById("lab-body");
+    if (!data) return;
+    if (cardsState !== "ready") {
+      body.replaceChildren(cardsState === "missing" ? el("div", "card empty", "Player game logs aren't published for tonight yet.")
+                                                   : (function () { var l = el("div", "loader"); l.appendChild(el("i")); return l; })());
+      if (cardsState === "idle") loadCards();
+      return;
+    }
+    if (!labState.aid || !cards.players[labState.aid]) {
+      var MAIN = ["Points", "Pts+Reb+Ast", "Rebounds", "Assists", "3-pointers"];
+      var top = (data.confidence || []).filter(function (r) {
+        return r.key !== "none" && r.athlete_id !== null && cards.players[String(r.athlete_id)] && MAIN.indexOf(r.label) >= 0 &&
+          r.odds && r.odds >= 1.4 && r.odds <= 3.5;
+      }).sort(function (a, b) { return (cards.players[String(b.athlete_id)].mpg || 0) - (cards.players[String(a.athlete_id)].mpg || 0); })[0];
+      var first = labCandidates()[0];
+      if (top) { labState.aid = String(top.athlete_id); labState.mkt = top.label; labState.line = top.line; }
+      else if (first) { labState.aid = first; }
+      else { body.replaceChildren(el("div", "card empty", "No players in tonight's games yet.")); return; }
+    }
+    var aid = labState.aid, p = cards.players[aid], idx = colIdx();
+    var props = propsFor(aid);
+    if (!labState.mkt || !MKTS.some(function (m) { return m[0] === labState.mkt; })) {
+      labState.mkt = props.length && MKTS.some(function (m) { return m[0] === props[0].label; }) ? props[0].label : "Points";
+    }
+    var mk = MKTS.filter(function (m) { return m[0] === labState.mkt; })[0];
+    var sp = stakeProp(aid, labState.mkt);
+    lab = { stake: sp ? { line: sp.line, odds_over: sp.odds_over, odds_under: sp.odds_under } : null };
+    var allVals = valsOf(p.log || [], mk[1], idx);
+    if (labState.line === null) {
+      if (sp) labState.line = sp.line;
+      else {
+        var recent = allVals.slice(0, 10);
+        var avg = recent.length ? recent.reduce(function (a, b) { return a + b; }, 0) / recent.length : 0.5;
+        labState.line = Math.floor(avg) + 0.5;
+      }
+    }
+    var frag = document.createDocumentFragment();
+    // who
+    var who = el("div", "lab-who");
+    who.appendChild(avatar(aid, p.name, ""));
+    var wt = el("div", "grow");
+    wt.appendChild(el("div", "nm", p.name));
+    var g = (cards.games || []).filter(function (x) { return x.game_id === p.game_id; })[0];
+    wt.appendChild(el("div", "meta", p.team + (p.venue === "home" ? " vs " : " @ ") + p.opp + (g ? " · " + ist(g.tip) : "") +
+      (p.status ? " · " + p.status : "")));
+    who.appendChild(wt);
+    var more = el("button", "btn", "Player page");
+    more.type = "button";
+    more.addEventListener("click", function () { openSheet(aid, false); });
+    who.appendChild(more);
+    frag.appendChild(who);
+    // Stake's lines for him
+    if (props.length) {
+      var sc = el("div", "stake-chips");
+      props.forEach(function (r) {
+        var b = el("button", null, "Stake " + r.label + " " + r.line);
+        b.type = "button";
+        b.addEventListener("click", function () { labState.mkt = r.label; labState.line = r.line; renderLab(); });
+        sc.appendChild(b);
+      });
+      frag.appendChild(sc);
+    }
+    // markets
+    var bar = el("div", "mkts");
+    bar.style.marginTop = "12px";
+    MKTS.forEach(function (m) {
+      var b = el("button", null, m[0]);
+      b.type = "button";
+      if (props.some(function (r) { return r.label === m[0]; })) b.appendChild(el("span", "dot"));
+      b.setAttribute("aria-pressed", String(m[0] === labState.mkt));
+      b.addEventListener("click", function () { labState.mkt = m[0]; labState.line = null; renderLab(); });
+      bar.appendChild(b);
+    });
+    frag.appendChild(bar);
+    // the readout
+    var card = el("div", "card");
+    card.style.marginTop = "12px";
+    var ro = el("div", "readout");
+    var left = el("div");
+    lab.hr = el("div", "hr", "–");
+    left.appendChild(lab.hr);
+    ro.appendChild(left);
+    var right = el("div");
+    right.appendChild(el("div", "side", "Over " + labState.mkt.toLowerCase() + " · " + labState.win + (labState.venue !== "all" ? " " + labState.venue : "")));
+    lab.of = el("div", "of");
+    right.appendChild(lab.of);
+    ro.appendChild(right);
+    card.appendChild(ro);
+    lab.ref = el("div", "ref readout-ref small");
+    card.appendChild(lab.ref);
+    // the line: value, stepper, slider
+    var lr = el("div", "lab-line");
+    var minus = el("button", "btn", "−"); minus.type = "button"; minus.setAttribute("aria-label", "Lower the line");
+    var plus = el("button", "btn", "+"); plus.type = "button"; plus.setAttribute("aria-label", "Raise the line");
+    lab.val = el("div", "val");
+    lab.val.appendChild(document.createTextNode(String(labState.line)));
+    lab.valNote = el("small", null, "");
+    lab.val.appendChild(lab.valNote);
+    minus.addEventListener("click", function () { setLine(Math.max(0.5, labState.line - 0.5)); });
+    plus.addEventListener("click", function () { setLine(labState.line + 0.5); });
+    lr.appendChild(minus); lr.appendChild(lab.val); lr.appendChild(plus);
+    card.appendChild(lr);
+    var maxV = Math.max.apply(null, [labState.line + 5, 3].concat(allVals));
+    lab.slider = el("input", "line");
+    lab.slider.type = "range"; lab.slider.min = "0.5"; lab.slider.step = "0.5";
+    lab.slider.max = String(Math.ceil(maxV * 1.15) + 0.5);
+    lab.slider.setAttribute("aria-label", "Your line");
+    lab.slider.addEventListener("input", function () { setLine(parseFloat(lab.slider.value)); });
+    card.appendChild(lab.slider);
+    // windows
+    var wins = el("div", "seg");
+    wins.style.marginTop = "10px";
+    LAB_WINS.forEach(function (w) {
+      var b = el("button", null, w[0] === "Season" ? "This season" : w[0]);
+      b.type = "button";
+      b.setAttribute("aria-pressed", String(labState.win === w[0]));
+      b.addEventListener("click", function () { labState.win = w[0]; renderLab(); });
+      wins.appendChild(b);
+    });
+    card.appendChild(wins);
+    var ven = el("div", "seg venue");
+    [["all", "Home and away"], ["home", "Home"], ["away", "Away"]].forEach(function (v) {
+      var b = el("button", null, v[1]);
+      b.type = "button";
+      b.setAttribute("aria-pressed", String(labState.venue === v[0]));
+      b.addEventListener("click", function () { labState.venue = v[0]; renderLab(); });
+      ven.appendChild(b);
+    });
+    card.appendChild(ven);
+    // chart
+    var rows = labRows(p, idx);
+    if (rows.length) card.appendChild(labChart(rows, mk[1], idx, labState.line));
+    else card.appendChild(el("div", "empty", labState.win === "H2H" ? "No games against " + p.opp + " since 2024-25." : "No games in this window yet."));
+    lab.tip = el("div", "tipbox");
+    lab.tip.hidden = true;
+    card.appendChild(lab.tip);
+    card.appendChild(el("p", "small", "Tap the chart to put the line there, or drag the ball on the right edge or the slider. Tap a bar for that game. Oldest game on the left; a game landing exactly on the line isn't counted."));
+    frag.appendChild(card);
+    // every window at a glance
+    frag.appendChild(el("h2", null, "Every window at this line"));
+    var strip = el("div", "strip");
+    lab.strip = [];
+    [["L5", "all"], ["L10", "all"], ["L15", "all"], ["L20", "all"], ["Season", "all"], ["H2H", "all"], ["L20", "home"], ["L20", "away"]].forEach(function (w) {
+      var b = el("button");
+      b.type = "button";
+      var label = w[1] === "home" ? "Home L20" : w[1] === "away" ? "Away L20" : w[0] === "Season" ? "Season" : w[0] === "H2H" ? "vs " + p.opp : w[0];
+      b.appendChild(el("span", "w", label));
+      var pe = el("span", "p", "–"), ce = el("span", "c", "");
+      b.appendChild(pe); b.appendChild(ce);
+      b.setAttribute("aria-pressed", String(labState.win === w[0] && labState.venue === w[1]));
+      b.addEventListener("click", function () { labState.win = w[0]; labState.venue = w[1]; renderLab(); });
+      strip.appendChild(b);
+      lab.strip.push({ win: w[0], venue: w[1], p: pe, c: ce });
+    });
+    frag.appendChild(strip);
+    // the rating when the line is Stake's
+    if (sp) {
+      var rc = propCard(sp, true);
+      rc.style.marginTop = "12px";
+      frag.appendChild(el("h2", null, "Stake's " + sp.label.toLowerCase() + " line, rated"));
+      frag.appendChild(rc);
+    }
+    body.replaceChildren(frag);
+    labUpdate();
+  }
 
   // ---- the Tonight briefing (lab/briefing.py writes every sentence) ----
   var BRIEF_TAG = { injury: "Injury", pick: "Pick", lean: "Lean", blowout: "Blowout", rest: "Rest", prop: "Prop", role: "Role" };
@@ -868,7 +1582,7 @@
     var left = ident(r.athlete_id, r.player, "", txt);
     left.className = "id grow";
     var big = el("div", "big");
-    big.appendChild(el("div", "pct", pct(r.score)));
+    big.appendChild(ring(r.score, r.tier));
     big.appendChild(el("span", "tier " + (TIER_CLASS[r.tier] || "t-lo"), r.tier));
     row.appendChild(left); row.appendChild(big); c.appendChild(row);
     var chips = el("div", "chips");
@@ -910,7 +1624,15 @@
       });
       c.appendChild(w);
     }
-    if (!inSheet && r.athlete_id !== null && r.athlete_id !== undefined) c.appendChild(el("div", "tap", "Tap for his games and splits ›"));
+    if (r.athlete_id !== null && r.athlete_id !== undefined) {
+      var acts = el("div", "acts");
+      var lb = el("button", "btn go-lab", "Set your line");
+      lb.type = "button";
+      lb.addEventListener("click", function (ev) { ev.stopPropagation(); openLab(r.athlete_id, r.label, r.line); });
+      acts.appendChild(lb);
+      if (!inSheet) acts.appendChild(el("span", "tap", "Tap the card for his games"));
+      c.appendChild(acts);
+    }
     return c;
   }
   function renderProps() {
@@ -1067,8 +1789,8 @@
     cardsState = "loading";
     fetch(CARDS_URL + "?t=" + Date.now(), { cache: "no-store" })
       .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
-      .then(function (d) { cards = d; cardsState = "ready"; renderPlayers(); renderGames(); if (pendingAid) { var a = pendingAid; pendingAid = null; openSheet(a, true); } })
-      .catch(function () { cardsState = "missing"; renderPlayers(); renderGames(); if (pendingAid) { var a = pendingAid; pendingAid = null; openSheet(a, true); } });
+      .then(function (d) { cards = d; cardsState = "ready"; renderPlayers(); renderGames(); if (!document.getElementById("tab-lab").hidden) renderLab(); if (pendingAid) { var a = pendingAid; pendingAid = null; openSheet(a, true); } })
+      .catch(function () { cardsState = "missing"; renderPlayers(); renderGames(); if (!document.getElementById("tab-lab").hidden) renderLab(); if (pendingAid) { var a = pendingAid; pendingAid = null; openSheet(a, true); } });
   }
   function propsFor(aid) {
     return (data.confidence || []).filter(function (r) { return r.key !== "none" && String(r.athlete_id) === String(aid); });
@@ -1236,7 +1958,7 @@
     var lineFor = {};
     props.forEach(function (r) { if (!(r.label in lineFor)) lineFor[r.label] = r.line; });
     var mk = MKTS.filter(function (m) { return m[0] === sheetState.mkt; })[0] || MKTS[0];
-    var log = p.log || [];
+    var log = (p.log || []).slice(0, 20);
     var vals = log.map(function (r) { return statOf(r, mk[1], idx); });
     if (sheetState.line === null) {
       if (mk[0] in lineFor) sheetState.line = lineFor[mk[0]];
@@ -1257,6 +1979,11 @@
       bar.appendChild(b);
     });
     wrap.appendChild(bar);
+    var toLab = el("button", "btn go-lab", "Open in Line Lab");
+    toLab.type = "button";
+    toLab.style.marginTop = "10px";
+    toLab.addEventListener("click", function () { openLab(aid, sheetState.mkt, sheetState.line); });
+    wrap.appendChild(toLab);
     var st = el("div", "stepper");
     var minus = el("button", null, "−"); minus.type = "button"; minus.setAttribute("aria-label", "Lower line");
     var plus = el("button", null, "+"); plus.type = "button"; plus.setAttribute("aria-label", "Raise line");
@@ -1277,18 +2004,13 @@
     var hh = hits(home, line), aa = hits(away, line);
     f.appendChild(formCell("Home", hh[0], hh[1]));
     f.appendChild(formCell("Away", aa[0], aa[1]));
-    var vsVals = (p.vs || []).map(function (r) {
-      var m = { pts: r[2], reb: r[3], ast: r[4], "3pm": r[5] };
-      var s2 = 0;
-      for (var i = 0; i < mk[1].length; i++) { if (!(mk[1][i] in m)) return null; s2 += m[mk[1][i]]; }
-      return s2;
-    });
+    var vsVals = (p.vs || []).map(function (r) { return statOf(r, mk[1], idx); });
     var vv = hits(vsVals, line);
     f.appendChild(formCell("vs " + p.opp, vv[0], vv[1]));
     wrap.appendChild(f);
-    wrap.appendChild(chart(log, mk[1], idx, line));
-    wrap.appendChild(el("p", "small", "Green: over the line · red: under · last " + log.length +
-      " games, oldest left (dates in the game log). Counts leave out games landing exactly on the line."));
+    wrap.appendChild(chart(log.slice(0, 15), mk[1], idx, line));
+    wrap.appendChild(el("p", "small", "Green: over the line, red: under, last " + Math.min(15, log.length) +
+      " games with the oldest on the left. Home and away count his last 20. The Line Lab has every window and a slider."));
     return wrap;
   }
   function renderSheet() {
@@ -1396,13 +2118,13 @@
       sheetBody.appendChild(el("h2", null, "Against " + p.opp));
       var vc = el("div", "card scroll-x");
       vc.appendChild(table(["Date", "MIN", "PTS", "REB", "AST", "3PM"], p.vs.map(function (r) {
-        return [shortDate(r[0]), r[1], r[2], r[3], r[4], r[5]];
+        return [shortDate(r[idx.date]), r[idx.min], r[idx.pts], r[idx.reb], r[idx.ast], r[idx["3pm"]]];
       }), 1));
       sheetBody.appendChild(vc);
     }
-    sheetBody.appendChild(el("h2", null, "Game log (last " + (p.log || []).length + ")"));
+    sheetBody.appendChild(el("h2", null, "Game log (last " + Math.min(20, (p.log || []).length) + ")"));
     var lc = el("div", "card scroll-x");
-    lc.appendChild(wide(table(["Date", "Opp", "MIN", "PTS", "REB", "AST", "3PM", "STL", "BLK", "TO"], (p.log || []).map(function (r) {
+    lc.appendChild(wide(table(["Date", "Opp", "MIN", "PTS", "REB", "AST", "3PM", "STL", "BLK", "TO"], (p.log || []).slice(0, 20).map(function (r) {
       return [shortDate(r[idx.date]), (r[idx.ha] === "A" ? "@" : "vs ") + r[idx.opp], r[idx.min], r[idx.pts], r[idx.reb],
         r[idx.ast], r[idx["3pm"]], r[idx.stl], r[idx.blk], r[idx.tov]];
     }), 2)));
@@ -1451,10 +2173,17 @@
     st.replaceChildren();
     st.appendChild(document.createTextNode("US night "));
     st.appendChild(el("b", null, s.tonight || "–"));
-    st.appendChild(document.createTextNode(" · prices checked " + (s.updated || "–") + " · next: " + (s.next_refresh || "–")));
+    st.appendChild(document.createTextNode(" · prices checked " + (s.updated || "–")));
     renderBriefing(); renderPicks(); renderEdges(); renderMoves(); setupFilters(); renderProps(); renderRoles();
     renderResults(); renderGameResults(); renderGames();
-    if (recall("tab") === "games") loadCards();
+    if (recall("tab") === "games" || recall("tab") === "lab") loadCards();
+    placeInd();
+    var started = false;
+    function lit() { if (!started) { started = true; lightBoard(); } }
+    setTimeout(lit, REDUCED ? 0 : 1600);                         // the board lights even if the shot is skipped
+    if (document.visibilityState === "visible") shoot(lit); else lit();
+    var lm = /^#lab=(\d+)\/([^\/]+)\/([\d.]+)/.exec(location.hash);
+    if (lm) openLab(lm[1], decodeURIComponent(lm[2]), parseFloat(lm[3]));
     if (recall("tab") === "players") loadCards();
     var m = /^#p=(\d+)/.exec(location.hash);
     if (m) openSheet(m[1], true);
