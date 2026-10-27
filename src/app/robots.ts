@@ -33,15 +33,15 @@ export default function robots(): MetadataRoute.Robots {
       // /catalogs — the catalogue PDFs are large scanned files hosted on Vercel
       // Blob and linked rel="nofollow"; this rule is belt-and-braces in case any
       // are ever proxied on-domain.
-      { userAgent: "*", allow: "/", disallow: ["/api/", "/insights", "/catalogs/"] },
+      { userAgent: "*", allow: "/", disallow: ["/api/", "/insights", "/catalogs/", "/basketball"] },
       // Bing powers its own search plus ChatGPT Search and other AI answers,
       // so it is welcomed explicitly (already covered by * above).
-      { userAgent: "Bingbot", allow: "/", disallow: ["/api/", "/insights", "/catalogs/"] },
+      { userAgent: "Bingbot", allow: "/", disallow: ["/api/", "/insights", "/catalogs/", "/basketball"] },
       // Explicit welcome for AI crawlers — same access, stated unambiguously.
       ...AI_CRAWLERS.map((userAgent) => ({
         userAgent,
         allow: "/",
-        disallow: ["/api/", "/insights", "/catalogs/"],
+        disallow: ["/api/", "/insights", "/catalogs/", "/basketball"],
       })),
     ],
     host: SITE_URL,

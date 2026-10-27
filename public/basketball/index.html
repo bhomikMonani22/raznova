@@ -1,0 +1,479 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#0b0f17" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f6f7f9" media="(prefers-color-scheme: light)">
+<title>EasyBuckets · NBA props</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%23ea580c'/%3E%3Cpath d='M2 16h28M16 2v28M6 6c5 4 5 16 0 20M26 6c-5 4-5 16 0 20' stroke='%23111' stroke-width='1.6' fill='none'/%3E%3C/svg%3E">
+<style>
+  :root {
+    --bg: #f6f7f9; --surface: #ffffff; --surface-2: #f1f3f6; --text: #0f172a; --muted: #5b6474; --border: #e3e7ee;
+    --accent: #ea580c; --accent-soft: #fff1e8; --good: #15803d; --good-soft: #e8f6ec; --bad: #c62828; --bad-soft: #fdecec;
+    --warn: #b45309; --warn-soft: #fdf3e2; --vh: #15803d; --hi: #0e7490; --md: #b45309; --lo: #6b7280;
+    --radius: 14px; --shadow: 0 1px 2px rgba(15, 23, 42, .06), 0 4px 14px rgba(15, 23, 42, .05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0b0f17; --surface: #121826; --surface-2: #19212f; --text: #e6e9ef; --muted: #9aa4b5; --border: #232d3d;
+      --accent: #fb923c; --accent-soft: #2a1a10; --good: #4ade80; --good-soft: #10241a; --bad: #f87171; --bad-soft: #2a1414;
+      --warn: #fbbf24; --warn-soft: #2a2110; --vh: #4ade80; --hi: #38bdf8; --md: #fbbf24; --lo: #9ca3af;
+      --shadow: none;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI",
+         Roboto, "Helvetica Neue", Arial, sans-serif; padding-bottom: env(safe-area-inset-bottom); }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 0 16px; }
+  header { padding: 18px 0 10px; }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .ball { width: 30px; height: 30px; flex: none; }
+  h1 { font-size: 20px; margin: 0; letter-spacing: -.01em; }
+  .sub { color: var(--muted); font-size: 13px; margin: 2px 0 0; }
+  .status { margin: 12px 0 0; font-size: 13px; color: var(--muted); }
+  .status b { color: var(--text); font-weight: 600; }
+  nav.tabs { position: sticky; top: 0; z-index: 5; background: var(--bg); border-bottom: 1px solid var(--border); }
+  nav.tabs .wrap { display: flex; gap: 4px; }
+  nav.tabs button { flex: 1; appearance: none; border: 0; background: none; color: var(--muted); font: inherit;
+                    font-weight: 600; padding: 12px 4px 11px; border-bottom: 3px solid transparent; cursor: pointer; }
+  nav.tabs button[aria-selected="true"] { color: var(--text); border-bottom-color: var(--accent); }
+  main { padding: 14px 0 28px; }
+  section[hidden] { display: none; }
+  h2 { font-size: 15px; margin: 22px 0 10px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+  .take { font-size: 16px; font-weight: 600; margin: 4px 0 2px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow);
+          padding: 14px; }
+  .stack > * + * { margin-top: 10px; }
+  .hero { border-color: var(--accent); background: linear-gradient(180deg, var(--accent-soft), var(--surface) 70%); }
+  .row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+  .who { font-weight: 700; font-size: 16px; }
+  .hero .who { font-size: 19px; }
+  .bet { font-size: 15px; margin-top: 2px; }
+  .bet b { font-weight: 700; }
+  .meta { color: var(--muted); font-size: 12.5px; margin-top: 3px; }
+  .big { text-align: right; flex: none; }
+  .pct { font-size: 22px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+  .hero .pct { font-size: 30px; }
+  .pct-label { font-size: 11px; color: var(--muted); margin-top: 3px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .chip { font-size: 12px; padding: 3px 8px; border-radius: 999px; background: var(--surface-2); color: var(--text);
+          border: 1px solid var(--border); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .chip.good { background: var(--good-soft); color: var(--good); border-color: transparent; }
+  .chip.bad { background: var(--bad-soft); color: var(--bad); border-color: transparent; }
+  .chip.warn { background: var(--warn-soft); color: var(--warn); border-color: transparent; }
+  .tier { font-size: 11.5px; font-weight: 700; padding: 3px 8px; border-radius: 999px; color: #fff; display: inline-block;
+          margin-top: 6px; }
+  .t-vh { background: var(--vh); } .t-hi { background: var(--hi); } .t-md { background: var(--md); } .t-lo { background: var(--lo); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .tier { color: #0b0f17; } }
+  .form { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; margin-top: 10px; }
+  .form div { background: var(--surface-2); border-radius: 8px; padding: 5px 2px; text-align: center; }
+  .form .k { font-size: 10.5px; color: var(--muted); display: block; }
+  .form .v { font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .form .v.na { color: var(--muted); font-weight: 500; }
+  .flags { font-size: 12.5px; margin-top: 8px; color: var(--muted); }
+  .flags .warn { color: var(--warn); font-weight: 600; }
+  .list .item { display: flex; align-items: center; gap: 10px; padding: 11px 0; border-top: 1px solid var(--border); }
+  .list .item:first-child { border-top: 0; padding-top: 2px; }
+  .rank { width: 26px; height: 26px; flex: none; border-radius: 50%; background: var(--surface-2); display: grid;
+          place-items: center; font-weight: 700; font-size: 13px; }
+  .grow { flex: 1; min-width: 0; }
+  .ell { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .num { text-align: right; flex: none; font-variant-numeric: tabular-nums; }
+  .num .pct { font-size: 17px; }
+  .pill { font-size: 11.5px; font-weight: 700; padding: 3px 8px; border-radius: 999px; }
+  .pill.hit { background: var(--good-soft); color: var(--good); }
+  .pill.miss { background: var(--bad-soft); color: var(--bad); }
+  .pill.open, .pill.void { background: var(--surface-2); color: var(--muted); }
+  .empty { color: var(--muted); font-size: 14px; padding: 14px; text-align: center; }
+  .filters { display: flex; flex-direction: column; gap: 8px; }
+  .seg { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+  .seg::-webkit-scrollbar { display: none; }
+  .seg button { flex: none; appearance: none; font: inherit; font-size: 13px; font-weight: 600; padding: 7px 12px;
+                border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text);
+                cursor: pointer; }
+  .seg button[aria-pressed="true"] { background: var(--text); color: var(--bg); border-color: var(--text); }
+  .selects { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  select, input[type="search"] { width: 100%; font: inherit; font-size: 14px; padding: 9px 10px; border-radius: 10px;
+                                 border: 1px solid var(--border); background: var(--surface); color: var(--text); min-width: 0; }
+  label.toggle { display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--muted); }
+  .count { font-size: 13px; color: var(--muted); margin: 12px 2px 8px; }
+  .tiles { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .tile .k { font-size: 12px; color: var(--muted); }
+  .tile .v { font-size: 22px; font-weight: 800; margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .tile .s { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+  th, td { text-align: left; padding: 8px 6px; border-top: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; border-top: 0; }
+  td.r, th.r { text-align: right; }
+  details { margin-top: 18px; }
+  summary { cursor: pointer; font-weight: 600; }
+  .how p { color: var(--muted); font-size: 13.5px; margin: 8px 0 0; }
+  footer { color: var(--muted); font-size: 12px; padding: 8px 0 28px; }
+  .err { color: var(--bad); }
+  @media (min-width: 560px) { .tiles { grid-template-columns: repeat(4, 1fr); } .selects { grid-template-columns: 1fr 1fr 1.4fr; } }
+</style>
+</head>
+<body>
+<header class="wrap">
+  <div class="brand">
+    <svg class="ball" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="14" fill="var(--accent)"/>
+      <path d="M2 16h28M16 2v28M6 6c5 4 5 16 0 20M26 6c-5 4-5 16 0 20" stroke="#111" stroke-width="1.6" fill="none" opacity=".75"/></svg>
+    <div><h1>EasyBuckets</h1><p class="sub">NBA player props · Stake prices against the sharp books · paper-tracked</p></div>
+  </div>
+  <p class="status" id="status">Loading tonight's board…</p>
+</header>
+<nav class="tabs" aria-label="Sections"><div class="wrap" role="tablist">
+  <button role="tab" id="tb-picks" aria-controls="tab-picks" aria-selected="true">Top picks</button>
+  <button role="tab" id="tb-props" aria-controls="tab-props" aria-selected="false">All props</button>
+  <button role="tab" id="tb-results" aria-controls="tab-results" aria-selected="false">Results</button>
+</div></nav>
+<main class="wrap">
+  <section id="tab-picks" role="tabpanel" aria-labelledby="tb-picks">
+    <p class="take" id="take"></p>
+    <div id="hero"></div>
+    <h2 id="list-h" hidden>Top 2–10</h2>
+    <div class="card list" id="toplist" hidden></div>
+    <h2 id="parlay-h" hidden>Parlay</h2>
+    <div id="parlay"></div>
+    <h2 id="best-h" hidden>Highest confidence right now</h2>
+    <div class="stack" id="best"></div>
+  </section>
+  <section id="tab-props" role="tabpanel" aria-labelledby="tb-props" hidden>
+    <div class="filters">
+      <div class="seg" id="tiers" role="group" aria-label="Confidence"></div>
+      <div class="selects">
+        <select id="f-game" aria-label="Game"><option value="">All games</option></select>
+        <select id="f-market" aria-label="Market"><option value="">All markets</option></select>
+        <input type="search" id="f-q" placeholder="Search player" aria-label="Search player">
+      </div>
+      <label class="toggle"><input type="checkbox" id="f-sharp"> Only props the sharp books price</label>
+    </div>
+    <p class="count" id="count"></p>
+    <div class="stack" id="props"></div>
+  </section>
+  <section id="tab-results" role="tabpanel" aria-labelledby="tb-results" hidden>
+    <p class="take" id="review-take"></p>
+    <div class="card list" id="review"></div>
+    <h2>Record so far</h2>
+    <div class="tiles" id="tiles"></div>
+    <h2>Confidence tiers: did they hit?</h2>
+    <div class="card"><table id="tiers-table"><thead><tr><th>Tier</th><th class="r">Hit</th><th class="r">Settled</th>
+      <th class="r">Hit rate</th><th class="r">Avg confidence</th></tr></thead><tbody></tbody></table>
+      <p class="empty" id="tiers-empty" hidden>No rated props settled yet.</p></div>
+    <h2>Why picks missed</h2>
+    <div class="card"><table id="lessons"><thead><tr><th>Reason</th><th class="r">Misses</th><th class="r">Share</th></tr>
+      </thead><tbody></tbody></table><p class="empty" id="lessons-empty" hidden>No misses yet.</p></div>
+  </section>
+  <details class="how"><summary>How it works</summary>
+    <p><b>Top picks</b>: Stake player props whose price is at least the sharp books' fair price (Pinnacle, Novig, ProphetX,
+      de-vigged), ranked by chance to hit; odds 1.30 to 3.00, one per player, two per game, ten a night. The parlay joins
+      the best picks from three different games.</p>
+    <p><b>All props</b>: Stake's main line for every player and market, scored for confidence: 70% the sharp fair chance
+      and 30% recent form (last 5, 10, 15 and 20 games at that line, home or away, and against tonight's opponent, each
+      pulled toward 50% so a few games don't count for much). Without a sharp price, or when the player is Questionable,
+      the tier stops at Medium. The model column is our points model's chance.</p>
+    <p><b>Learning</b>: every pick and every rated prop is checked against the box score the next day; missed picks get
+      a reason, and the tier table shows whether higher confidence actually hits more often.</p>
+  </details>
+</main>
+<footer class="wrap">Research and paper tracking only. Nothing here is a bet placed for you. 18+.</footer>
+<script>
+(function () {
+  "use strict";
+  var DATA_URL = "/basketball/data/latest.json";
+  var TIERS = ["Very high", "High", "Medium", "Low"];
+  var TIER_CLASS = { "Very high": "t-vh", "High": "t-hi", "Medium": "t-md", "Low": "t-lo" };
+  var state = { tier: "", game: "", market: "", q: "", sharp: false };
+  var data = null;
+
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined && text !== null) e.textContent = text;
+    return e;
+  }
+  function pct(x) { return x === null || x === undefined ? "–" : Math.round(x * 100) + "%"; }
+  function signed(x) { return x === null || x === undefined ? "–" : (x >= 0 ? "+" : "") + (x * 100).toFixed(1) + "%"; }
+  function odds(x) { return x === null || x === undefined ? "–" : Number(x).toFixed(2); }
+  function inr(x) { return x === null || x === undefined ? "–" : (x < 0 ? "−₹" : "₹") + Math.abs(Math.round(x)).toLocaleString("en-IN"); }
+  function ist(iso) {
+    if (!iso) return "";
+    try {
+      return new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", weekday: "short", hour: "2-digit",
+        minute: "2-digit", hour12: true }).format(new Date(iso)) + " IST";
+    } catch (e) { return iso; }
+  }
+  function store(k, v) { try { localStorage.setItem("eb." + k, v); } catch (e) {} }
+  function recall(k) { try { return localStorage.getItem("eb." + k); } catch (e) { return null; } }
+
+  // ---- tabs ----
+  var tabs = ["picks", "props", "results"];
+  function show(name) {
+    tabs.forEach(function (t) {
+      document.getElementById("tb-" + t).setAttribute("aria-selected", String(t === name));
+      document.getElementById("tab-" + t).hidden = t !== name;
+    });
+    store("tab", name);
+  }
+  tabs.forEach(function (t) { document.getElementById("tb-" + t).addEventListener("click", function () { show(t); }); });
+  show(tabs.indexOf(recall("tab")) >= 0 ? recall("tab") : "picks");
+
+  // ---- picks ----
+  function pickCard(p, hero) {
+    var c = el("div", "card" + (hero ? " hero" : ""));
+    var row = el("div", "row");
+    var left = el("div", "grow");
+    left.appendChild(el("div", "who", p.player));
+    var bet = el("div", "bet");
+    bet.appendChild(el("b", null, p.side + " " + p.line + " " + p.market));
+    bet.appendChild(document.createTextNode(" @ " + odds(p.stake_odds) + " on Stake"));
+    left.appendChild(bet);
+    left.appendChild(el("div", "meta", p.game + " · " + p.tip + " IST"));
+    var big = el("div", "big");
+    big.appendChild(el("div", "pct", pct(p.chance)));
+    big.appendChild(el("div", "pct-label", "chance to hit"));
+    row.appendChild(left); row.appendChild(big); c.appendChild(row);
+    var chips = el("div", "chips");
+    chips.appendChild(el("span", "chip", "Fair odds " + odds(p.fair_odds)));
+    chips.appendChild(el("span", "chip " + (p.edge >= 0 ? "good" : "bad"), "Value " + signed(p.edge)));
+    chips.appendChild(el("span", "chip", "Paper ₹" + Math.round(p.stake_inr) + " → " + inr(p.returns_inr)));
+    c.appendChild(chips);
+    return c;
+  }
+  function renderPicks() {
+    var s = data.summary || {};
+    var tonight = (data.picks || []).filter(function (r) { return r.night === s.tonight; });
+    var tops = tonight.filter(function (r) { return r.kind === "Top 10"; }).sort(function (a, b) { return a.rank - b.rank; });
+    var par = tonight.filter(function (r) { return r.kind === "Parlay"; })[0];
+    var take = document.getElementById("take");
+    if (tops.length) {
+      take.textContent = tops.length + (tops.length === 1 ? " pick" : " picks") + " tonight. Top: " + tops[0].player + " " +
+        tops[0].side + " " + tops[0].line + " " + tops[0].market + ", " + pct(tops[0].chance) + " to hit.";
+    } else if (s.stake_props_listed == null) {
+      take.textContent = "No prices checked yet for tonight. Next check: " + (s.next_refresh || "this evening") + ".";
+    } else if (s.stake_props_listed > 0 && s.stake_props_open < 0.2 * s.stake_props_listed) {
+      take.textContent = "No picks tonight: Stake had almost all its player props closed at the last check.";
+    } else {
+      take.textContent = "No picks yet tonight: no Stake price met the rules at the last check. See All props for every rating.";
+    }
+    var hero = document.getElementById("hero");
+    hero.replaceChildren();
+    if (tops.length) hero.appendChild(pickCard(tops[0], true));
+    var list = document.getElementById("toplist");
+    list.replaceChildren();
+    tops.slice(1).forEach(function (p) {
+      var it = el("div", "item");
+      it.appendChild(el("div", "rank", String(p.rank)));
+      var mid = el("div", "grow");
+      mid.appendChild(el("div", "ell", p.player));
+      mid.appendChild(el("div", "meta ell", p.side + " " + p.line + " " + p.market + " · " + p.game));
+      it.appendChild(mid);
+      var n = el("div", "num");
+      n.appendChild(el("div", "pct", pct(p.chance)));
+      n.appendChild(el("div", "pct-label", "@ " + odds(p.stake_odds)));
+      it.appendChild(n);
+      list.appendChild(it);
+    });
+    document.getElementById("list-h").hidden = list.hidden = tops.length < 2;
+    var pc = document.getElementById("parlay");
+    pc.replaceChildren();
+    document.getElementById("parlay-h").hidden = !par;
+    if (par) {
+      var c = el("div", "card");
+      var row = el("div", "row");
+      var left = el("div", "grow");
+      left.appendChild(el("div", "who", par.player));
+      left.appendChild(el("div", "bet", par.market));
+      left.appendChild(el("div", "meta", par.game));
+      var big = el("div", "big");
+      big.appendChild(el("div", "pct", pct(par.chance)));
+      big.appendChild(el("div", "pct-label", "@ " + odds(par.stake_odds)));
+      row.appendChild(left); row.appendChild(big); c.appendChild(row);
+      pc.appendChild(c);
+    }
+    var best = document.getElementById("best");
+    best.replaceChildren();
+    var rated = (data.confidence || []).filter(function (r) { return r.key !== "none"; });
+    if (!tops.length && rated.length) rated.slice(0, 3).forEach(function (r) { best.appendChild(propCard(r)); });
+    document.getElementById("best-h").hidden = !best.children.length;
+  }
+
+  // ---- all props ----
+  function formCell(k, h, n) {
+    var d = el("div");
+    d.appendChild(el("span", "k", k));
+    d.appendChild(el("span", "v" + (n ? "" : " na"), n ? h + "/" + n : "–"));
+    return d;
+  }
+  function propCard(r) {
+    var c = el("div", "card");
+    var row = el("div", "row");
+    var left = el("div", "grow");
+    left.appendChild(el("div", "who", r.player));
+    var bet = el("div", "bet");
+    bet.appendChild(el("b", null, r.lean + " " + r.line + " " + r.label));
+    bet.appendChild(document.createTextNode(r.odds ? " @ " + odds(r.odds) : " (Stake price n/a)"));
+    left.appendChild(bet);
+    left.appendChild(el("div", "meta", r.game + " · " + ist(r.tip) + (r.venue ? " · " + r.venue : "")));
+    var big = el("div", "big");
+    big.appendChild(el("div", "pct", pct(r.score)));
+    big.appendChild(el("span", "tier " + (TIER_CLASS[r.tier] || "t-lo"), r.tier));
+    row.appendChild(left); row.appendChild(big); c.appendChild(row);
+    var chips = el("div", "chips");
+    chips.appendChild(el("span", "chip", r.p_sharp === null ? "No sharp price" : "Sharp " + pct(r.p_sharp) + " · " + r.n_books + " books"));
+    chips.appendChild(el("span", "chip", "Form " + pct(r.form)));
+    if (r.model_p !== null && r.model_p !== undefined) chips.appendChild(el("span", "chip", "Model " + pct(r.model_p)));
+    if (r.value !== null && r.value !== undefined) chips.appendChild(el("span", "chip " + (r.value >= 0 ? "good" : "bad"), "Value " + signed(r.value)));
+    c.appendChild(chips);
+    var f = el("div", "form");
+    f.appendChild(formCell("L5", r.l5_h, r.l5_n));
+    f.appendChild(formCell("L10", r.l10_h, r.l10_n));
+    f.appendChild(formCell("L15", r.l15_h, r.l15_n));
+    f.appendChild(formCell("L20", r.l20_h, r.l20_n));
+    f.appendChild(formCell(r.venue === "away" ? "Away" : "Home", r.venue_h, r.venue_n));
+    f.appendChild(formCell("vs opp", r.opp_h, r.opp_n));
+    c.appendChild(f);
+    var notes = [];
+    if (r.status) notes.push(["warn", r.player.split(" ").slice(-1)[0] + " is " + r.status]);
+    if (r.team_out && r.team_out.length) notes.push(["", "His team out: " + r.team_out.join(", ")]);
+    if (r.opp_out && r.opp_out.length) notes.push(["", "Opponent out: " + r.opp_out.join(", ")]);
+    if (notes.length) {
+      var fl = el("div", "flags");
+      notes.forEach(function (n, i) {
+        if (i) fl.appendChild(document.createTextNode(" · "));
+        fl.appendChild(el("span", n[0], n[1]));
+      });
+      c.appendChild(fl);
+    }
+    return c;
+  }
+  function renderProps() {
+    var rows = (data.confidence || []).filter(function (r) { return r.key !== "none"; });
+    var shown = rows.filter(function (r) {
+      return (!state.tier || r.tier === state.tier) && (!state.game || r.game === state.game) &&
+        (!state.market || r.label === state.market) && (!state.sharp || r.p_sharp !== null) &&
+        (!state.q || r.player.toLowerCase().indexOf(state.q) >= 0);
+    });
+    var box = document.getElementById("props");
+    box.replaceChildren();
+    shown.slice(0, 400).forEach(function (r) { box.appendChild(propCard(r)); });
+    var withSharp = rows.filter(function (r) { return r.p_sharp !== null; }).length;
+    document.getElementById("count").textContent = rows.length
+      ? shown.length + " of " + rows.length + " props · " + withSharp + " priced by the sharp books · best first"
+      : "No props rated yet for tonight.";
+    if (!shown.length && rows.length) box.appendChild(el("div", "empty", "Nothing matches these filters."));
+  }
+  function setupFilters() {
+    var rows = (data.confidence || []).filter(function (r) { return r.key !== "none"; });
+    var seg = document.getElementById("tiers");
+    seg.replaceChildren();
+    [""].concat(TIERS).forEach(function (t) {
+      var n = rows.filter(function (r) { return !t || r.tier === t; }).length;
+      var b = el("button", null, (t || "All") + " " + n);
+      b.setAttribute("aria-pressed", String(state.tier === t));
+      b.addEventListener("click", function () {
+        state.tier = t;
+        [].forEach.call(seg.children, function (x) { x.setAttribute("aria-pressed", String(x === b)); });
+        renderProps();
+      });
+      seg.appendChild(b);
+    });
+    function fill(id, values) {
+      var s = document.getElementById(id);
+      while (s.options.length > 1) s.remove(1);
+      values.forEach(function (v) { var o = el("option", null, v); o.value = v; s.appendChild(o); });
+    }
+    fill("f-game", Array.from(new Set(rows.map(function (r) { return r.game; }))).sort());
+    fill("f-market", Array.from(new Set(rows.map(function (r) { return r.label; }))).sort());
+  }
+  document.getElementById("f-game").addEventListener("change", function (e) { state.game = e.target.value; renderProps(); });
+  document.getElementById("f-market").addEventListener("change", function (e) { state.market = e.target.value; renderProps(); });
+  document.getElementById("f-q").addEventListener("input", function (e) { state.q = e.target.value.trim().toLowerCase(); renderProps(); });
+  document.getElementById("f-sharp").addEventListener("change", function (e) { state.sharp = e.target.checked; renderProps(); });
+
+  // ---- results ----
+  function tile(k, v, s) {
+    var t = el("div", "card tile");
+    t.appendChild(el("div", "k", k)); t.appendChild(el("div", "v", v)); t.appendChild(el("div", "s", s));
+    return t;
+  }
+  function rec(s, p, label) {
+    var w = s[p + "_won"] || 0, l = s[p + "_lost"] || 0;
+    return tile(label, w + l ? pct(s[p + "_hit_rate"]) : "–", w + "–" + l + (s[p + "_open"] ? " · " + s[p + "_open"] + " open" : "") +
+      (s[p + "_profit_inr"] !== null && s[p + "_profit_inr"] !== undefined ? " · " + inr(s[p + "_profit_inr"]) : ""));
+  }
+  function renderResults() {
+    var s = data.summary || {};
+    var rev = (data.picks || []).filter(function (r) { return r.night === s.review_night && r.result !== "Open"; });
+    document.getElementById("review-take").textContent = s.review_night
+      ? "US night of " + s.review_night + ": " + (s.review_hits || 0) + " hit, " + (s.review_misses || 0) + " missed" +
+        (s.review_voids ? ", " + s.review_voids + " void" : "") + "."
+      : "No settled picks yet.";
+    var box = document.getElementById("review");
+    box.replaceChildren();
+    box.hidden = !rev.length;
+    rev.forEach(function (p) {
+      var it = el("div", "item");
+      var mid = el("div", "grow");
+      mid.appendChild(el("div", "ell", p.player + " · " + (p.side ? p.side + " " + p.line + " " : "") + p.market));
+      var why = p.kind + (p.actual !== null && p.actual !== undefined ? " · got " + p.actual : "") + (p.reason ? " · " + p.reason : "");
+      mid.appendChild(el("div", "meta", why));
+      it.appendChild(mid);
+      var res = p.result === "win" ? "hit" : p.result === "loss" ? "miss" : p.result;
+      it.appendChild(el("span", "pill " + res, res === "hit" ? "Hit" : res === "miss" ? "Missed" : "Void"));
+      box.appendChild(it);
+    });
+    var tiles = document.getElementById("tiles");
+    tiles.replaceChildren(rec(s, "top", "Top 10"), rec(s, "parlay", "Parlays"), rec(s, "value", "Value picks"),
+      tile("Top 10 beat the close", pct(s.top_beat_close), (s.top_closes || 0) + " closes in"));
+    var tb = document.querySelector("#tiers-table tbody");
+    tb.replaceChildren();
+    var cr = (data.conf_record || []).filter(function (r) { return r.key !== "none"; });
+    cr.forEach(function (r) {
+      var tr = el("tr");
+      tr.appendChild(el("td", null, r.tier));
+      tr.appendChild(el("td", "r", String(r.hits)));
+      tr.appendChild(el("td", "r", String(r.settled)));
+      tr.appendChild(el("td", "r", pct(r.hit_rate)));
+      tr.appendChild(el("td", "r", pct(r.avg_score)));
+      tb.appendChild(tr);
+    });
+    document.getElementById("tiers-empty").hidden = cr.length > 0;
+    var lb = document.querySelector("#lessons tbody");
+    lb.replaceChildren();
+    var ls = (data.lessons || []).filter(function (r) { return r.key !== "none"; });
+    ls.forEach(function (r) {
+      var tr = el("tr");
+      tr.appendChild(el("td", null, r.reason));
+      tr.appendChild(el("td", "r", String(r.misses)));
+      tr.appendChild(el("td", "r", pct(r.share)));
+      lb.appendChild(tr);
+    });
+    document.getElementById("lessons-empty").hidden = ls.length > 0;
+  }
+
+  function render() {
+    var s = data.summary || {};
+    var st = document.getElementById("status");
+    st.replaceChildren();
+    st.appendChild(document.createTextNode("US night "));
+    st.appendChild(el("b", null, s.tonight || "–"));
+    st.appendChild(document.createTextNode(" · prices checked " + (s.updated || "–") + " · next: " + (s.next_refresh || "–")));
+    renderPicks(); setupFilters(); renderProps(); renderResults();
+  }
+
+  fetch(DATA_URL + "?t=" + Date.now(), { cache: "no-store" })
+    .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+    .then(function (d) { data = d; render(); })
+    .catch(function (e) {
+      var st = document.getElementById("status");
+      st.textContent = "Couldn't load tonight's data (" + e.message + "). Pull to refresh.";
+      st.className = "status err";
+    });
+})();
+</script>
+</body>
+</html>

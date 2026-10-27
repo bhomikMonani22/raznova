@@ -10,6 +10,19 @@ const nextConfig: NextConfig = {
     formats: ["image/avif", "image/webp"],
     qualities: [65, 68, 75],
   },
+  // /basketball: the owner's private NBA research board, plain static files in public/basketball. Serve its index
+  // file at the folder URL, never cache its data, and keep every page of it out of search engines.
+  async rewrites() {
+    return [{ source: "/basketball", destination: "/basketball/index.html" }];
+  },
+  async headers() {
+    const noindex = [{ key: "X-Robots-Tag", value: "noindex, nofollow" }];
+    return [
+      { source: "/basketball", headers: noindex },
+      { source: "/basketball/:path*", headers: noindex },
+      { source: "/basketball/data/:path*", headers: [{ key: "Cache-Control", value: "no-store, max-age=0" }] },
+    ];
+  },
 };
 
 export default nextConfig;

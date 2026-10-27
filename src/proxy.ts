@@ -17,7 +17,9 @@ export function proxy(request: NextRequest) {
     (locale) => pathname === `/${locale}` || pathname.startsWith(`/${locale}/`)
   );
   // /insights is the private, un-prefixed analytics dashboard — serve directly.
-  if (hasLocale || LANDING_PATHS.has(pathname) || pathname === "/insights") {
+  // /basketball is the owner's private NBA research board (static files in public/basketball) — serve directly.
+  const isBasketball = pathname === "/basketball" || pathname.startsWith("/basketball/");
+  if (hasLocale || LANDING_PATHS.has(pathname) || pathname === "/insights" || isBasketball) {
     return NextResponse.next();
   }
 
