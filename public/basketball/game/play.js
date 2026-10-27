@@ -99,6 +99,8 @@ export class Agent {
   drive(dir, mag, sprint, dt) {
     const stunF = this.stun > 0 ? 0.15 : 1;
     let target = (sprint ? this.vMax : this.vJog) * mag * stunF * (this.has ? 0.93 : 1) * (this.burst > 0 ? 1.28 : 1);
+    // a defender body-to-body slows the dribbler (stronger defenders more)
+    if (this.has && this.g.defenderGap) { const gap = this.g.defenderGap(this); if (gap < 0.85) { const o = this.g.other(this); target *= 0.72 + 0.2 * clamp((this.r.strength - (o ? o.r.strength : 50)) / 60 + 0.5, 0, 1); } }
     if (this.act && (this.act.type === 'shot' || this.act.type === 'dunkHang')) target = 0;
     if (this.act && this.act.type === 'layup' && this.act.t > this.act.take) target = 0;
     if (this.act && this.act.type === 'steal') target *= 0.4;
@@ -399,9 +401,14 @@ export class Agent {
     } else if (a && (a.type === 'dunk' || a.type === 'land' || a.type === 'dunkHang') && (a.released || a.type === 'land')) {
       const sh = this.hand;
       const rimP = T[3].set(RIM.x + (sh === 'R' ? -0.12 : 0.12) * Math.cos(this.face), RIM.y + 0.04, RIM.z);
+      const two = this.r.strength >= 70 || this.rig.bulk >= 1.02;          // big men throw it down with both hands
       if (a.type === 'land') rig.reach(sh, this.localToWorld(T[4].set(-0.15 * H, 0.95 * H, 0.2 * H), T[5]), pole(sh), 0);
       else rig.reach(sh, rimP, pole(sh, -0.3, 0.3), 0.6);
-      rig.armSwing(sh === 'R' ? 'L' : 'R', { phase: this.gait, speed: 0, def: 0.4 });
+      if (two && a.type !== 'land') {
+        const gd = sh === 'R' ? 'L' : 'R';
+        const p2 = T[4].set(RIM.x + (gd === 'R' ? -0.12 : 0.12) * Math.cos(this.face), RIM.y + 0.04, RIM.z);
+        rig.reach(gd, p2, pole(gd, -0.3, 0.3), 0.6);
+      } else rig.armSwing(sh === 'R' ? 'L' : 'R', { phase: this.gait, speed: 0, def: 0.4 });
     } else if (a && a.type === 'block') {
       const tgt = game.ball ? game.ball.p : RIM;
       for (const s of ['L', 'R']) {

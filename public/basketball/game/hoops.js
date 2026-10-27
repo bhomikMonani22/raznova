@@ -117,6 +117,7 @@ class Game {
   // ---- screens and actions ----
   toMenu() {
     this.state = 'menu'; this.mode = null; this.freeze = false;
+    if (this.user.d.id !== this.profile.d.playerId) this.buildUser();      // drop a preview he didn't confirm
     this.ui.playing(false); this.ui.replayChip(false); this.controls.reset();
     if (this.cpu) { this.disposeAgent(this.cpu); this.cpu = null; this.brain = null; }
     this.user.place(0, 6.2, 0); this.give(this.user, 'menu');
@@ -165,6 +166,8 @@ class Game {
       case 'quit': this.toMenu(); break;
       case 'rematch': this.startMode(this.lastStart); break;
       case 'replay': this.playReplay(); break;
+      case 'howto': this.ui.show('howto', {}); break;
+      case 'gotit': { const t = this.ui.data.then; this.profile.d.tips = 1; this.profile.save(); if (t) this.startMode(t); else this.toMenu(); break; }
     }
   }
   previewPlayer(id) {
@@ -185,6 +188,8 @@ class Game {
     else this.startMode({ kind: 'drill', spec: { ...c.spec, title: c.title }, challenge: c });
   }
   startMode(s) {
+    if (!this.profile.d.tips) { this.ui.show('howto', { then: s }); return; }
+    if (this.user.d.id !== this.profile.d.playerId) this.buildUser();
     this.lastStart = s;
     if (this.sideView) { this.sideView = false; this.resize(); }
     this.challenge = s.challenge || null;
@@ -281,7 +286,7 @@ class Game {
       const cs = contest > 0.6 ? 'SMOTHERED' : contest > 0.32 ? 'CONTESTED' : contest > 0.1 ? 'LIGHTLY CONTESTED' : 'WIDE OPEN';
       this.ui.callout(tm.text, tm.g === 'green' ? 'good' : tm.g === 'bad' ? 'warn' : '', `${cs} · ${Math.round(p * 100)}%`);
       this.meterDone = { t: 0.7, green: tm.g === 'green', e, w, ideal };
-      if (tm.g === 'green') { this.sfx('green'); this.burst(p0, 'release'); }
+      if (tm.g === 'green') { this.sfx('green'); this.burst(p0, 'release'); this.buzz(18); }
     }
   }
   ballPosNow(a) { return a.ballPos.clone(); }
@@ -307,7 +312,7 @@ class Game {
       b.launch(new THREE.Vector3(RIM.x - u.x * 0.05, RIM.y + 0.22, RIM.z - u.z * 0.05), new THREE.Vector3(u.x * 0.2, -5.5, u.z * 0.2), shot);
       act.hang = 0.38;
       this.world.rimHit(0.5); this.sfx('rim', 0.7);
-      this.shake = 0.35;
+      this.shake = 0.35; this.buzz(30);
     } else {
       b.launch(new THREE.Vector3(RIM.x - u.x * 0.1, RIM.y + 0.28, RIM.z - u.z * 0.1), new THREE.Vector3(u.x * 2.6, -2.2, u.z * 2.6), shot);
       this.world.rimHit(0.6);
@@ -711,6 +716,7 @@ class Game {
   }
   popup(text, cls) { const s = this.project(new THREE.Vector3(RIM.x, RIM.y + 0.6, RIM.z)); this.ui.pop(text, s.x, s.y, cls); }
   sfx(n, k) { this.sound.play(n, k); }
+  buzz(ms) { try { if (navigator.vibrate && !this.sound.muted) navigator.vibrate(ms); } catch (_) {} }
 
   // ---- floor marker for drills ----
   makeSpot() {

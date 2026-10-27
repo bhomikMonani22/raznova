@@ -307,7 +307,7 @@ export class Rig {
     if (st === 'buzz' || st === 'fade' || st === 'waves' || st === 'flat') {
       const cap = mk(new THREE.SphereGeometry(rh * 1.035, 22, 14, 0, Math.PI * 2, 0, Math.PI * (st === 'fade' ? 0.36 : 0.5)), hair,
         V(0, rh * 0.06, -rh * 0.04), V(0.88, 1.06, 0.99));
-      if (st === 'flat') mk(new THREE.CylinderGeometry(rh * 0.74, rh * 0.8, rh * 0.5, 16), hair, V(0, rh * 0.95, -rh * 0.05), V(1, 1, 1.05));
+      if (st === 'flat') mk(new THREE.CylinderGeometry(rh * 0.7, rh * 0.82, rh * 0.32, 18), hair, V(0, rh * 0.92, -rh * 0.06), V(1, 1, 1.08));
       if (st === 'fade') mk(new THREE.SphereGeometry(rh * 1.02, 22, 14, 0, Math.PI * 2, Math.PI * 0.36, Math.PI * 0.14), hair,
         V(0, rh * 0.06, -rh * 0.04), V(0.88, 1.06, 0.99)).material = new THREE.MeshStandardMaterial({ color: look.hairColor, roughness: 1, transparent: true, opacity: 0.55 });
       void cap;

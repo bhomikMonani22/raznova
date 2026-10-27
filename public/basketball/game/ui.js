@@ -264,7 +264,8 @@ export class UI {
         <button class="hx-big d" data-a="locker">Locker<small>Balls, shoes, gear</small></button>
         <button class="hx-big d" data-a="career">Career<small>Stats and bests</small></button>
       </div>
-      <button class="hx-cta alt" data-a="practice" style="min-height:44px;font-size:17px">Free practice (no clock)</button>
+      <div class="hx-row" style="margin:8px 0 0"><button class="hx-cta alt" data-a="practice" style="min-height:44px;font-size:17px;flex:1;margin:0">Free practice</button>
+      <button class="hx-cta alt" data-a="howto" style="min-height:44px;font-size:17px;flex:1;margin:0">How to play</button></div>
     </div></div>`;
   }
   s_players(d) {
@@ -343,6 +344,17 @@ export class UI {
       ${per.length ? `<div class="hx-sec">By player</div><table class="hx-tbl"><tr><th>Player</th><th>G</th><th>W</th><th>PTS</th><th>FG</th></tr>
       ${per.map(([id, s]) => { const p = g.player(+id); return p ? `<tr><td>${esc(p.name)}</td><td>${s.games}</td><td>${s.wins}</td><td>${s.pts}</td><td>${pct(s.fgm, s.fga)}</td></tr>` : ''; }).join('')}</table>` : ''}
       <p class="hx-help">Saved on this device.</p></div>`;
+  }
+  s_howto(d) {
+    const row = (t, b) => `<div class="hx-ch" style="cursor:default"><div class="t">${t}</div><div class="s" style="color:#eef2f8">${b}</div></div>`;
+    return `<div class="hx-wrap"><div class="hx-top"><button class="hx-x" data-a="${d.then ? 'gotit' : 'menu'}" aria-label="Close">×</button><div class="t d">How to play</div></div>
+      ${row('Move', 'Left thumb anywhere on the left half. Push to the edge of the ring to sprint.')}
+      ${row('Shoot', 'Hold SHOOT, let go when the meter fills to the green band. Green is an EXCELLENT release and almost always drops. Better shooters get a wider green.')}
+      ${row('Attack the rim', 'Drive at the basket and press SHOOT: a layup, or a dunk if he can dunk. Slashers euro-step, bigs go to a hook close in.')}
+      ${row('Dribble moves', 'MOVE with the stick sideways: crossover. Stick away from the rim: step-back. No stick: hesitation. Flying downhill: spin.')}
+      ${row('Defence', 'BLOCK jumps with both hands up, STEAL reaches for the ball. Stay between him and the rim; a lunge that misses leaves you off balance.')}
+      ${row('1v1 rules', 'First to 11, 2s and 3s. Check ball at the top after a score. After a stop or a steal, take it back past the arc. 12-second shot clock.')}
+      <button class="hx-cta" data-a="${d.then ? 'gotit' : 'menu'}">${d.then ? "Let's go" : 'Back'}</button></div>`;
   }
   s_pause() {
     return `<div class="hx-wrap" style="margin-top:18vh"><div class="d" style="font-size:52px;text-align:center">Paused</div>

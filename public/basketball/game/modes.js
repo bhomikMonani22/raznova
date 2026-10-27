@@ -234,14 +234,14 @@ export function buildChallenges(roster) {
     { id: 'ice-water', title: 'Ice Water', desc: '10 free throws. Ice the pressure.', spec: { filter: 'ft', n: 10 }, stars: [6, 8, 10], xp: 120, reward: ['ball', 'ice'] },
     { id: 'atw', title: 'Around the World', desc: 'Make one from each of the five spots, in order. Fastest time wins.', spec: { filter: 'atw', time: 90 }, stars: [70, 50, 35], lower: true, xp: 150 },
     { id: 'green-machine', title: 'Green Machine', desc: 'Green releases only count. 60 seconds.', spec: { filter: 'green', time: 60 }, stars: [3, 6, 9], xp: 160, reward: ['shoe', '#36d399'] },
-    { id: 'step-' + sb.id, title: 'Step-back: ' + sb.name, desc: `${sb.name} takes more step-backs than anyone here. Make 4 step-back jumpers in 60 seconds (MOVE away from the rim, then shoot).`, player: sb.id, spec: { filter: 'step', time: 60 }, stars: [2, 4, 6], xp: 180 },
+    { id: 'step', title: 'Step-back: ' + sb.name, desc: `${sb.name} takes more step-backs than anyone here. Make 4 step-back jumpers in 60 seconds (MOVE away from the rim, then shoot).`, player: sb.id, spec: { filter: 'step', time: 60 }, stars: [2, 4, 6], xp: 180 },
     { id: 'rim-rocker', title: 'Rim Rocker: ' + dk.name, desc: `Dunk it. 5 dunks in 40 seconds with ${dk.name}: drive at the rim and press SHOOT.`, player: dk.id, spec: { filter: 'dunk', time: 40 }, stars: [3, 5, 7], xp: 180, reward: ['ball', 'lava'] },
-    { id: 'mid-' + mid.id, title: 'Midrange: ' + mid.name, desc: `Pull-ups between the paint and the arc. 8 in 60 seconds with ${mid.name}.`, player: mid.id, spec: { filter: 'mid', time: 60 }, stars: [4, 6, 8], xp: 180 },
+    { id: 'mid', title: 'Midrange: ' + mid.name, desc: `Pull-ups between the paint and the arc. 8 in 60 seconds with ${mid.name}.`, player: mid.id, spec: { filter: 'mid', time: 60 }, stars: [4, 6, 8], xp: 180 },
     { id: 'contest', title: 'Three-Point Contest', desc: 'Five racks, five balls each, the last ball of each rack is worth 2. 60 seconds.', player: shooter.id, spec: { filter: 'contest', time: 60 }, stars: [10, 15, 20], xp: 220 },
-    { id: 'ft-' + ft.id, title: 'Charity Stripe: ' + ft.name, desc: `The best free-throw shooter on these rosters. 10 for 10?`, player: ft.id, spec: { filter: 'ft', n: 10 }, stars: [8, 9, 10], xp: 150 },
+    { id: 'charity', title: 'Charity Stripe: ' + ft.name, desc: `The best free-throw shooter on these rosters. 10 for 10?`, player: ft.id, spec: { filter: 'ft', n: 10 }, stars: [8, 9, 10], xp: 150 },
   ];
   const diffs = [1, 2, 3, 4];
-  stars.forEach((s, i) => L.push({ id: 'beat-' + s.id, title: 'Beat ' + s.name, desc: `1v1 to 11 against ${s.name} (${s.team}, ${s.ovr} OVR) on ${DIFFS[diffs[i]].name}.`, vs: s.id, spec: { diff: diffs[i], to: 11 }, stars: [1, 4, 7], margin: true, xp: 250 + i * 80 }));
+  stars.forEach((s, i) => L.push({ id: 'beat-' + (i + 1), title: 'Beat ' + s.name, desc: `1v1 to 11 against ${s.name} (${s.team}, ${s.ovr} OVR) on ${DIFFS[diffs[i]].name}.`, vs: s.id, spec: { diff: diffs[i], to: 11 }, stars: [1, 4, 7], margin: true, xp: 250 + i * 80 }));
   L.push({ id: 'lockdown', title: 'Lockdown', desc: 'Win a 1v1 to 11 on Pro allowing 4 points or fewer.', vs: tops((p) => p.r.three, 1)[0].id, spec: { diff: 1, to: 11 }, stars: [1, 1, 1], lockdown: true, xp: 300 });
   return L;
 }
