@@ -244,6 +244,8 @@ class Game {
     c *= 1 + (d.H - sh.H) * 0.9;
     if (d.stun > 0) c *= 0.15;
     if (info.kind === 'dunk' || info.kind === 'layup') c *= 0.85 + 0.3 * d.r.block / 99;
+    if (info.variant === 'euro') c *= 0.68;                     // the euro step slips the contest
+    if (info.variant === 'hook') c *= 0.75;                     // released high, away from the defender
     return clamp(c, 0, 1);
   }
   release(a, forced) {
@@ -343,6 +345,7 @@ class Game {
     if (!(dt > 0)) return;
     dt = Math.min(dt, 0.05);
     this.time += dt;
+    this.govern(dt);
     const input = this.controls.take();
     if (this.state === 'replay') { this.replayStep(dt); this.draw(); return; }
     if (this.state !== 'play') {
@@ -609,6 +612,9 @@ class Game {
   resize() {
     const w = this.root.clientWidth || window.innerWidth, h = this.root.clientHeight || window.innerHeight;
     this.renderer.setSize(w, h, false);
+    const pr = this.renderer.getPixelRatio();
+    if (!this.world.rt) this.world.enableReflection(Math.round(w * pr / 2), Math.round(h * pr / 2));
+    else this.world.resizeReflection(Math.round(w * pr / 2), Math.round(h * pr / 2));
     this.camera.aspect = w / h;
     this.portrait = h > w * 1.05;
     this.camera.fov = this.portrait ? 64 : 46;
@@ -663,7 +669,21 @@ class Game {
     this.camera.position.copy(this.camPos); this.camera.lookAt(this.camLook);
     this.fxUpdate(dt);
   }
-  render() { this.renderer.render(this.scene, this.camera); }
+  render() { this.world.renderReflection(this.renderer, this.camera); this.renderer.render(this.scene, this.camera); }
+  // keep it smooth on older phones: drop resolution, then shadows, when frames run long
+  govern(dt) {
+    if (this.noRender) return;
+    this.ema = this.ema === undefined ? dt : this.ema * 0.95 + dt * 0.05;
+    this.govT = (this.govT || 0) + dt;
+    if (this.govT < 2.5) return;
+    this.govT = 0;
+    const pr = this.renderer.getPixelRatio();
+    if (this.ema > 0.024) {
+      if (this.world.reflect) this.world.setReflection(false);
+      else if (pr > 1.01) { this.renderer.setPixelRatio(Math.max(1, pr - 0.25)); this.resize(); }
+      else if (this.world.key.castShadow) { this.world.key.castShadow = false; }
+    }
+  }
   draw() { if (!this.noRender) this.render(); }
   // tests: run the game logic without drawing
   sim(seconds, dt = 1 / 60) { const n = Math.round(seconds / dt); for (let i = 0; i < n; i++) this.frame(dt); }

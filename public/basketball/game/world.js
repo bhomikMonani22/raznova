@@ -241,6 +241,7 @@ export class World {
     floor.position.set((TEX.x0 + TEX.x1) / 2, 0, (TEX.z0 + TEX.z1) / 2);
     floor.receiveShadow = true;
     scene.add(floor);
+    this.floor = floor;
     const outer = new THREE.Mesh(new THREE.PlaneGeometry(80, 80), new THREE.MeshStandardMaterial({ color: 0x0b1222, roughness: 0.9 }));
     outer.rotation.x = -Math.PI / 2; outer.position.y = -0.01;
     scene.add(outer);
@@ -270,7 +271,7 @@ export class World {
   }
 
   buildLights() {
-    const s = this.scene;
+    const s = { add: (...o) => { for (const x of o) { x.layers.enable(1); this.scene.add(x); } } };
     s.add(new THREE.HemisphereLight(0x9cc0ff, 0x3b2a1c, 0.55));
     const key = new THREE.DirectionalLight(0xfff4e6, 2.4);
     key.position.set(3.5, 16, 9);
@@ -307,6 +308,7 @@ export class World {
     const brace = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 2.3), steel);
     brace.position.set(0, 2.85, -2.35); brace.rotation.x = 0.42;
     s.add(base, post, arm, brace);
+    for (const o of [base, post]) o.layers.enable(1);
     // glass
     const hw = COURT.BOARD_HW, y0 = COURT.BOARD_Y0, y1 = COURT.BOARD_Y1, bz = COURT.BOARD_Z;
     const glass = new THREE.Mesh(new THREE.BoxGeometry(hw * 2, y1 - y0, 0.028),
@@ -338,6 +340,7 @@ export class World {
     const plate = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.05, 0.17), rim.material);
     plate.position.set(0, -0.01, -COURT.R - 0.075);
     this.rimGroup.add(rim, plate);
+    rim.layers.enable(1); plate.layers.enable(1);
     this.rimGroup.position.copy(COURT.RIM);
     s.add(this.rimGroup);
   }
@@ -383,10 +386,10 @@ export class World {
     this.ledTex.wrapS = THREE.RepeatWrapping; this.ledTex.repeat.set(1.6, 1);
     const ledMat = new THREE.MeshBasicMaterial({ map: this.ledTex, toneMapped: false });
     const led = new THREE.Mesh(new THREE.BoxGeometry(26, 0.62, 0.1), ledMat);
-    led.position.set(0, 0.75, -5.05); s.add(led);
+    led.position.set(0, 0.75, -5.05); s.add(led); led.layers.enable(1);
     for (const side of [-1, 1]) {
       const l2 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.62, 21), ledMat);
-      l2.position.set(side * 9.75, 0.75, 5.2); s.add(l2);
+      l2.position.set(side * 9.75, 0.75, 5.2); s.add(l2); l2.layers.enable(1);
     }
     // scorer's table glow along the far sideline is out of shot; a dark wall above the top rows closes the bowl
     const wall = new THREE.Mesh(new THREE.BoxGeometry(70, 30, 70), new THREE.MeshBasicMaterial({ color: 0x050912, side: THREE.BackSide }));
@@ -451,6 +454,58 @@ export class World {
     g.fillStyle = v === null ? '#3a2a10' : (warn ? '#ff5b61' : '#ffc24b');
     g.fillText(v === null ? '--' : String(v), 128, 70);
     this.clockTex.needsUpdate = true;
+  }
+
+  // glossy hardwood: players, ball, rim and boards mirrored in the floor (a second, low-resolution pass of layer 1)
+  enableReflection(w, h) {
+    this.rt = new THREE.WebGLRenderTarget(Math.max(64, w), Math.max(64, h), { depthBuffer: true });
+    this.vcam = new THREE.PerspectiveCamera(); this.vcam.layers.set(1);
+    this.texM = new THREE.Matrix4();
+    this.reflect = true;
+    this.net.mesh.layers.enable(1);
+    const U = this.reflU = { tReflect: { value: this.rt.texture }, reflectMatrix: { value: this.texM }, reflectK: { value: 0.3 } };
+    this.floorMat.onBeforeCompile = (sh) => {
+      Object.assign(sh.uniforms, U);
+      sh.vertexShader = 'uniform mat4 reflectMatrix;\nvarying vec4 vReflect;\n' +
+        sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n  vReflect = reflectMatrix * vec4(position, 1.0);');
+      sh.fragmentShader = 'uniform sampler2D tReflect;\nuniform float reflectK;\nvarying vec4 vReflect;\n' +
+        sh.fragmentShader.replace('#include <opaque_fragment>', `
+  vec3 rcol = texture2DProj(tReflect, vReflect).rgb;
+  float fres = pow(1.0 - clamp(dot(normalize(vViewPosition), normal), 0.0, 1.0), 2.0);
+  outgoingLight += rcol * reflectK * (0.3 + 0.7 * fres);
+  #include <opaque_fragment>`);
+    };
+    this.floorMat.needsUpdate = true;
+  }
+  resizeReflection(w, h) { if (this.rt) this.rt.setSize(Math.max(64, w), Math.max(64, h)); }
+  setReflection(on) { this.reflect = !!on; if (this.reflU) this.reflU.reflectK.value = on ? 0.3 : 0; }
+  renderReflection(renderer, camera) {
+    if (!this.rt || !this.reflect) return;
+    const k = this._rk || (this._rk = { rot: new THREE.Matrix4(), look: new THREE.Vector3(), view: new THREE.Vector3(), tgt: new THREE.Vector3(), n: new THREE.Vector3(0, 1, 0), o: new THREE.Vector3() });
+    const vc = this.vcam;
+    camera.updateMatrixWorld();
+    k.rot.extractRotation(camera.matrixWorld);
+    k.look.set(0, 0, -1).applyMatrix4(k.rot).add(camera.position);
+    k.view.copy(camera.position); k.view.y = -k.view.y;
+    k.tgt.copy(k.look); k.tgt.y = -k.tgt.y;
+    vc.position.copy(k.view);
+    vc.up.set(0, 1, 0).applyMatrix4(k.rot); vc.up.y = -vc.up.y;
+    vc.lookAt(k.tgt);
+    vc.near = camera.near; vc.far = camera.far;
+    vc.updateMatrixWorld();
+    vc.projectionMatrix.copy(camera.projectionMatrix);
+    vc.projectionMatrixInverse.copy(camera.projectionMatrixInverse);
+    this.texM.set(0.5, 0, 0, 0.5, 0, 0.5, 0, 0.5, 0, 0, 0.5, 0.5, 0, 0, 0, 1);
+    this.texM.multiply(vc.projectionMatrix).multiply(vc.matrixWorldInverse).multiply(this.floor.matrixWorld);
+    const fogWas = this.scene.fog, bg = this.scene.background;
+    this.scene.fog = null; this.scene.background = null;
+    const auto = renderer.shadowMap.autoUpdate; renderer.shadowMap.autoUpdate = false;
+    renderer.setRenderTarget(this.rt);
+    renderer.setClearColor(0x000000, 1); renderer.clear();
+    renderer.render(this.scene, vc);
+    renderer.setRenderTarget(null);
+    renderer.shadowMap.autoUpdate = auto;
+    this.scene.fog = fogWas; this.scene.background = bg;
   }
 
   cheer(level) { this.cheerLevel = Math.max(this.cheerLevel, level); }

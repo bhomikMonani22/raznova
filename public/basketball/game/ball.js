@@ -57,7 +57,7 @@ export class Ball {
   constructor(scene) {
     this.mat = new THREE.MeshStandardMaterial({ roughness: 0.72, metalness: 0.0 });
     this.mesh = new THREE.Mesh(new THREE.SphereGeometry(BR, 32, 22), this.mat);
-    this.mesh.castShadow = true;
+    this.mesh.castShadow = true; this.mesh.layers.enable(1);
     scene.add(this.mesh);
     this.setSkin('classic');
     this.p = new THREE.Vector3(0, 1, 4); this.v = new THREE.Vector3();

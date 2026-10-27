@@ -53,6 +53,7 @@ export function shotChance(sh, info, tm, contest) {
   if (info.variant === 'pull') p *= 0.82 + 0.18 * sk.pullup;
   if (info.variant === 'step') p *= 0.78 + 0.24 * sk.stepback;
   if (info.variant === 'fade') p *= 0.86 + 0.14 * sk.fade;
+  if (info.variant === 'hook') p = Math.max(p, 0.36 + 0.4 * k01(r.close));
   if (k === 'dunk') {
     p = p * (1 - 0.45 * contest);
   } else if (tm.g === 'green') {
@@ -69,6 +70,7 @@ export class Agent {
     this.look = lookFor(d, opts.cosmetics);
     this.rig = new Rig(d, team, { white: opts.white, look: this.look });
     game.scene.add(this.rig.root);
+    this.rig.root.traverse((o) => { if (o.isMesh) o.layers.enable(1); });
     this.H = this.rig.H; this.reach = this.H * 1.32;
     this.pos = new THREE.Vector3(0, 0, 6); this.vel = new THREE.Vector3(); this.face = Math.PI;
     this.air = 0; this.vy = 0; this.act = null; this.has = false; this.hand = 'R'; this.dph = 0; this.gait = 0;
@@ -114,7 +116,9 @@ export class Agent {
     if (game.mode && game.mode.ftOnly) return this.startJumper('ft', d);
     if (game.mode && game.mode.noDunkLayup) return this.startJumper(this.variant(speed, vToward), d);
     if (d < 2.7 && vToward > 2.2 && this.r.dunk >= 58 && !(game.mode && game.mode.noDunk)) return this.startDunk();
-    if (d < 3.4 && (vToward > 1.4 || d < 1.5)) return this.startLayup();
+    if (d < 3.4 && (vToward > 1.4 || d < 1.5)) return this.startLayup(game);
+    // signature: bigs and post scorers go to a hook shot close in
+    if (d < 4.2 && (this.d.grp === 'C' || this.r.close >= 88) && Math.hypot(this.vel.x, this.vel.z) < 2.5) return this.startJumper('hook', d);
     return this.startJumper(this.variant(speed, vToward), d);
   }
   variant(speed, vToward) {
@@ -125,6 +129,7 @@ export class Agent {
   }
   startJumper(variant, d) {
     const kind = variant === 'ft' ? 'ft' : 'jump';
+    if (variant === 'hook') { this.act = { type: 'shot', t: 0, rel: this.rel - 0.04, kind, variant, released: false, jumpAt: Math.max(0.12, this.rel - 0.26), from: this.ballPos.clone(), dist: d, held: true }; this.vel.multiplyScalar(0.3); return this.act; }
     const rel = kind === 'ft' ? this.rel + 0.06 : this.rel + (variant === 'pull' ? 0.03 : 0);
     this.act = { type: 'shot', t: 0, rel, kind, variant, released: false, jumpAt: Math.max(0.12, rel - 0.22),
       from: this.ballPos.clone(), dist: d, held: true };
@@ -132,10 +137,17 @@ export class Agent {
     this.vel.multiplyScalar(variant === 'pull' ? 0.35 : 0.2);
     return this.act;
   }
-  startLayup() {
+  startLayup(game) {
     const tr = this.toRim(this.tmp[0]);
     this.act = { type: 'layup', t: 0, take: 0.22, rel: 0.5, kind: 'layup', variant: 'layup', released: false,
       from: this.ballPos.clone(), dist: this.distRim(), held: true, dir: tr.clone() };
+    // signature: slashers with a good finish euro-step away from the defender during the gather
+    if (this.r.layup >= 76 && ((this.d.t || {}).drive || 0) > 0.1) {
+      const o = game && game.other ? game.other(this) : null;
+      const side = new THREE.Vector3(-tr.z, 0, tr.x);
+      const s = o ? -Math.sign((o.pos.x - this.pos.x) * side.x + (o.pos.z - this.pos.z) * side.z) || 1 : 1;
+      this.act.euro = s; this.act.side = side; this.act.take = 0.3; this.act.variant = 'euro';
+    }
     return this.act;
   }
   startDunk() {
@@ -161,7 +173,7 @@ export class Agent {
     this.act = { type, t: 0, dur: { hesi: 0.34, step: 0.34, spin: 0.46, cross: 0.3 }[type], lat, side, tr: tr.clone(),
       from: this.hand, startPos: this.pos.clone() };
     this.cd = 0.45;
-    if (type === 'step') { this.vel.set(-tr.x * 3.6, 0, -tr.z * 3.6); this.sbT = 0; }
+    if (type === 'step') { const k = 3.2 + 1.5 * this.sk.stepback; this.vel.set(-tr.x * k, 0, -tr.z * k); this.sbT = 0; }
     if (type === 'spin') { this.vel.addScaledVector(side, lat * 2.2); }
     if (type === 'cross') { this.vel.addScaledVector(side, lat * 2.6); }
     return this.act;
@@ -196,6 +208,7 @@ export class Agent {
         if (!a.released && a.t > a.rel + 0.42) game.release(this, true);          // held far too long
         if (a.released && !this.airborne && a.t > a.relAt + 0.12) this.act = null;
       } else if (a.type === 'layup') {
+        if (a.euro && !a.jumped) { const k = a.t < a.take * 0.5 ? 1 : -0.4; this.vel.addScaledVector(a.side, a.euro * k * 9 * dt); }
         if (!a.jumped && a.t >= a.take) { a.jumped = true; this.vy = this.jumpV * 1.12; this.vel.set(a.dir.x * 2.6, 0, a.dir.z * 2.6); }
         if (!a.released && a.t > a.take + 0.62) game.release(this, true);
         if (a.released && !this.airborne) this.act = null;
@@ -308,6 +321,12 @@ export class Agent {
     const pocket = this.tmp[4].set(sx * 0.05 * H, 0.55 * H, 0.15 * H);
     const set = this.tmp[5].set(sx * 0.04 * H, (0.93 + 0.02 * form) * H, 0.12 * H);
     const relY = (1.08 + [0.04, 0.0, 0.07, 0.02][form]) * H;
+    if (a.type === 'shot' && a.variant === 'hook') {
+      const s = clamp(a.t / a.rel, 0, 1);
+      const side = this.tmp[3].set(sx * 0.32 * H, 0.75 * H, 0.05 * H);
+      if (s < 0.4) return out.copy(a.fromLocal || pocket).lerp(side, ease(s / 0.4));
+      return out.copy(side).lerp(this.tmp[2].set(sx * 0.12 * H, 1.2 * H, 0.06 * H), ease((s - 0.4) / 0.6));
+    }
     if (a.type === 'shot') {
       const s = a.t / a.rel;
       if (s < 0.35) out.copy(a.fromLocal || pocket).lerp(pocket, ease(s / 0.35));
