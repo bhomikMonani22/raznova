@@ -186,6 +186,10 @@
   .chart .val { fill: var(--text); font-size: 10px; font-weight: 700; }
   .chart .ln { stroke: var(--text); stroke-width: 1.2; stroke-dasharray: 4 3; }
   .small { font-size: 12px; color: var(--muted); margin-top: 8px; }
+  .ek { flex: none; font-size: 11px; font-weight: 700; padding: 3px 7px; border-radius: 999px; background: var(--accent-soft);
+        color: var(--accent); white-space: nowrap; }
+  #edges .meta + .meta { margin-top: 1px; }
+  #edges-seg { margin-bottom: 8px; }
   @media (min-width: 560px) { .tiles { grid-template-columns: repeat(4, 1fr); } .selects { grid-template-columns: 1fr 1fr 1.4fr; } }
 </style>
 </head>
@@ -215,6 +219,15 @@
     <div id="parlay"></div>
     <h2 id="best-h" hidden>Highest confidence right now</h2>
     <div class="stack" id="best"></div>
+    <h2 id="edges-h" hidden>Paper edges · testing until 1 Dec</h2>
+    <p class="lead" id="edges-lead" hidden>Five new signals, logged at every check and judged on 1 Dec by whether they
+      beat the closing price. Not picks yet.</p>
+    <div class="seg" id="edges-seg" role="group" aria-label="Edge" hidden></div>
+    <div class="card list" id="edges" hidden></div>
+    <h2 id="moves-h" hidden>Injury news moves · tonight</h2>
+    <p class="lead" id="moves-lead" hidden>Our frozen injury model on the latest official report: whose points, rebounds or
+      assists tonight's new absences move by 8% or more, with or without a Stake line yet. Context, not picks.</p>
+    <div class="card list" id="moves" hidden></div>
   </section>
   <section id="tab-props" role="tabpanel" aria-labelledby="tb-props" hidden>
     <div class="filters">
@@ -279,6 +292,13 @@
     <p><b>For / against</b> on a prop: context, not part of the confidence number. ✓ supports the lean, ✗ goes against
       it: his last-10 median against the line, his minutes over the last 5 games against the 15 before (3+ a game), the
       opponent's defence against his position (5%+ off the league) and the pace (2%+ off the league).</p>
+    <p><b>Paper edges</b> (registered and frozen before their first signal, scored once on 1 Dec by closing-line value;
+      display only until then): <b>Injury model</b> (E1), our frozen teammate-out model on tonight's official injury
+      report, where it moves a player's points, rebounds or assists 8%+; <b>Alt line</b> (E3), Stake's ladder rungs
+      priced from the sharp main line (5%+ value, odds 1.25 to 5); <b>1st quarter</b> (E5), Stake's first-quarter props
+      priced from the full-game sharp line and the player's first-quarter share; <b>Blowout/rest</b> (E4), starters'
+      Unders when Stake's spread is 9.5+ or his team played yesterday. The fifth, Stake slow on late injury news (S2),
+      is measured from the price histories, not shown here.</p>
     <p><b>Roles</b>: a player is flagged when his minutes moved 5+ a game against last season, or, with minutes
       steady, his share of shots moved 25%+ (3+ games this season, 20+ last season). Shown on his cards; the flag
       does not change any rating yet.</p>
@@ -311,6 +331,7 @@
     return e;
   }
   function pct(x) { return x === null || x === undefined ? "–" : Math.round(x * 100) + "%"; }
+  function fmt1(x) { return x === null || x === undefined ? "–" : (Math.round(x * 10) / 10).toString(); }
   function signed(x) { return x === null || x === undefined ? "–" : (x >= 0 ? "+" : "") + (x * 100).toFixed(1) + "%"; }
   function odds(x) { return x === null || x === undefined ? "–" : Number(x).toFixed(2); }
   function inr(x) { return x === null || x === undefined ? "–" : (x < 0 ? "−₹" : "₹") + Math.abs(Math.round(x)).toLocaleString("en-IN"); }
@@ -463,6 +484,97 @@
     var rated = (data.confidence || []).filter(function (r) { return r.key !== "none"; });
     if (!tops.length && rated.length) rated.slice(0, 3).forEach(function (r) { best.appendChild(propCard(r)); });
     document.getElementById("best-h").hidden = !best.children.length;
+  }
+
+  // ---- paper edges (D-021) ----
+  var EDGE_NAME = { E1: "Injury model", E3: "Alt line", E4: "Blowout/rest", E5: "1st quarter" };
+  var EDGE_ORDER = { E1: 0, E4: 1, E3: 2, E5: 3 };
+  var edgeKind = "";
+  function edgeText(x) {
+    if (x.kind === "E1") return (x.boost >= 0 ? "+" : "") + Math.round(x.boost * 100) + "% " + x.market.toLowerCase() +
+      (x.out && x.out.length ? " with " + x.out.join(", ") + " out" : "") + " · model " + pct(x.p_model) +
+      (x.p_sharp !== null && x.p_sharp !== undefined ? " · sharp " + pct(x.p_sharp) : "");
+    if (x.kind === "E3" || x.kind === "E5") return "Fair " + pct(x.fair) + " · value " + signed(x.ev) + " · from the sharp " +
+      x.sharp_market + " line " + x.sharp_line;
+    var why = [];
+    if (x.blowout) why.push("spread " + x.spread);
+    if (x.b2b) why.push("back-to-back");
+    return why.join(", ") + " · starter, " + x.min_l10 + " min" +
+      (x.p_sharp !== null && x.p_sharp !== undefined ? " · sharp " + pct(x.p_sharp) : "");
+  }
+  function edgeItem(x, withFace) {
+    var it = tappable(el("div", "item"), withFace ? x.athlete_id : null);
+    if (withFace) it.appendChild(avatar(x.athlete_id, x.player, "sm"));
+    var mid = el("div", "grow");
+    if (withFace) mid.appendChild(el("div", "ell", x.player));
+    mid.appendChild(el("div", withFace ? "meta ell" : "ell", x.side + " " + x.line + " " + x.market + (x.odds ? " @ " + odds(x.odds) : "")));
+    mid.appendChild(el("div", "meta", edgeText(x)));
+    it.appendChild(mid);
+    it.appendChild(el("span", "ek", EDGE_NAME[x.kind] || x.kind));
+    return it;
+  }
+  function edgeSort(a, b) {
+    return (EDGE_ORDER[a.kind] - EDGE_ORDER[b.kind]) ||
+      ((b.ev !== undefined ? b.ev : Math.abs(b.boost || 0)) - (a.ev !== undefined ? a.ev : Math.abs(a.boost || 0)));
+  }
+  var STAT_SHORT = { points: "pts", rebounds: "reb", assists: "ast" };
+  function moveOf(aid) {
+    return ((data.edges && data.edges.moves) || []).filter(function (m) { return String(m.athlete_id) === String(aid); })[0] || null;
+  }
+  function topStat(m) {
+    var best = null;
+    ["points", "rebounds", "assists"].forEach(function (k) {
+      if (best === null || Math.abs(m.boost[k]) > Math.abs(m.boost[best])) best = k;
+    });
+    return best;
+  }
+  function moveText(m) {
+    return ["points", "rebounds", "assists"].filter(function (k) { return Math.abs(m.boost[k]) >= 0.08; }).map(function (k) {
+      return STAT_SHORT[k] + " " + fmt1(m.mu_l2[k]) + " → " + fmt1(m.mu_news[k]) + " (" + (m.boost[k] >= 0 ? "+" : "") +
+        Math.round(m.boost[k] * 100) + "%)";
+    }).join(" · ");
+  }
+  function renderMoves() {
+    var mv = ((data.edges && data.edges.moves) || []).slice().sort(function (a, b) {
+      return Math.abs(b.boost[topStat(b)]) - Math.abs(a.boost[topStat(a)]);
+    });
+    var box = document.getElementById("moves");
+    box.replaceChildren();
+    mv.slice(0, 20).forEach(function (m) {
+      var it = tappable(el("div", "item"), m.athlete_id);
+      it.appendChild(avatar(m.athlete_id, m.player, "sm"));
+      var mid = el("div", "grow");
+      mid.appendChild(el("div", "ell", m.player || "Player"));
+      mid.appendChild(el("div", "meta", moveText(m)));
+      if (m.out && m.out.length) mid.appendChild(el("div", "meta ell", "With " + m.out.join(", ") + " out"));
+      it.appendChild(mid);
+      var k = topStat(m);
+      it.appendChild(el("span", "chip " + (m.boost[k] >= 0 ? "good" : "bad"), (m.boost[k] >= 0 ? "+" : "") +
+        Math.round(m.boost[k] * 100) + "% " + STAT_SHORT[k]));
+      box.appendChild(it);
+    });
+    ["moves-h", "moves-lead", "moves"].forEach(function (id) { document.getElementById(id).hidden = !mv.length; });
+  }
+  function renderEdges() {
+    var sig = ((data.edges && data.edges.signals) || []).slice().sort(edgeSort);
+    var box = document.getElementById("edges"), seg = document.getElementById("edges-seg");
+    box.replaceChildren(); seg.replaceChildren();
+    var kinds = ["E1", "E4", "E3", "E5"].filter(function (k) { return sig.some(function (x) { return x.kind === k; }); });
+    if (edgeKind && kinds.indexOf(edgeKind) < 0) edgeKind = "";
+    if (kinds.length > 1) {
+      [""].concat(kinds).forEach(function (k) {
+        var n = sig.filter(function (x) { return !k || x.kind === k; }).length;
+        var b = el("button", null, (k ? EDGE_NAME[k] : "All") + " " + n);
+        b.setAttribute("aria-pressed", String(edgeKind === k));
+        b.addEventListener("click", function () { edgeKind = k; renderEdges(); });
+        seg.appendChild(b);
+      });
+    }
+    var shown = sig.filter(function (x) { return !edgeKind || x.kind === edgeKind; });
+    shown.slice(0, 40).forEach(function (x) { box.appendChild(edgeItem(x, true)); });
+    var has = sig.length > 0;
+    ["edges-h", "edges-lead", "edges"].forEach(function (id) { document.getElementById(id).hidden = !has; });
+    seg.hidden = kinds.length < 2;
   }
 
   // ---- all props ----
@@ -698,7 +810,6 @@
     }
     return null;
   }
-  function fmt1(x) { return x === null || x === undefined ? "–" : (Math.round(x * 10) / 10).toString(); }
   function playerRow(aid, p) {
     var it = el("button", "prow");
     it.type = "button";
@@ -716,6 +827,12 @@
     var n = propsFor(aid).length;
     right.appendChild(el("span", "chip" + (n ? "" : " muted"), n ? n + (n === 1 ? " prop" : " props") : "No line yet"));
     if (p.status) right.appendChild(el("span", "chip " + (p.status === "Out" ? "bad" : "warn"), p.status));
+    var mvr = moveOf(aid);
+    if (mvr) {
+      var k = topStat(mvr);
+      right.appendChild(el("span", "chip " + (mvr.boost[k] >= 0 ? "good" : "bad"), "News " + (mvr.boost[k] >= 0 ? "+" : "") +
+        Math.round(mvr.boost[k] * 100) + "% " + STAT_SHORT[k]));
+    }
     var rc = roleChip(aid);
     if (rc) right.appendChild(rc);
     it.appendChild(right);
@@ -751,6 +868,11 @@
       head.appendChild(el("div", "meta", ist(g.tip) + (g.pace_vs !== null && g.pace_vs !== undefined
         ? " · pace " + (g.pace_vs >= 0 ? "+" : "") + Math.round(g.pace_vs * 100) + "% vs league" : "")));
       head.appendChild(el("div", "meta", restText(g)));
+      var gl = data.edges && data.edges.games ? data.edges.games[String(g.game_id)] : null;
+      if (gl && (gl.spread !== null || gl.total !== null)) {
+        head.appendChild(el("div", "meta", "Stake: " + (gl.spread !== null && gl.spread !== undefined ? "spread " + gl.spread +
+          (gl.spread >= 9.5 ? " (blowout risk)" : "") : "") + (gl.total ? " · total " + gl.total : "")));
+      }
       var any = false, frag = document.createDocumentFragment();
       [g.away, g.home].forEach(function (team) {
         var list = Object.keys(cards.players).filter(function (aid) {
@@ -944,6 +1066,22 @@
     } else {
       sheetBody.appendChild(el("div", "card empty", "No Stake line for him yet. Stake posts most props by the evening; the 7:36 pm check rates them."));
     }
+    var mvs = moveOf(aid);
+    if (mvs) {
+      sheetBody.appendChild(el("h2", null, "Tonight's injury news"));
+      var nb = el("div", "card");
+      nb.appendChild(el("div", null, moveText(mvs)));
+      nb.appendChild(el("div", "small", "Expected " + (mvs.out && mvs.out.length ? "with " + mvs.out.join(", ") + " out" :
+        "with tonight's absences") + ", from our frozen injury model on the latest official report (E1, testing until 1 Dec)."));
+      sheetBody.appendChild(nb);
+    }
+    var mine = ((data.edges && data.edges.signals) || []).filter(function (x) { return String(x.athlete_id) === String(aid); });
+    if (mine.length) {
+      sheetBody.appendChild(el("h2", null, "Paper edges · testing until 1 Dec"));
+      var eb = el("div", "card list");
+      mine.slice().sort(edgeSort).forEach(function (x) { eb.appendChild(edgeItem(x, false)); });
+      sheetBody.appendChild(eb);
+    }
     sheetBody.appendChild(el("h2", null, "Season averages"));
     var sc = el("div", "card scroll-x");
     sc.appendChild(wide(table(["Season", "G", "MIN", "PTS", "REB", "AST", "3PM", "STL", "BLK", "TO"],
@@ -1043,7 +1181,7 @@
     st.appendChild(document.createTextNode("US night "));
     st.appendChild(el("b", null, s.tonight || "–"));
     st.appendChild(document.createTextNode(" · prices checked " + (s.updated || "–") + " · next: " + (s.next_refresh || "–")));
-    renderPicks(); setupFilters(); renderProps(); renderRoles(); renderResults();
+    renderPicks(); renderEdges(); renderMoves(); setupFilters(); renderProps(); renderRoles(); renderResults();
     if (recall("tab") === "players") loadCards();
     var m = /^#p=(\d+)/.exec(location.hash);
     if (m) openSheet(m[1], true);
