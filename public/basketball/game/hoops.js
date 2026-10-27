@@ -56,7 +56,7 @@ class Game {
     this.running = true;
     const loop = (t) => {
       if (!this.running) return;
-      const dt = Math.min(0.05, (t - this.last) / 1000); this.last = t;
+      const dt = clamp((t - this.last) / 1000, 0, 0.05); this.last = Math.max(this.last, t);
       try { this.frame(dt); } catch (e) { console.error(e); }
       this.raf = requestAnimationFrame(loop);
     };
@@ -340,6 +340,8 @@ class Game {
 
   // ---- frame ----
   frame(dt) {
+    if (!(dt > 0)) return;
+    dt = Math.min(dt, 0.05);
     this.time += dt;
     const input = this.controls.take();
     if (this.state === 'replay') { this.replayStep(dt); this.draw(); return; }
@@ -643,16 +645,18 @@ class Game {
     u.animate(dt, this);
     this.ball.mesh.position.copy(this.ball.p);
     const t = this.time * 0.18;
-    const r = this.portrait ? 3.9 : 3.3, scr = this.ui.screenName;
+    const r = this.portrait ? 5.6 : 3.4, scr = this.ui.screenName;
     const close = scr === 'players' || scr === 'locker' ? 0.82 : 1;
     const want = new THREE.Vector3(u.pos.x + Math.sin(t) * r * close, 1.55 + 0.25 * Math.sin(t * 0.7), u.pos.z + Math.cos(t) * r * close + 0.2);
-    const look = new THREE.Vector3(u.pos.x, this.portrait ? (scr === 'menu' ? 0.95 : 1.05) : 1.15, u.pos.z);
+    const look = new THREE.Vector3(u.pos.x, this.portrait ? 1.1 : 1.15, u.pos.z);
     const k = 1 - Math.exp(-2.5 * dt);
     if (!this.fixedCam) { this.camPos.lerp(want, k); this.camLook.lerp(look, k); }
-    const side = !this.portrait && (scr === 'menu' || scr === 'players' || scr === 'locker');
-    if (side !== this.sideView) {
-      this.sideView = side; this.camera.clearViewOffset();
-      if (side) this.camera.setViewOffset(this.vw * 1.5, this.vh, 0, 0, this.vw, this.vh);
+    // frame the player where the menu leaves room: the right half in landscape, the band under the title in portrait
+    const frame = scr === 'menu' || scr === 'players' || scr === 'locker' ? (this.portrait ? 'top' : 'side') : 'none';
+    if (frame !== this.sideView) {
+      this.sideView = frame; this.camera.clearViewOffset();
+      if (frame === 'side') this.camera.setViewOffset(this.vw * 1.5, this.vh, 0, 0, this.vw, this.vh);
+      else if (frame === 'top') this.camera.setViewOffset(this.vw, this.vh * 1.5, 0, this.vh * 0.35, this.vw, this.vh);
       else if (this.portrait) this.camera.setViewOffset(this.vw, this.vh * 1.2, 0, this.vh * 0.1, this.vw, this.vh);
       this.camera.updateProjectionMatrix();
     }
@@ -810,7 +814,7 @@ class Game {
     this.running = true; this.last = performance.now();
     this.resize();
     if (this.state === 'play') this.pause(true);
-    const loop = (t) => { if (!this.running) return; const dt = Math.min(0.05, (t - this.last) / 1000); this.last = t; try { this.frame(dt); } catch (e) { console.error(e); } this.raf = requestAnimationFrame(loop); };
+    const loop = (t) => { if (!this.running) return; const dt = clamp((t - this.last) / 1000, 0, 0.05); this.last = Math.max(this.last, t); try { this.frame(dt); } catch (e) { console.error(e); } this.raf = requestAnimationFrame(loop); };
     this.raf = requestAnimationFrame(loop);
   }
 }

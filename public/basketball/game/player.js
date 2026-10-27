@@ -76,6 +76,28 @@ function shortsTexture(team, white) {
 
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 
+// a tiled mesh-weave normal map shared by every jersey and pair of shorts
+let FABRIC = null;
+function fabric() {
+  if (FABRIC) return FABRIC;
+  const n = 128, c = document.createElement('canvas'); c.width = c.height = n;
+  const g = c.getContext('2d'), img = g.createImageData(n, n), R = rng(5150);
+  const h = new Float32Array(n * n);
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+    const hole = ((x % 8) - 4) ** 2 + ((y % 8) - 4) ** 2 < 5 ? -0.6 : 0;
+    h[y * n + x] = 0.35 * Math.sin(x / n * Math.PI * 32) * Math.sin(y / n * Math.PI * 32) + hole + (R() - 0.5) * 0.2;
+  }
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+    const dx = h[y * n + (x + 1) % n] - h[y * n + (x + n - 1) % n], dy = h[((y + 1) % n) * n + x] - h[((y + n - 1) % n) * n + x];
+    const l = Math.hypot(dx, dy, 2), i = (y * n + x) * 4;
+    img.data[i] = (-dx / l * 0.5 + 0.5) * 255; img.data[i + 1] = (-dy / l * 0.5 + 0.5) * 255; img.data[i + 2] = (2 / l * 0.5 + 0.5) * 255; img.data[i + 3] = 255;
+  }
+  g.putImageData(img, 0, 0);
+  FABRIC = new THREE.CanvasTexture(c);
+  FABRIC.wrapS = FABRIC.wrapT = THREE.RepeatWrapping; FABRIC.repeat.set(10, 6);
+  return FABRIC;
+}
+
 // a limb as a lathe hanging down -Y from its joint: radii top to bottom, rounded ends (open tubes for clothing)
 function limbGeo(len, radii, open, phi0 = 0) {
   const pts = [], n = radii.length;
@@ -122,11 +144,14 @@ export class Rig {
       neck: 0.035 * H, ua: 0.19 * H, fa: 0.152 * H, hand: 0.085 * H, shX: 0.113 * H * (0.95 + 0.1 * bulk), hipX: 0.058 * H,
     };
     L.hipY = L.foot + L.shin + L.thigh;
-    const skin = new THREE.MeshStandardMaterial({ color: look.skin, roughness: look.style === 'bald' ? 0.42 : 0.58, metalness: 0.0 });
+    const skin = new THREE.MeshPhysicalMaterial({ color: look.skin, roughness: look.style === 'bald' ? 0.4 : 0.5, metalness: 0.0, sheen: 0.4,
+      sheenRoughness: 0.55, sheenColor: new THREE.Color(look.skin).offsetHSL(0, -0.05, 0.12), clearcoat: 0.06, clearcoatRoughness: 0.55 });
     const hair = new THREE.MeshStandardMaterial({ color: look.hairColor, roughness: 0.92 });
     const white = !!opts.white;
-    const jersey = new THREE.MeshStandardMaterial({ map: jerseyTexture(team, p.num, p.name.split(' ').slice(-1)[0], white), roughness: 0.78 });
-    const shortsM = new THREE.MeshStandardMaterial({ map: shortsTexture(team, white), roughness: 0.8, side: THREE.DoubleSide });
+    const jersey = new THREE.MeshStandardMaterial({ map: jerseyTexture(team, p.num, p.name.split(' ').slice(-1)[0], white), roughness: 0.74,
+      normalMap: fabric(), normalScale: new THREE.Vector2(0.45, 0.45) });
+    const shortsM = new THREE.MeshStandardMaterial({ map: shortsTexture(team, white), roughness: 0.66, side: THREE.DoubleSide,
+      normalMap: fabric(), normalScale: new THREE.Vector2(0.4, 0.4) });
     const teamCol = white ? team.color : team.color;
     const shoeCol = look.shoe === 'white' ? '#f2f2f2' : look.shoe === 'black' ? '#151515' : look.shoe === 'team' ? teamCol : look.shoe;
     const shoeM = new THREE.MeshStandardMaterial({ color: shoeCol, roughness: 0.55 });
@@ -155,7 +180,7 @@ export class Rig {
       const legMat = look.tights ? sockM : skin;
       mesh(limbGeo(L.thigh * 1.02, [0.06, 0.059, 0.056, 0.051, 0.045, 0.039, 0.035].map((r) => r * hb)), legMat, th, V(0, 0, 0));
       mesh(limbGeo(L.thigh * 0.84, [0.075, 0.075, 0.074, 0.073, 0.072, 0.072].map((r) => r * hb), true, Math.PI / 2), shortsM, th, V(0, 0.02 * H, 0.004 * H));
-      mesh(new THREE.SphereGeometry(0.0335 * hb, 14, 10), legMat, sh, V(0, 0.004 * H, 0.002 * H));                // knee
+      mesh(new THREE.SphereGeometry(0.031 * hb, 14, 10), legMat, sh, V(0, 0.004 * H, 0.0));                     // knee
       mesh(limbGeo(L.shin * 1.0, [0.034, 0.038, 0.039, 0.035, 0.03, 0.025, 0.022, 0.021].map((r) => r * hb)), legMat, sh, V(0, 0.01 * H, 0));
       if (look.knee === s) mesh(limbGeo(L.shin * 0.34, [0.041, 0.042, 0.042, 0.04].map((r) => r * hb), true), accM, sh, V(0, 0.02 * H, 0));
       const sockLen = look.socks === 'white' ? 0.4 : 0.5;
@@ -205,7 +230,7 @@ export class Rig {
       const sleeve = look.sleeve === s;
       mesh(limbGeo(L.ua * 1.02, [0.039, 0.038, 0.037, 0.035, 0.031, 0.027, 0.025].map((r) => r * hb)), sleeve ? accM : skin, ua, V(0, 0, 0));
       mesh(limbGeo(L.fa * 1.0, [0.026, 0.029, 0.028, 0.025, 0.021, 0.019, 0.018].map((r) => r * hb)), sleeve ? accM : skin, fa, V(0, 0.004 * H, 0));
-      mesh(new THREE.SphereGeometry(0.0245 * hb, 12, 8), sleeve ? accM : skin, fa, V(0, 0.002 * H, 0));                // elbow
+      mesh(new THREE.SphereGeometry(0.022 * hb, 12, 8), sleeve ? accM : skin, fa, V(0, 0.002 * H, 0));                 // elbow
       if (look.wrist) mesh(limbGeo(0.045 * H, [0.022, 0.022, 0.022].map((r) => r * hb * 1.08), true), accM, fa, V(0, -L.fa + 0.05 * H, 0));
       // hand: palm block with fingers together and a thumb
       mesh(new THREE.SphereGeometry(1, 14, 10), skin, ha, V(0, -L.hand * 0.4, 0.002 * H), null, V(0.026 * H, L.hand * 0.52, 0.013 * H));

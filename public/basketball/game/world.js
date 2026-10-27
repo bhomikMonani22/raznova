@@ -208,6 +208,23 @@ class Net {
   }
 }
 
+// a seated fan: torso, shoulders and arms resting forward, merged into one geometry for instancing
+function fanGeo() {
+  const parts = [];
+  const add = (g, x, y, z, sx = 1, sy = 1, sz = 1, rx = 0) => { g.scale(sx, sy, sz); if (rx) g.rotateX(rx); g.translate(x, y, z); parts.push(g.toNonIndexed()); };
+  add(new THREE.CapsuleGeometry(0.17, 0.3, 3, 8), 0, 0, 0, 1.05, 1, 0.75);
+  add(new THREE.SphereGeometry(0.2, 10, 6), 0, 0.2, 0, 1.25, 0.45, 0.75);
+  add(new THREE.CapsuleGeometry(0.055, 0.3, 2, 6), 0.21, 0.02, 0.06, 1, 1, 1, -0.5);
+  add(new THREE.CapsuleGeometry(0.055, 0.3, 2, 6), -0.21, 0.02, 0.06, 1, 1, 1, -0.5);
+  let count = 0; for (const p of parts) count += p.attributes.position.count;
+  const pos = new Float32Array(count * 3), nor = new Float32Array(count * 3);
+  let o = 0;
+  for (const p of parts) { pos.set(p.attributes.position.array, o * 3); nor.set(p.attributes.normal.array, o * 3); o += p.attributes.position.count; }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
+  return g;
+}
+
 // ---- the arena ----
 export class World {
   constructor(renderer, scene, opts = {}) {
@@ -346,7 +363,7 @@ export class World {
     }
     const fans = seats.filter(() => R() < 0.84);
     const n = fans.length;
-    const body = new THREE.InstancedMesh(new THREE.CapsuleGeometry(0.2, 0.36, 3, 8), new THREE.MeshLambertMaterial({ color: 0x9a9a9a }), n);
+    const body = new THREE.InstancedMesh(fanGeo(), new THREE.MeshLambertMaterial({ color: 0x9a9a9a }), n);
     const head = new THREE.InstancedMesh(new THREE.SphereGeometry(0.115, 10, 8), new THREE.MeshLambertMaterial({ color: 0xb0b0b0 }), n);
     const shirts = ['#eeeeee', '#1b1b1b', '#5b6578', '#2f3b52', '#b8c2d1', '#7a1f2b', '#20456b'];
     const skins = ['#f1c9a5', '#e0ac85', '#c68a5f', '#a46a43', '#7d4a2b', '#5a3420', '#3f2416'];
