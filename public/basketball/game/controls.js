@@ -9,7 +9,7 @@ export class Controls {
     this.enabled = true;
     pad.innerHTML = `
       <div class="hx-stick" hidden><div class="hx-knob"></div></div>
-      <div class="hx-stick-hint">MOVE</div>
+      <div class="hx-stick-hint"><svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true"><path d="M12 2l3 3h-2v4h-2V5H9zM12 22l-3-3h2v-4h2v4h2zM2 12l3-3v2h4v2H5v2zM22 12l-3 3v-2h-4v-2h4V9z" fill="currentColor"/></svg></div>
       <button type="button" class="hx-btn hx-move" aria-label="Move"><span>MOVE</span></button>
       <button type="button" class="hx-btn hx-shoot" aria-label="Shoot"><span>SHOOT</span></button>`;
     this.stick = pad.querySelector('.hx-stick'); this.knob = pad.querySelector('.hx-knob');

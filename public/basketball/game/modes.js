@@ -36,13 +36,23 @@ export class Shootaround {
     if (this.spec.filter === 'atw') g.setSpot(ATW[this.atw]);
     else if (this.spec.filter === 'contest') g.setSpot(RACKS[this.rack]);
     else if (this.ftOnly) g.setSpot([0, COURT.FT_Z + 0.25]);
+    else if (!this.spec.filter && this.spec.time) this.moveHot();
     else g.setSpot(null);
+  }
+  // Shootaround's hot spot: makes from the ring score double; it moves every 15 seconds or after you cash it
+  moveHot() {
+    const R = this.g.R, three = R() < 0.6;
+    const a = 0.15 + R() * (Math.PI - 0.3), r = three ? (a < 0.4 || a > Math.PI - 0.4 ? 6.95 : 7.6) : 3.8 + R() * 2.2;
+    this.hot = [Math.cos(a) * r, Math.max(0.3, Math.sin(a) * r)];
+    this.hotT = 15;
+    this.g.setSpot(this.hot);
   }
   get locked() { return this.ftOnly; }
   update(dt) {
     const g = this.g;
     if (this.countdown > 0) { this.countdown -= dt; if (this.countdown <= 0) { g.ui.callout('GO', 'big'); this.started = true; } return; }
     if (this.over) return;
+    if (this.hot && this.started) { this.hotT -= dt; if (this.hotT <= 0) this.moveHot(); }
     if (this.time > 0 && !this.ftOnly) {
       this.time -= dt;
       if (this.time <= 0) { this.time = 0; if (!g.shotLive()) this.finish(); else this.pendingEnd = true; }
@@ -86,7 +96,9 @@ export class Shootaround {
     } else {
       this.mult = st.streak >= 6 ? 3 : st.streak >= 3 ? 2 : 1;
       if (counts || (!f && made)) {
-        const pts = (info.three ? 3 : 2) * (f ? 1 : this.mult) + (shot.tm && shot.tm.g === 'green' && !f ? 1 : 0);
+        const onHot = this.hot && Math.hypot(info.x - this.hot[0], info.z - this.hot[1]) < 1.3;
+        const pts = (info.three ? 3 : 2) * (f ? 1 : this.mult) * (onHot ? 2 : 1) + (shot.tm && shot.tm.g === 'green' && !f ? 1 : 0);
+        if (onHot) { g.ui.callout('HOT SPOT', 'fire', 'double points'); this.moveHot(); }
         this.score += f ? 1 : pts; this.count++;
         g.popup('+' + (f ? 1 : pts), this.mult > 1 && !f ? 'fire' : '');
         if (st.streak === 3 && !f) g.ui.callout('HEATING UP', 'fire');
@@ -94,7 +106,7 @@ export class Shootaround {
       }
     }
     g.fire = !f && st.streak >= 6;
-    if (this.time > 0 || this.ftOnly || f === 'contest') g.feedSoon(g.user, 0.5);
+    if (this.time > 0 || this.ftOnly || f === 'contest') g.feedSoon(g.user, made ? 0.3 : 0.45);
   }
   onPossession() {}
   onOut() { this.g.feedSoon(this.g.user, 0.4); }

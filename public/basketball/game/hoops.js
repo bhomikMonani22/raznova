@@ -337,7 +337,7 @@ class Game {
   doFeed() {
     const a = this.feedTo, b = this.ball;
     if (!a || a.has) return;
-    const T = 0.75;
+    const T = 0.62;
     const tgt = new THREE.Vector3(a.pos.x + a.vel.x * T * 0.6, a.H * 0.62, a.pos.z + a.vel.z * T * 0.6);
     const from = new THREE.Vector3(Math.sign(tgt.x || 1) * 0.5, 1.3, 0.7);
     const v = new THREE.Vector3((tgt.x - from.x) / T, (tgt.y - from.y + 0.5 * 9.81 * T * T) / T, (tgt.z - from.z) / T);
@@ -429,6 +429,7 @@ class Game {
 
   ballFrame(dt) {
     const b = this.ball;
+    if (this.feedT > 0) { this.feedT -= dt; if (this.feedT <= 0) { this.feedT = 0; if (!this.user.has) this.doFeed(); } }
     if (b.holder) {
       // steals and ankle-breakers
       for (const a of this.agents()) {
@@ -524,7 +525,6 @@ class Game {
         b.p.set(clamp(b.p.x, -7.4, 7.4), BR, clamp(b.p.z, -1.4, 12.5)); b.v.set(0, 0, 0);
       }
     }
-    if (this.feedT > 0) { this.feedT -= dt; if (this.feedT <= 0) { this.feedT = 0; if (!this.user.has) this.doFeed(); } }
   }
   made(s) {
     if (!s || s.ended) return;
