@@ -36,9 +36,11 @@
   .status { margin: 12px 0 0; font-size: 13px; color: var(--muted); }
   .status b { color: var(--text); font-weight: 600; }
   nav.tabs { position: sticky; top: 0; z-index: 5; background: var(--bg); border-bottom: 1px solid var(--border); }
-  nav.tabs .wrap { display: flex; gap: 4px; }
-  nav.tabs button { flex: 1; appearance: none; border: 0; background: none; color: var(--muted); font: inherit;
-                    font-weight: 600; padding: 12px 4px 11px; border-bottom: 3px solid transparent; cursor: pointer; }
+  nav.tabs .wrap { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; }
+  nav.tabs .wrap::-webkit-scrollbar { display: none; }
+  nav.tabs button { flex: 1 0 auto; appearance: none; border: 0; background: none; color: var(--muted); font: inherit;
+                    font-size: 14.5px; font-weight: 600; padding: 12px 6px 11px; border-bottom: 3px solid transparent;
+                    cursor: pointer; white-space: nowrap; }
   nav.tabs button[aria-selected="true"] { color: var(--text); border-bottom-color: var(--accent); }
   main { padding: 14px 0 28px; }
   section[hidden] { display: none; }
@@ -186,6 +188,33 @@
   .chart .val { fill: var(--text); font-size: 10px; font-weight: 700; }
   .chart .ln { stroke: var(--text); stroke-width: 1.2; stroke-dasharray: 4 3; }
   .small { font-size: 12px; color: var(--muted); margin-top: 8px; }
+  .brief .item { align-items: flex-start; cursor: pointer; }
+  .brief .tag { flex: none; font-size: 10.5px; font-weight: 800; letter-spacing: .03em; text-transform: uppercase;
+                padding: 3px 7px; border-radius: 999px; margin-top: 1px; background: var(--surface-2); color: var(--muted); }
+  .brief .tag.injury { background: var(--bad-soft); color: var(--bad); }
+  .brief .tag.pick { background: var(--good-soft); color: var(--good); }
+  .brief .tag.lean, .brief .tag.prop { background: var(--accent-soft); color: var(--accent); }
+  .brief .tag.blowout, .brief .tag.rest { background: var(--warn-soft); color: var(--warn); }
+  .brief .txt { font-size: 14px; line-height: 1.4; }
+  .brief .go { flex: none; color: var(--muted); font-size: 18px; line-height: 1; margin-top: 1px; }
+  .gcard { padding: 0; overflow: hidden; scroll-margin-top: 58px; }
+  .gcard .ghead { display: block; width: 100%; text-align: left; appearance: none; border: 0; background: none;
+                  font: inherit; color: inherit; padding: 14px; cursor: pointer; }
+  .gcard .gtitle { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+  .gcard .gtitle b { font-size: 17px; }
+  .gcard .chev { color: var(--muted); font-size: 13px; white-space: nowrap; }
+  .lines { display: grid; grid-template-columns: auto 1fr 1fr; gap: 4px 10px; margin-top: 10px; font-size: 13px;
+           font-variant-numeric: tabular-nums; align-items: baseline; }
+  .lines .h { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .lines .k { color: var(--muted); font-weight: 600; }
+  .badge { display: inline-block; margin-top: 10px; font-size: 13px; font-weight: 700; padding: 6px 10px;
+           border-radius: 10px; }
+  .badge.pick { background: var(--good-soft); color: var(--good); }
+  .badge.lean { background: var(--accent-soft); color: var(--accent); }
+  .badge.none { background: var(--surface-2); color: var(--muted); font-weight: 600; }
+  .gbody { border-top: 1px solid var(--border); padding: 4px 14px 14px; }
+  .gbody h4 { margin: 14px 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+  .gcard.open .chev { color: var(--accent); }
   .ek { flex: none; font-size: 11px; font-weight: 700; padding: 3px 7px; border-radius: 999px; background: var(--accent-soft);
         color: var(--accent); white-space: nowrap; }
   #edges .meta + .meta { margin-top: 1px; }
@@ -204,6 +233,7 @@
 </header>
 <nav class="tabs" aria-label="Sections"><div class="wrap" role="tablist">
   <button role="tab" id="tb-picks" aria-controls="tab-picks" aria-selected="true">Picks</button>
+  <button role="tab" id="tb-games" aria-controls="tab-games" aria-selected="false">Games</button>
   <button role="tab" id="tb-props" aria-controls="tab-props" aria-selected="false">Props</button>
   <button role="tab" id="tb-players" aria-controls="tab-players" aria-selected="false">Players</button>
   <button role="tab" id="tb-roles" aria-controls="tab-roles" aria-selected="false">Roles</button>
@@ -211,6 +241,10 @@
 </div></nav>
 <main class="wrap">
   <section id="tab-picks" role="tabpanel" aria-labelledby="tb-picks">
+    <div id="brief-wrap" hidden>
+      <h2 style="margin-top:6px">Tonight</h2>
+      <div class="card list brief" id="brief"></div>
+    </div>
     <p class="take" id="take"></p>
     <div id="hero"></div>
     <h2 id="list-h" hidden>Top 2–10</h2>
@@ -228,6 +262,14 @@
     <p class="lead" id="moves-lead" hidden>Our frozen injury model on the latest official report: whose points, rebounds or
       assists tonight's new absences move by 8% or more, with or without a Stake line yet. Context, not picks.</p>
     <div class="card list" id="moves" hidden></div>
+  </section>
+  <section id="tab-games" role="tabpanel" aria-labelledby="tb-games" hidden>
+    <p class="take">Tonight's games</p>
+    <p class="lead">Stake's spread and total against the sharp books' fair line (Pinnacle, Novig, ProphetX). Tap a game for
+      every line both price, its injury news and its players.</p>
+    <div class="seg" id="g-filter" role="group" aria-label="Show"></div>
+    <div class="stack" id="games" style="margin-top:10px"></div>
+    <p class="small" id="games-note"></p>
   </section>
   <section id="tab-props" role="tabpanel" aria-labelledby="tb-props" hidden>
     <div class="filters">
@@ -269,6 +311,9 @@
     <div class="card list" id="review"></div>
     <h2>Record so far</h2>
     <div class="tiles" id="tiles"></div>
+    <h2>Team spread and total picks</h2>
+    <div class="tiles" id="g-tiles"></div>
+    <div class="card list" id="g-results" style="margin-top:10px"></div>
     <h2>Confidence tiers: did they hit?</h2>
     <div class="card"><table id="tiers-table"><thead><tr><th>Tier</th><th class="r">Hit</th><th class="r">Settled</th>
       <th class="r">Hit rate</th><th class="r">Avg confidence</th></tr></thead><tbody></tbody></table>
@@ -292,6 +337,12 @@
     <p><b>For / against</b> on a prop: context, not part of the confidence number. ✓ supports the lean, ✗ goes against
       it: his last-10 median against the line, his minutes over the last 5 games against the 15 before (3+ a game), the
       opponent's defence against his position (5%+ off the league) and the pace (2%+ off the league).</p>
+    <p><b>Games</b> and <b>team spread picks</b> (G1, registered and frozen before the first pick, scored on 1 Dec by
+      closing-line value): Stake's spread and total at every line against the sharp books' no-vig price at the same line
+      (two or more of Pinnacle, Novig and ProphetX, from the hourly game lines). A pick is the best-value side of a game
+      priced at or above fair (odds 1.5 to 3.0), recorded once a night at Rs 500 paper. The lean is the side of Stake's
+      main line the sharp books make more likely; it is shown, not recorded. <b>Tonight</b> at the top sums up the night
+      in plain sentences: tap one to open that player or game.</p>
     <p><b>Paper edges</b> (registered and frozen before their first signal, scored once on 1 Dec by closing-line value;
       display only until then): <b>Injury model</b> (E1), our frozen teammate-out model on tonight's official injury
       report, where it moves a player's points, rebounds or assists 8%+; <b>Alt line</b> (E3), Stake's ladder rungs
@@ -382,14 +433,14 @@
   function recall(k) { try { return localStorage.getItem("eb." + k); } catch (e) { return null; } }
 
   // ---- tabs ----
-  var tabs = ["picks", "props", "players", "roles", "results"];
+  var tabs = ["picks", "games", "props", "players", "roles", "results"];
   function show(name) {
     tabs.forEach(function (t) {
       document.getElementById("tb-" + t).setAttribute("aria-selected", String(t === name));
       document.getElementById("tab-" + t).hidden = t !== name;
     });
     store("tab", name);
-    if (name === "players" && data) loadCards();
+    if ((name === "players" || name === "games") && data) loadCards();
   }
   tabs.forEach(function (t) { document.getElementById("tb-" + t).addEventListener("click", function () { show(t); }); });
   show(tabs.indexOf(recall("tab")) >= 0 ? recall("tab") : "picks");
@@ -484,6 +535,226 @@
     var rated = (data.confidence || []).filter(function (r) { return r.key !== "none"; });
     if (!tops.length && rated.length) rated.slice(0, 3).forEach(function (r) { best.appendChild(propCard(r)); });
     document.getElementById("best-h").hidden = !best.children.length;
+  }
+
+
+  // ---- the Tonight briefing (lab/briefing.py writes every sentence) ----
+  var BRIEF_TAG = { injury: "Injury", pick: "Pick", lean: "Lean", blowout: "Blowout", rest: "Rest", prop: "Prop", role: "Role" };
+  function renderBriefing() {
+    var items = data.briefing || [];
+    var box = document.getElementById("brief");
+    box.replaceChildren();
+    items.forEach(function (b) {
+      var it = el("div", "item");
+      it.setAttribute("role", "button");
+      it.tabIndex = 0;
+      it.appendChild(el("span", "tag " + b.kind, BRIEF_TAG[b.kind] || b.kind));
+      it.appendChild(el("div", "grow txt", b.text));
+      it.appendChild(el("span", "go", "›"));
+      function go() {
+        if (b.aid !== undefined && b.aid !== null && b.kind !== "pick" && b.kind !== "lean" && b.kind !== "blowout" && b.kind !== "rest") {
+          openSheet(String(b.aid), false);
+        } else if (b.game_id) {
+          gstate.open[String(b.game_id)] = true;
+          show("games");
+          renderGames();
+          var node = document.getElementById("g-" + b.game_id);
+          if (node) node.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      }
+      it.addEventListener("click", go);
+      it.addEventListener("keydown", function (e) { if (e.key === "Enter") go(); });
+      box.appendChild(it);
+    });
+    document.getElementById("brief-wrap").hidden = !items.length;
+  }
+
+  // ---- games: Stake's spread and total against the sharp books (G1, lab/research/game_lines.py) ----
+  var gstate = { filter: "", open: {} };
+  var G_FILTERS = [["", "All"], ["call", "Picks & leans"], ["blowout", "Blowout risk"], ["news", "Injury news"]];
+  function sgn(x) { return (x > 0 ? "+" : x < 0 ? "−" : "") + Math.abs(x); }
+  function gameList() {
+    var gl = data.game_lines || [];
+    if (gl.length) return gl;
+    // no sharp game lines on hand: fall back to Stake's own lines from the board
+    var games = (cards && cards.games) || [];
+    return games.map(function (g) {
+      var e = data.edges && data.edges.games ? data.edges.games[String(g.game_id)] : null;
+      return { game_id: g.game_id, game: g.game, tip: g.tip, home: g.home, away: g.away, markets: {
+        spreads: { stake_main: e && e.spread !== null && e.spread !== undefined ? { line: e.fav === "2" ? e.spread : -e.spread } : null },
+        totals: { stake_main: e && e.total ? { line: e.total } : null } } };
+    });
+  }
+  function movesFor(gid) {
+    return ((data.edges && data.edges.moves) || []).filter(function (m) { return String(m.game_id) === String(gid); });
+  }
+  function outsFor(g) {
+    if (!cards || !cards.players) return [];
+    return Object.keys(cards.players).filter(function (a) {
+      var q = cards.players[a];
+      return (q.team === g.home || q.team === g.away) && q.status === "Out";
+    }).map(function (a) { return cards.players[a]; });
+  }
+  function restOf(g) {
+    var cg = cards && cards.games ? cards.games.filter(function (x) { return String(x.game_id) === String(g.game_id); })[0] : null;
+    return cg ? cg.rest || {} : {};
+  }
+  function spreadText(g, line) {
+    if (line === null || line === undefined) return "–";
+    if (line === 0) return "Pick'em";
+    return (line < 0 ? g.home : g.away) + " " + sgn(-Math.abs(line));
+  }
+  function gameCard(g) {
+    var sp = (g.markets && g.markets.spreads) || {}, tot = (g.markets && g.markets.totals) || {};
+    var open = !!gstate.open[String(g.game_id)];
+    var c = el("div", "card gcard" + (open ? " open" : ""));
+    c.id = "g-" + g.game_id;
+    var head = el("button", "ghead");
+    head.type = "button";
+    head.setAttribute("aria-expanded", String(open));
+    var t = el("div", "gtitle");
+    t.appendChild(el("b", null, g.game));
+    t.appendChild(el("span", "chev", (open ? "Hide" : "Details") + " " + (open ? "▴" : "▾")));
+    head.appendChild(t);
+    var rest = restOf(g), flags = [];
+    [g.away, g.home].forEach(function (tm) { if (rest[tm] === 1) flags.push(tm + " back-to-back"); });
+    head.appendChild(el("div", "meta", ist(g.tip) + (flags.length ? " · " + flags.join(" · ") : "")));
+    var ln = el("div", "lines");
+    ln.appendChild(el("span", "h", "")); ln.appendChild(el("span", "h", "Stake")); ln.appendChild(el("span", "h", "Sharp fair"));
+    ln.appendChild(el("span", "k", "Spread"));
+    var ssm = sp.stake_main, shm = sp.sharp_main;
+    ln.appendChild(el("span", null, ssm ? spreadText(g, ssm.line) + (ssm.odds_home ? " (" + odds(ssm.line < 0 ? ssm.odds_home : ssm.odds_away) + ")" : "") : "–"));
+    ln.appendChild(el("span", null, shm ? spreadText(g, shm.line) + " · " + Math.round((shm.line < 0 ? shm.p : 1 - shm.p) * 100) + "%" : "–"));
+    ln.appendChild(el("span", "k", "Total"));
+    var tsm = tot.stake_main, tsh = tot.sharp_main;
+    ln.appendChild(el("span", null, tsm ? tsm.line + (tsm.odds_home ? " (O " + odds(tsm.odds_home) + ")" : "") : "–"));
+    ln.appendChild(el("span", null, tsh ? tsh.line + " · O " + Math.round(tsh.p * 100) + "%" : "–"));
+    head.appendChild(ln);
+    var calls = [];
+    [["spread", sp], ["total", tot]].forEach(function (x) {
+      var m = x[1];
+      if (m.pick) calls.push(["pick", "Pick: " + m.pick.text + " @ " + odds(m.pick.odds) + " · " + pct(m.pick.fair) + " · value " + signed(m.pick.ev)]);
+    });
+    if (!calls.length && sp.lean) calls.push(["lean", "Lean " + sp.lean.text + " @ " + odds(sp.lean.odds) + " · " + pct(sp.lean.fair) + " to cover · value " + signed(sp.lean.ev)]);
+    if (!calls.length && (data.game_lines || []).length) calls.push(["none", "No spread or total priced at fair value"]);
+    calls.forEach(function (x) { head.appendChild(el("div", "badge " + x[0], x[1])); });
+    var extra = [];
+    if (ssm && Math.abs(ssm.line) >= 9.5) extra.push(["warn", "Blowout risk: starters' Unders under test"]);
+    var mv = movesFor(g.game_id);
+    if (mv.length) extra.push(["good", "Injury news moves " + mv.length + " player" + (mv.length === 1 ? "" : "s")]);
+    var outs = outsFor(g);
+    if (outs.length) extra.push(["bad", outs.length + " out"]);
+    if (extra.length) {
+      var ch = el("div", "chips");
+      extra.forEach(function (x) { ch.appendChild(el("span", "chip " + x[0], x[1])); });
+      head.appendChild(ch);
+    }
+    head.addEventListener("click", function () {
+      gstate.open[String(g.game_id)] = !open;
+      renderGames();
+    });
+    c.appendChild(head);
+    if (!open) return c;
+    var body = el("div", "gbody");
+    if (outs.length) {
+      body.appendChild(el("h4", null, "Out tonight"));
+      body.appendChild(el("div", "meta", outs.map(function (q) { return q.name + " (" + q.team + ")"; }).join(" · ")));
+    }
+    if (mv.length) {
+      body.appendChild(el("h4", null, "Injury news moves"));
+      var ml = el("div", "list");
+      mv.slice().sort(function (a, b) { return (b.mu_news.points - b.mu_l2.points) - (a.mu_news.points - a.mu_l2.points); })
+        .forEach(function (m) {
+          var it = tappable(el("div", "item"), m.athlete_id);
+          it.appendChild(avatar(m.athlete_id, m.player, "sm"));
+          var mid = el("div", "grow");
+          mid.appendChild(el("div", "ell", m.player || "Player"));
+          mid.appendChild(el("div", "meta", moveText(m)));
+          it.appendChild(mid);
+          ml.appendChild(it);
+        });
+      body.appendChild(ml);
+    }
+    [["Spread at every line both price", sp, true], ["Total at every line both price", tot, false]].forEach(function (x) {
+      var m = x[1];
+      if (!m.rungs || !m.rungs.length) return;
+      body.appendChild(el("h4", null, x[0]));
+      var rows = m.rungs.slice(0, 8).map(function (r) {
+        var side = x[2] ? (r.side === "home" ? g.home + " " + sgn(r.line) : g.away + " " + sgn(-r.line))
+                        : (r.side === "home" ? "Over " : "Under ") + r.line;
+        return [side, odds(r.odds), pct(r.fair), signed(r.ev), String(r.n_books)];
+      });
+      var wrap = el("div", "scroll-x");
+      wrap.appendChild(table(["Side", "Stake", "Fair", "Value", "Books"], rows, 1));
+      body.appendChild(wrap);
+    });
+    if (cards && cards.players) {
+      [g.away, g.home].forEach(function (team) {
+        var list = Object.keys(cards.players).filter(function (a) {
+          return cards.players[a].team === team && String(cards.players[a].game_id) === String(g.game_id);
+        }).sort(function (a, b) { return (cards.players[b].mpg || 0) - (cards.players[a].mpg || 0); });
+        if (!list.length) return;
+        body.appendChild(el("h4", null, team + " players"));
+        list.slice(0, 10).forEach(function (aid) { body.appendChild(playerRow(aid, cards.players[aid])); });
+      });
+    } else {
+      body.appendChild(el("div", "small", cardsState === "loading" ? "Loading players…" : "Player pages aren't published for tonight yet."));
+    }
+    c.appendChild(body);
+    return c;
+  }
+  function renderGames() {
+    if (!data) return;
+    var seg = document.getElementById("g-filter");
+    seg.replaceChildren();
+    var games = gameList();
+    function keep(g, f) {
+      var sp = (g.markets && g.markets.spreads) || {}, tot = (g.markets && g.markets.totals) || {};
+      if (f === "call") return !!(sp.pick || tot.pick || sp.lean);
+      if (f === "blowout") return !!(sp.stake_main && Math.abs(sp.stake_main.line) >= 9.5);
+      if (f === "news") return movesFor(g.game_id).length > 0;
+      return true;
+    }
+    G_FILTERS.forEach(function (fx) {
+      var n = games.filter(function (g) { return keep(g, fx[0]); }).length;
+      var b = el("button", null, fx[1] + " " + n);
+      b.setAttribute("aria-pressed", String(gstate.filter === fx[0]));
+      b.addEventListener("click", function () { gstate.filter = fx[0]; renderGames(); });
+      seg.appendChild(b);
+    });
+    var box = document.getElementById("games");
+    box.replaceChildren();
+    var shown = games.filter(function (g) { return keep(g, gstate.filter); });
+    shown.forEach(function (g) { box.appendChild(gameCard(g)); });
+    if (!games.length) box.appendChild(el("div", "card empty", "No games with Stake lines on the board yet."));
+    else if (!shown.length) box.appendChild(el("div", "card empty", "No game matches this filter."));
+    document.getElementById("games-note").textContent = (data.game_lines || []).length
+      ? "Sharp lines from the hourly feed seen at " + ist(data.game_lines_at) + "; Stake's from the same check."
+      : "Sharp game lines aren't in this check yet; Stake's own spread and total are shown.";
+  }
+
+  // ---- results: G1 picks ----
+  function renderGameResults() {
+    var gp = data.game_picks || { rows: [], record: {} }, r = gp.record || {};
+    var tiles = document.getElementById("g-tiles");
+    tiles.replaceChildren(
+      tile("Record", (r.won || 0) + "–" + (r.lost || 0), (r.pushed ? r.pushed + " push · " : "") + (r.open || 0) + " open"),
+      tile("Paper profit", inr(r.profit_inr || 0), "Rs 500 a pick"),
+      tile("Beat the close", r.mean_clv === null || r.mean_clv === undefined ? "–" : signed(r.mean_clv), (r.closes || 0) + " closes in"));
+    var box = document.getElementById("g-results");
+    box.replaceChildren();
+    (gp.rows || []).forEach(function (x) {
+      var it = el("div", "item");
+      var mid = el("div", "grow");
+      mid.appendChild(el("div", null, x.text + " @ " + odds(x.odds) + " · " + x.game));
+      mid.appendChild(el("div", "meta", x.night + " · fair " + pct(x.fair) + " · value " + signed(x.ev) +
+        (x.clv !== undefined && x.clv !== null ? " · close " + signed(x.clv) : "")));
+      it.appendChild(mid);
+      var res = x.result === "win" ? "hit" : x.result === "loss" ? "miss" : x.result === "push" ? "void" : "open";
+      it.appendChild(el("span", "pill " + res, res === "hit" ? "Won" : res === "miss" ? "Lost" : res === "void" ? "Push" : "Open"));
+      box.appendChild(it);
+    });
+    box.hidden = !(gp.rows || []).length;
   }
 
   // ---- paper edges (D-021) ----
@@ -796,8 +1067,8 @@
     cardsState = "loading";
     fetch(CARDS_URL + "?t=" + Date.now(), { cache: "no-store" })
       .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
-      .then(function (d) { cards = d; cardsState = "ready"; renderPlayers(); if (pendingAid) { var a = pendingAid; pendingAid = null; openSheet(a, true); } })
-      .catch(function () { cardsState = "missing"; renderPlayers(); if (pendingAid) { var a = pendingAid; pendingAid = null; openSheet(a, true); } });
+      .then(function (d) { cards = d; cardsState = "ready"; renderPlayers(); renderGames(); if (pendingAid) { var a = pendingAid; pendingAid = null; openSheet(a, true); } })
+      .catch(function () { cardsState = "missing"; renderPlayers(); renderGames(); if (pendingAid) { var a = pendingAid; pendingAid = null; openSheet(a, true); } });
   }
   function propsFor(aid) {
     return (data.confidence || []).filter(function (r) { return r.key !== "none" && String(r.athlete_id) === String(aid); });
@@ -1181,7 +1452,9 @@
     st.appendChild(document.createTextNode("US night "));
     st.appendChild(el("b", null, s.tonight || "–"));
     st.appendChild(document.createTextNode(" · prices checked " + (s.updated || "–") + " · next: " + (s.next_refresh || "–")));
-    renderPicks(); renderEdges(); renderMoves(); setupFilters(); renderProps(); renderRoles(); renderResults();
+    renderBriefing(); renderPicks(); renderEdges(); renderMoves(); setupFilters(); renderProps(); renderRoles();
+    renderResults(); renderGameResults(); renderGames();
+    if (recall("tab") === "games") loadCards();
     if (recall("tab") === "players") loadCards();
     var m = /^#p=(\d+)/.exec(location.hash);
     if (m) openSheet(m[1], true);
