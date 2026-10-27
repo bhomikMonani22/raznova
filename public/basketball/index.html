@@ -354,6 +354,16 @@
   .strip .p.hot { color: var(--make); } .strip .p.cold { color: var(--miss); }
   .strip .c { display: block; font-size: 11px; color: var(--mist); }
   .venue { margin-top: 10px; }
+  .brief .tag.sharp { background: var(--make-soft); color: var(--make); }
+  .chip.take { background: var(--amber-soft); color: var(--amber); font-weight: 700; }
+  .ladder { margin-top: 10px; font-size: 12.5px; }
+  .ladder summary { cursor: pointer; color: var(--mist); padding: 2px 0; font: 600 12.5px/1.3 var(--body);
+    text-transform: none; letter-spacing: 0; }
+  .ladder table { margin-top: 4px; font-size: 12.5px; }
+  .ladder td, .ladder th { padding: 5px 6px; }
+  .ladder tr.main td { color: var(--amber); font-weight: 700; }
+  .more-btn { width: 100%; margin-top: 12px; }
+  .sharp-chips button { border-color: rgba(76, 195, 255, .45) !important; background: rgba(76, 195, 255, .12) !important; color: var(--sky) !important; }
   .stake-chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin-top: 10px; }
   .stake-chips::-webkit-scrollbar { display: none; }
   .stake-chips button { flex: none; appearance: none; border: 1px solid rgba(255, 194, 75, .45); background: var(--amber-soft);
@@ -439,6 +449,9 @@
     <div class="card list" id="toplist" hidden></div>
     <h2 id="parlay-h" hidden>Parlay</h2>
     <div id="parlay"></div>
+    <h2 id="sharp-h" hidden>Sharp picks · every player</h2>
+    <p class="lead" id="sharp-lead" hidden></p>
+    <div class="stack" id="sharp"></div>
     <h2 id="best-h" hidden>Highest confidence right now</h2>
     <div class="stack" id="best"></div>
     <h2 id="edges-h" hidden>Paper edges · testing until 1 Dec</h2>
@@ -472,16 +485,18 @@
   </section>
   <section id="tab-props" role="tabpanel" aria-labelledby="tb-props" hidden>
     <div class="filters">
+      <div class="seg" id="src" role="group" aria-label="Lines" hidden></div>
       <div class="seg" id="tiers" role="group" aria-label="Confidence"></div>
       <div class="selects">
         <select id="f-game" aria-label="Game"><option value="">All games</option></select>
         <select id="f-market" aria-label="Market"><option value="">All markets</option></select>
         <input type="search" id="f-q" placeholder="Search player" aria-label="Search player">
       </div>
-      <label class="toggle"><input type="checkbox" id="f-sharp"> Only props the sharp books price</label>
+      <label class="toggle"><input type="checkbox" id="f-sharp"> <span id="f-sharp-t">Only props the sharp books price</span></label>
     </div>
     <p class="count" id="count"></p>
     <div class="stack" id="props"></div>
+    <button class="btn more-btn" id="props-more" type="button" hidden>Show more</button>
   </section>
   <section id="tab-players" role="tabpanel" aria-labelledby="tb-players" hidden>
     <p class="take">Everyone in tonight's games</p>
@@ -513,6 +528,9 @@
     <h2>Team spread and total picks</h2>
     <div class="tiles" id="g-tiles"></div>
     <div class="card list" id="g-results" style="margin-top:10px"></div>
+    <h2>Sharp picks (every player)</h2>
+    <div class="tiles" id="m-tiles"></div>
+    <div class="card list" id="m-results" style="margin-top:10px"></div>
     <h2>Confidence tiers: did they hit?</h2>
     <div class="card"><table id="tiers-table"><thead><tr><th>Tier</th><th class="r">Hit</th><th class="r">Settled</th>
       <th class="r">Hit rate</th><th class="r">Avg confidence</th></tr></thead><tbody></tbody></table>
@@ -529,6 +547,12 @@
       and 30% recent form (last 5, 10, 15 and 20 games at that line, home or away, and against tonight's opponent, each
       pulled toward 50% so a few games don't count for much). Without a sharp price, or when the player is Questionable,
       the tier stops at Medium. The model column is our points model's chance.</p>
+    <p><b>Sharp market</b> and <b>sharp picks</b> (M1, registered and frozen before its first row, scored on 1 Dec):
+      Stake's feed lists player props for only a few players a night, so every check also rates the sharp books' main
+      line for every player they price (the line most of Pinnacle, Novig and ProphetX quote), with the same 70/30
+      confidence score. <b>Take at</b> is the no-vig fair price: odds at or above it are worth taking, on any book.
+      Sharp picks are the best leans with two or more books (fair odds 1.30 to 3.00, one a player, two a game, ten a
+      night); the night's last check before the first tip is the one counted. Paper only, no stake.</p>
     <p><b>Players</b>: every player who has played for one of tonight's teams this season, and anyone on tonight's
       injury report. Tap one for his last 15 games against any line you set, season and home/away averages, his games
       against tonight's opponent, the opponent's defence against his position (last 20 games against the league), the
@@ -572,7 +596,7 @@
   var CARDS_URL = "/basketball/data/cards.json";
   var TIERS = ["Very high", "High", "Medium", "Low"];
   var TIER_CLASS = { "Very high": "t-vh", "High": "t-hi", "Medium": "t-md", "Low": "t-lo" };
-  var state = { tier: "", game: "", market: "", q: "", sharp: false };
+  var state = { tier: "", game: "", market: "", q: "", sharp: false, src: null, limit: 60 };
   var data = null;
 
   function el(tag, cls, text) {
@@ -693,6 +717,9 @@
         "have the full board. Every prop's confidence is on All props now.";
     } else if (s.stake_props_listed == null) {
       take.textContent = "No prices checked yet for tonight. Next check: " + (s.next_refresh || "this evening") + ".";
+    } else if ((data.market || {}).picks && data.market.picks.length) {
+      take.textContent = data.market.picks.length + " sharp picks tonight. Stake's feed has props for only " +
+        new Set((data.confidence || []).map(function (r) { return r.player; })).size + " players, so they come from the sharp books' prices for everyone.";
     } else if (s.stake_props_listed > 0 && s.stake_props_open < 0.2 * s.stake_props_listed) {
       take.textContent = "No picks tonight: Stake had almost all its player props closed at the last check.";
     } else {
@@ -739,6 +766,7 @@
     var rated = (data.confidence || []).filter(function (r) { return r.key !== "none"; });
     if (!tops.length && rated.length) rated.slice(0, 3).forEach(function (r) { best.appendChild(propCard(r)); });
     document.getElementById("best-h").hidden = !best.children.length;
+    renderSharp();
   }
 
 
@@ -843,10 +871,11 @@
     var tonight = (data.picks || []).filter(function (r) { return r.night === s.tonight && r.kind === "Top 10"; }).length;
     var gp = ((data.game_picks || {}).rows || []).filter(function (r) { return r.night === s.tonight; }).length;
     var nGames = (data.game_lines || []).length || new Set((data.confidence || []).map(function (r) { return r.game; })).size;
-    var nProps = (data.confidence || []).filter(function (r) { return r.key !== "none"; }).length;
+    var nProps = mrows().length || (data.confidence || []).filter(function (r) { return r.key !== "none"; }).length;
+    var nSharp = ((data.market || {}).picks || []).length;
     countUp(document.getElementById("sb-games"), nGames, null, 600);
     countUp(document.getElementById("sb-props"), nProps, null, 900);
-    countUp(document.getElementById("sb-picks"), tonight + gp, null, 700);
+    countUp(document.getElementById("sb-picks"), tonight + gp + nSharp, null, 700);
     document.getElementById("sb-next").textContent = nextTime(s.next_refresh);
     boardLit = true;
   }
@@ -1121,9 +1150,12 @@
     var mk = MKTS.filter(function (m) { return m[0] === labState.mkt; })[0];
     var sp = stakeProp(aid, labState.mkt);
     lab = { stake: sp ? { line: sp.line, odds_over: sp.odds_over, odds_under: sp.odds_under } : null };
+    var sharpL = marketFor(aid);
+    var shp = sharpL.filter(function (r) { return r.label === labState.mkt; })[0];
     var allVals = valsOf(p.log || [], mk[1], idx);
     if (labState.line === null) {
       if (sp) labState.line = sp.line;
+      else if (shp) labState.line = shp.line;
       else {
         var recent = allVals.slice(0, 10);
         var avg = recent.length ? recent.reduce(function (a, b) { return a + b; }, 0) / recent.length : 0.5;
@@ -1155,6 +1187,16 @@
         sc.appendChild(b);
       });
       frag.appendChild(sc);
+    }
+    if (sharpL.length) {
+      var sc2 = el("div", "stake-chips sharp-chips");
+      sharpL.forEach(function (r) {
+        var b = el("button", null, "Sharp " + r.label + " " + r.line);
+        b.type = "button";
+        b.addEventListener("click", function () { labState.mkt = r.label; labState.line = r.line; renderLab(); });
+        sc2.appendChild(b);
+      });
+      frag.appendChild(sc2);
     }
     // markets
     var bar = el("div", "mkts");
@@ -1261,7 +1303,7 @@
   }
 
   // ---- the Tonight briefing (lab/briefing.py writes every sentence) ----
-  var BRIEF_TAG = { injury: "Injury", pick: "Pick", lean: "Lean", blowout: "Blowout", rest: "Rest", prop: "Prop", role: "Role" };
+  var BRIEF_TAG = { injury: "Injury", pick: "Pick", lean: "Lean", blowout: "Blowout", rest: "Rest", prop: "Prop", role: "Role", sharp: "Sharp" };
   function renderBriefing() {
     var items = data.briefing || [];
     var box = document.getElementById("brief");
@@ -1479,6 +1521,29 @@
     box.hidden = !(gp.rows || []).length;
   }
 
+  function renderMarketResults() {
+    var m = data.market || {}, r = m.record || {};
+    var settled = r.settled || 0;
+    document.getElementById("m-tiles").replaceChildren(
+      tile("Hit rate", settled ? pct(r.hit_rate) : "–", (r.hits || 0) + "–" + (settled - (r.hits || 0)) + (r.open ? " · " + r.open + " open" : "")),
+      tile("Sharp books said", settled ? pct(r.expected) : "–", "average chance of the settled picks"));
+    var box = document.getElementById("m-results");
+    box.replaceChildren();
+    (m.history || []).slice(0, 40).forEach(function (x) {
+      var it = tappable(el("div", "item"), x.athlete_id);
+      it.appendChild(el("div", "rank", String(x.rank)));
+      var mid = el("div", "grow");
+      mid.appendChild(el("div", "ell", x.player + " · " + x.lean + " " + x.line + " " + x.label));
+      mid.appendChild(el("div", "meta", x.night + " · " + x.game + " · sharp " + pct(x.p_sharp) +
+        (x.actual !== null && x.actual !== undefined ? " · got " + x.actual : "")));
+      it.appendChild(mid);
+      var res = x.result === "hit" ? "hit" : x.result === "miss" ? "miss" : x.result ? "void" : "open";
+      it.appendChild(el("span", "pill " + res, res === "hit" ? "Hit" : res === "miss" ? "Missed" : res === "void" ? (x.result === "push" ? "Push" : "Void") : "Open"));
+      box.appendChild(it);
+    });
+    if (!box.children.length) box.appendChild(el("div", "empty", "Counted from tonight: the last check before the first tip."));
+  }
+
   // ---- paper edges (D-021) ----
   var EDGE_NAME = { E1: "Injury model", E3: "Alt line", E4: "Blowout/rest", E5: "1st quarter" };
   var EDGE_ORDER = { E1: 0, E4: 1, E3: 2, E5: 3 };
@@ -1577,6 +1642,120 @@
     d.appendChild(el("span", "v" + (n ? "" : " na"), n ? h + "/" + n : "–"));
     return d;
   }
+  // ---- the sharp market (M1, EXP-0025): every player the sharp books price ----
+  function mrows() { return data && data.market ? (data.market.rows || []) : []; }
+  function takeAt(r, side) {
+    var f = (side || r.lean) === "Over" ? r.fair_over : r.fair_under;
+    return f ? Math.ceil(f * 100 - 1e-9) / 100 : null;
+  }
+  function marketFor(aid) {
+    return mrows().filter(function (r) { return String(r.athlete_id) === String(aid); })
+      .sort(function (a, b) { return b.score - a.score; });
+  }
+  function stakeText(r) {
+    if (r.stake_line === null || r.stake_line === undefined) return null;
+    return "Stake " + r.stake_line + ": O " + odds(r.stake_over) + " · U " + odds(r.stake_under);
+  }
+  function ladderBox(r) {
+    var d = el("details", "ladder");
+    d.appendChild(el("summary", null, "Fair odds at every line (" + r.ladder.length + ")"));
+    var t = el("table");
+    var hd = el("tr");
+    ["Line", "Over", "Under", "Books"].forEach(function (h, i) { hd.appendChild(el("th", i ? "r" : null, h)); });
+    t.appendChild(hd);
+    r.ladder.forEach(function (x) {
+      var tr = el("tr", x[0] === r.line ? "main" : null);
+      tr.appendChild(el("td", null, String(x[0])));
+      tr.appendChild(el("td", "r", x[1] > 0 ? odds(1 / x[1]) + " · " + pct(x[1]) : "–"));
+      tr.appendChild(el("td", "r", x[1] < 1 ? odds(1 / (1 - x[1])) + " · " + pct(1 - x[1]) : "–"));
+      tr.appendChild(el("td", "r", String(x[2])));
+      t.appendChild(tr);
+    });
+    d.appendChild(t);
+    return d;
+  }
+  function marketCard(r, inSheet) {
+    var c = inSheet ? el("div", "card") : tappable(el("div", "card"), r.athlete_id);
+    var row = el("div", "row");
+    var txt = el("div", "grow");
+    txt.appendChild(el("div", "who", (r.rank ? "#" + r.rank + " " : "") + r.player));
+    var bet = el("div", "bet");
+    bet.appendChild(el("b", null, r.lean + " " + r.line + " " + r.label));
+    var ta = takeAt(r);
+    bet.appendChild(document.createTextNode(ta ? " · take at " + ta.toFixed(2) + "+" : ""));
+    txt.appendChild(bet);
+    txt.appendChild(el("div", "meta", r.game + " · " + ist(r.tip) + (r.venue ? " · " + r.venue : "")));
+    var left = ident(r.athlete_id, r.player, "", txt);
+    left.className = "id grow";
+    var big = el("div", "big");
+    big.appendChild(ring(r.score, r.tier));
+    big.appendChild(el("span", "tier " + (TIER_CLASS[r.tier] || "t-lo"), r.tier));
+    row.appendChild(left); row.appendChild(big); c.appendChild(row);
+    var chips = el("div", "chips");
+    chips.appendChild(el("span", "chip", "Sharp " + pct(r.p_sharp) + " · " + r.n_books + (r.n_books === 1 ? " book" : " books")));
+    chips.appendChild(el("span", "chip", "Form " + pct(r.form)));
+    if (r.avg10 !== null && r.avg10 !== undefined) chips.appendChild(el("span", "chip", "L10 avg " + r.avg10));
+    var stx = stakeText(r);
+    chips.appendChild(el("span", "chip" + (stx ? " new" : " muted"), stx || "Not in Stake's feed"));
+    var rc = roleChip(r.athlete_id);
+    if (rc) chips.appendChild(rc);
+    c.appendChild(chips);
+    var f = el("div", "form");
+    f.appendChild(formCell("L5", r.l5_h, r.l5_n));
+    f.appendChild(formCell("L10", r.l10_h, r.l10_n));
+    f.appendChild(formCell("L15", r.l15_h, r.l15_n));
+    f.appendChild(formCell("L20", r.l20_h, r.l20_n));
+    f.appendChild(formCell(r.venue === "away" ? "Away" : "Home", r.venue_h, r.venue_n));
+    f.appendChild(formCell("vs opp", r.opp_h, r.opp_n));
+    c.appendChild(f);
+    var notes = [];
+    if (r.status) notes.push(["warn", r.player.split(" ").slice(-1)[0] + " is " + r.status]);
+    if (r.team_out && r.team_out.length) notes.push(["", "His team out: " + r.team_out.join(", ")]);
+    if (r.opp_out && r.opp_out.length) notes.push(["", "Opponent out: " + r.opp_out.join(", ")]);
+    if (notes.length) {
+      var fl = el("div", "flags");
+      notes.forEach(function (n, i) {
+        if (i) fl.appendChild(document.createTextNode(" · "));
+        fl.appendChild(el("span", n[0], n[1]));
+      });
+      c.appendChild(fl);
+    }
+    if (r.why && r.why.length) {
+      var w = el("ul", "why");
+      w.appendChild(el("li", "h", "For / against the " + r.lean.toLowerCase()));
+      r.why.forEach(function (n) {
+        var li = el("li", n.s > 0 ? "for" : n.s < 0 ? "against" : "");
+        li.appendChild(el("span", "mk", n.s > 0 ? "✓" : n.s < 0 ? "✗" : "•"));
+        li.appendChild(el("span", null, n.t));
+        w.appendChild(li);
+      });
+      c.appendChild(w);
+    }
+    if (r.ladder && r.ladder.length) c.appendChild(ladderBox(r));
+    if (r.athlete_id !== null && r.athlete_id !== undefined) {
+      var acts = el("div", "acts");
+      var lb = el("button", "btn go-lab", "Set your line");
+      lb.type = "button";
+      lb.addEventListener("click", function (ev) { ev.stopPropagation(); openLab(r.athlete_id, r.label, r.line); });
+      acts.appendChild(lb);
+      if (!inSheet) acts.appendChild(el("span", "tap", "Tap the card for his games"));
+      c.appendChild(acts);
+    }
+    return c;
+  }
+  function renderSharp() {
+    var m = data.market || {};
+    var by = {};
+    mrows().forEach(function (r) { by[r.key] = r; });
+    var ps = (m.picks || []).map(function (k) { return by[k]; }).filter(Boolean);
+    var box = document.getElementById("sharp");
+    box.replaceChildren();
+    ps.forEach(function (r) { box.appendChild(marketCard(r)); });
+    var lead = document.getElementById("sharp-lead");
+    lead.textContent = "Stake's feed lists props for only a few players tonight, so these come from the sharp books' prices " +
+      "for everyone (" + mrows().length + " lines), rated like All props. Take one only at the odds shown or better. Paper picks, judged on 1 Dec.";
+    document.getElementById("sharp-h").hidden = lead.hidden = !ps.length;
+  }
   function propCard(r, inSheet) {
     var c = inSheet ? el("div", "card") : tappable(el("div", "card"), r.athlete_id);
     var row = el("div", "row");
@@ -1643,24 +1822,67 @@
     }
     return c;
   }
+  function stakeRows() { return (data.confidence || []).filter(function (r) { return r.key !== "none"; }); }
+  function srcRows() {
+    if (state.src !== "market") return stakeRows();
+    return mrows().slice().sort(function (a, b) {                // capped tiers (one book, Questionable) after the uncapped
+      return TIERS.indexOf(a.tier) - TIERS.indexOf(b.tier) || b.score - a.score;
+    });
+  }
   function renderProps() {
-    var rows = (data.confidence || []).filter(function (r) { return r.key !== "none"; });
+    var market = state.src === "market";
+    var rows = srcRows();
     var shown = rows.filter(function (r) {
       return (!state.tier || r.tier === state.tier) && (!state.game || r.game === state.game) &&
-        (!state.market || r.label === state.market) && (!state.sharp || r.p_sharp !== null) &&
+        (!state.market || r.label === state.market) &&
+        (!state.sharp || (market ? r.n_books >= 2 : r.p_sharp !== null)) &&
         (!state.q || r.player.toLowerCase().indexOf(state.q) >= 0);
     });
     var box = document.getElementById("props");
     box.replaceChildren();
-    shown.slice(0, 400).forEach(function (r) { box.appendChild(propCard(r)); });
-    var withSharp = rows.filter(function (r) { return r.p_sharp !== null; }).length;
-    document.getElementById("count").textContent = rows.length
-      ? shown.length + " of " + rows.length + " props · " + withSharp + " priced by the sharp books · best first"
-      : "No props rated yet for tonight.";
+    shown.slice(0, state.limit).forEach(function (r) { box.appendChild(market ? marketCard(r) : propCard(r)); });
+    var more = document.getElementById("props-more");
+    more.hidden = shown.length <= state.limit;
+    more.textContent = "Show more (" + (shown.length - state.limit) + " left)";
+    var players = new Set(rows.map(function (r) { return r.player; })).size;
+    if (market) {
+      document.getElementById("count").textContent = rows.length
+        ? shown.length + " of " + rows.length + " sharp lines · " + players + " players · best first"
+        : "No sharp lines yet for tonight.";
+    } else {
+      var withSharp = rows.filter(function (r) { return r.p_sharp !== null; }).length;
+      document.getElementById("count").textContent = rows.length
+        ? shown.length + " of " + rows.length + " Stake props · " + players + " players · " + withSharp + " priced by the sharp books · best first"
+        : "No Stake props rated yet for tonight.";
+    }
     if (!shown.length && rows.length) box.appendChild(el("div", "empty", "Nothing matches these filters."));
   }
+  document.getElementById("props-more").addEventListener("click", function () { state.limit += 60; renderProps(); });
+  function setupSrc() {
+    var seg = document.getElementById("src");
+    var m = mrows().length, st = stakeRows().length;
+    if (state.src === null) state.src = recall("src") || (m ? "market" : "stake");
+    if (state.src === "market" && !m) state.src = "stake";
+    seg.hidden = !m;
+    seg.replaceChildren();
+    [["market", "Sharp market " + m], ["stake", "Stake lines " + st]].forEach(function (x) {
+      var b = el("button", null, x[1]);
+      b.setAttribute("aria-pressed", String(state.src === x[0]));
+      b.addEventListener("click", function () {
+        if (state.src === x[0]) return;
+        state.src = x[0]; store("src", x[0]);
+        state.tier = state.game = state.market = ""; state.limit = 60;
+        setupFilters(); renderProps();
+      });
+      seg.appendChild(b);
+    });
+    document.getElementById("f-sharp-t").textContent = state.src === "market" ? "Only lines 2+ sharp books price"
+                                                                              : "Only props the sharp books price";
+  }
   function setupFilters() {
-    var rows = (data.confidence || []).filter(function (r) { return r.key !== "none"; });
+    setupSrc();
+    ["f-game", "f-market"].forEach(function (id) { document.getElementById(id).value = ""; });
+    var rows = srcRows();
     var seg = document.getElementById("tiers");
     seg.replaceChildren();
     [""].concat(TIERS).forEach(function (t) {
@@ -1668,7 +1890,7 @@
       var b = el("button", null, (t || "All") + " " + n);
       b.setAttribute("aria-pressed", String(state.tier === t));
       b.addEventListener("click", function () {
-        state.tier = t;
+        state.tier = t; state.limit = 60;
         [].forEach.call(seg.children, function (x) { x.setAttribute("aria-pressed", String(x === b)); });
         renderProps();
       });
@@ -2065,7 +2287,14 @@
       props.forEach(function (r) { st.appendChild(propCard(r, true)); });
       sheetBody.appendChild(st);
     } else {
-      sheetBody.appendChild(el("div", "card empty", "No Stake line for him yet. Stake posts most props by the evening; the 7:36 pm check rates them."));
+      sheetBody.appendChild(el("div", "card empty", "Stake's feed has no line for him tonight. The sharp books' lines are below."));
+    }
+    var sharpLines = marketFor(aid);
+    if (sharpLines.length) {
+      sheetBody.appendChild(el("h2", null, "Sharp lines tonight (" + sharpLines.length + ")"));
+      var sl = el("div", "stack");
+      sharpLines.forEach(function (r) { sl.appendChild(marketCard(r, true)); });
+      sheetBody.appendChild(sl);
     }
     var mvs = moveOf(aid);
     if (mvs) {
@@ -2183,7 +2412,7 @@
     st.appendChild(el("b", null, s.tonight || "–"));
     st.appendChild(document.createTextNode(" · prices checked " + (s.updated || "–")));
     renderBriefing(); renderPicks(); renderEdges(); renderMoves(); setupFilters(); renderProps(); renderRoles();
-    renderResults(); renderGameResults(); renderGames();
+    renderResults(); renderGameResults(); renderMarketResults(); renderGames();
     if (recall("tab") === "games" || recall("tab") === "lab") loadCards();
     placeInd();
     var started = false;
