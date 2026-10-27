@@ -130,6 +130,44 @@ function shoeGeo(L, h, w, sole) {
   return g;
 }
 
+
+// fewer draw calls: under each joint, meshes that share a material become one mesh (static parts only)
+function mergeByJoint(root) {
+  const joints = [];
+  root.traverse((o) => { if (!o.isMesh) joints.push(o); });
+  const m4 = new THREE.Matrix4();
+  for (const j of joints) {
+    const groups = new Map();
+    for (const c of j.children.slice()) {
+      if (!c.isMesh || c.material.transparent) continue;
+      if (!groups.has(c.material)) groups.set(c.material, []);
+      groups.get(c.material).push(c);
+    }
+    for (const [mat, list] of groups) {
+      if (list.length < 2) continue;
+      const parts = list.map((m) => { m.updateMatrix(); const g = (m.geometry.index ? m.geometry.toNonIndexed() : m.geometry.clone()); g.applyMatrix4(m4.copy(m.matrix)); return g; });
+      let n = 0; for (const g of parts) n += g.attributes.position.count;
+      const pos = new Float32Array(n * 3), nor = new Float32Array(n * 3), uv = new Float32Array(n * 2);
+      let o = 0;
+      for (const g of parts) {
+        const c = g.attributes.position.count;
+        pos.set(g.attributes.position.array, o * 3);
+        if (g.attributes.normal) nor.set(g.attributes.normal.array, o * 3);
+        if (g.attributes.uv) uv.set(g.attributes.uv.array, o * 2);
+        o += c; g.dispose();
+      }
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+      geo.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
+      geo.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+      geo.computeBoundingSphere();
+      const merged = new THREE.Mesh(geo, mat); merged.castShadow = true;
+      for (const m of list) { j.remove(m); m.geometry.dispose(); }
+      j.add(merged);
+    }
+  }
+}
+
 export class Rig {
   constructor(p, team, opts = {}) {
     this.p = p;
@@ -236,6 +274,7 @@ export class Rig {
       mesh(new THREE.SphereGeometry(1, 14, 10), skin, ha, V(0, -L.hand * 0.4, 0.002 * H), null, V(0.026 * H, L.hand * 0.52, 0.013 * H));
       mesh(new THREE.CapsuleGeometry(0.0075 * H, 0.028 * H, 3, 6), skin, ha, V(sx * -0.004 * H, -0.024 * H, 0.016 * H), [0.5, 0, sx * 0.35]);
     }
+    mergeByJoint(this.root);
     this.root.traverse((o) => { if (o.isMesh) o.receiveShadow = false; });
     // state
     this.phase = 0; this.lean = 0; this.look2 = { yaw: 0, pitch: 0 };

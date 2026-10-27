@@ -82,6 +82,9 @@ const CSS = `
 .hx-screen{position:absolute;inset:0;z-index:5;overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y;
   padding:calc(env(safe-area-inset-top) + 12px) 16px calc(env(safe-area-inset-bottom) + 20px)}
 .hx-screen[hidden]{display:none}
+.hx-screen.in{animation:hxin .28s cubic-bezier(.2,.8,.2,1) both}
+@keyframes hxin{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.hx-screen.in{animation:none}}
 .hx-screen.solid{background:rgba(6,11,22,.94)}
 .hx-screen.fade{background:linear-gradient(180deg,rgba(6,11,22,.86) 0%,rgba(6,11,22,0) 30%,rgba(6,11,22,0) 46%,rgba(6,11,22,.94) 70%)}
 .hx-wrap{max-width:640px;margin:0 auto}
@@ -233,11 +236,12 @@ export class UI {
   show(name, data) {
     this.screenName = name; this.data = data || {};
     const s = this.screen;
-    s.hidden = false; s.className = 'hx-screen ' + (name === 'menu' ? 'fade' : name === 'players' ? 'fade' : 'solid');
+    const changed = this.screenName !== this._shown; this._shown = name;
+    s.hidden = false; s.className = 'hx-screen ' + (name === 'menu' ? 'fade' : name === 'players' ? 'fade' : 'solid') + (changed ? ' in' : '');
     s.innerHTML = this['s_' + name](this.data);
     s.scrollTop = 0;
   }
-  hide() { this.screen.hidden = true; this.screenName = null; }
+  hide() { this.screen.hidden = true; this.screenName = null; this._shown = null; }
   face(p, cls = '') {
     const ini = p.name.split(' ').map((w) => w[0]).join('').slice(0, 2);
     return `<div class="hx-face ${cls}">${p.img ? `<img src="${esc(p.img)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}${p.img ? '' : esc(ini)}</div>`;

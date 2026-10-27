@@ -2203,6 +2203,10 @@
     if (!gameEl.hidden || gameLoading) return;
     gameLoading = true;
     gameEl.hidden = false;
+    if (!window.__hoops) {
+      gameEl.innerHTML = '<div style="position:fixed;inset:0;z-index:45;background:#060b16;display:grid;place-items:center;color:#ffc24b;' +
+        'font:900 30px/1 var(--display);letter-spacing:.04em;text-transform:uppercase">Loading Hoops…</div>';
+    }
     document.body.classList.add("lock");
     if (!fromHistory) { try { history.pushState({ shoot: 1 }, "", "#shoot"); gamePushed = true; } catch (e) {} }
     import("/basketball/game/hoops.js").then(function (m) {

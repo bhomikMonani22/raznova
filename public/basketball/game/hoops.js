@@ -545,7 +545,7 @@ class Game {
     for (let i = 0; i < n; i++) Ball.step(st, 1 / 240, null);
     return st.p;
   }
-  markHighlight(kind) { this.highlight = { t: this.time, kind, shown: false }; this.hlFrames = this.recN; }
+  markHighlight(kind) { this.highlight = { t: this.time, kind, shown: false }; this.hlFrames = this.recI; }
 
   // ---- end of a mode: XP, stats, stars ----
   endMode(r) {
@@ -774,9 +774,10 @@ class Game {
   }
   playReplay() {
     if (!this.highlight || this.recN < 30) return;
-    const end = this.recI - 1, len = Math.min(this.recN - 1, 210, Math.max(60, this.recI - this.hlFrames + 50));
-    const endAt = Math.min(end, this.hlFrames + 50);
-    this.rp = { from: endAt - len, to: endAt, i: endAt - len, back: this.state, resume: end, ang: this.R() < 0.5 ? -1 : 1 };
+    const end = this.recI - 1, first = this.recI - this.recN;
+    const endAt = Math.min(end, this.hlFrames + 55), from = Math.max(first, this.hlFrames - 100);
+    if (endAt - from < 30) return;
+    this.rp = { from, to: endAt, i: from, back: this.state, resume: end, ang: this.R() < 0.5 ? -1 : 1 };
     this.state = 'replay'; this.ui.replayChip(false); this.ui.replaying(true); this.ui.hideMeter();
     this.ui.hud.hidden = true; this.ui.pad.hidden = true; this.ui.screen.hidden = true;
     const skip = () => { if (this.state === 'replay') this.endReplay(); };
@@ -787,11 +788,18 @@ class Game {
     rp.i += dt * 60 * 0.45;
     if (rp.i >= rp.to) { this.endReplay(); return; }
     this.apply(Math.floor(rp.i));
-    const bp = this.ball.mesh.position;
+    if (!rp.focus) {                                         // frame the play: where the ball was at the highlight
+      const F = this.frameSize(), o = ((((this.hlFrames || rp.to) % REC_N) + REC_N) % REC_N) * F + 2 * AG_F;
+      rp.focus = new THREE.Vector3(this.rec[o], this.rec[o + 1], this.rec[o + 2]);
+      if (!(Math.abs(rp.focus.x) < 20)) rp.focus.set(0, 2, 1);
+      this.camPos.set(rp.focus.x + rp.ang * 4.2, 1.4, rp.focus.z + 4.2);
+    }
+    const bp = this.ball.mesh.position, f = rp.focus;
     const k = (rp.i - rp.from) / (rp.to - rp.from);
-    const ang = rp.ang * (0.9 - 0.7 * k);
-    const want = new THREE.Vector3(Math.sin(ang) * 4.6, 1.6 + k * 0.8, 1.2 + Math.cos(ang) * 4.6);
-    this.camPos.lerp(want, 1 - Math.exp(-2 * dt)); this.camLook.lerp(new THREE.Vector3(bp.x * 0.5, Math.max(1.6, bp.y * 0.7 + 0.9), bp.z * 0.5), 1 - Math.exp(-4 * dt));
+    const ang = rp.ang * (1.0 - 0.6 * k);
+    const want = new THREE.Vector3(f.x + Math.sin(ang) * 5.2, 1.5 + k * 0.9, f.z + Math.cos(ang) * 5.2);
+    const look = new THREE.Vector3((f.x + bp.x) / 2, Math.max(1.3, (Math.min(bp.y, 3.6) + 1.2) / 2 + 0.3), (f.z + bp.z) / 2);
+    this.camPos.lerp(want, 1 - Math.exp(-2.4 * dt)); this.camLook.lerp(look, 1 - Math.exp(-5 * dt));
     this.camera.position.copy(this.camPos); this.camera.lookAt(this.camLook);
   }
   endReplay() {
