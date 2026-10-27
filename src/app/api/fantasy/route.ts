@@ -50,8 +50,10 @@ export async function GET(req: NextRequest) {
   if (sp.get("ping")) {
     if (!store) return json({ storage: null, ok: false });
     try {
-      await store.get("fantasy:ping");
-      return json({ storage: store.kind, ok: true });
+      const cur = await store.get("fantasy:ping");
+      // ping=write also proves the compare-and-swap script runs (one tiny key, no league touched)
+      const write = sp.get("ping") === "write" ? await store.cas("fantasy:ping", cur, now()) : undefined;
+      return json({ storage: store.kind, ok: write !== false, write });
     } catch {
       return json({ storage: store.kind, ok: false });
     }
