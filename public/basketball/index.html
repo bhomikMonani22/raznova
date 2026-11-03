@@ -355,6 +355,19 @@
   .strip .c { display: block; font-size: 11px; color: var(--mist); }
   .venue { margin-top: 10px; }
   .brief .tag.sharp { background: var(--make-soft); color: var(--make); }
+  .tbl-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin-top: 10px; }
+  table.st { min-width: 100%; font-size: 13px; }
+  table.st th, table.st td { white-space: nowrap; padding: 7px 6px; }
+  table.st th { cursor: pointer; }
+  table.st th.on { color: var(--amber); }
+  table.st td.nm { position: sticky; left: 0; background: var(--tunnel); max-width: 150px; overflow: hidden; text-overflow: ellipsis; }
+  table.st td .tm { color: var(--mist); font-size: 11.5px; margin-left: 4px; }
+  .leaders { display: grid; grid-template-columns: 1fr; gap: 10px; }
+  @media (min-width: 720px) { .leaders { grid-template-columns: 1fr 1fr; } }
+  .leaders h3 { margin: 0 0 6px; font: 800 17px/1.1 var(--display); text-transform: uppercase; letter-spacing: .02em; }
+  .gday { margin: 14px 2px 4px; color: var(--mist); font-size: 12.5px; }
+  .gline { display: flex; justify-content: space-between; gap: 10px; }
+  .gline .w { font-weight: 700; color: var(--net); }
   .chip.take { background: var(--amber-soft); color: var(--amber); font-weight: 700; }
   .ladder { margin-top: 10px; font-size: 12.5px; }
   .ladder summary { cursor: pointer; color: var(--mist); padding: 2px 0; font: 600 12.5px/1.3 var(--body);
@@ -433,6 +446,7 @@
   <button role="tab" id="tb-games" aria-controls="tab-games" aria-selected="false">Games</button>
   <button role="tab" id="tb-props" aria-controls="tab-props" aria-selected="false">Props</button>
   <button role="tab" id="tb-players" aria-controls="tab-players" aria-selected="false">Players</button>
+  <button role="tab" id="tb-season" aria-controls="tab-season" aria-selected="false">Season</button>
   <button role="tab" id="tb-roles" aria-controls="tab-roles" aria-selected="false">Roles</button>
   <button role="tab" id="tb-results" aria-controls="tab-results" aria-selected="false">Results</button>
   <span class="tab-ind" id="tab-ind" aria-hidden="true"></span>
@@ -499,7 +513,7 @@
     <button class="btn more-btn" id="props-more" type="button" hidden>Show more</button>
   </section>
   <section id="tab-players" role="tabpanel" aria-labelledby="tb-players" hidden>
-    <p class="take">Everyone in tonight's games</p>
+    <p class="take" id="players-take">Everyone in tonight's games</p>
     <p class="lead">Tap a player for his last 15 games against any line, splits, the matchup and every Stake prop on
       him. Players show here even before Stake posts their lines.</p>
     <div class="filters">
@@ -508,6 +522,12 @@
       <label class="toggle"><input type="checkbox" id="p-lined"> Only players with a Stake line</label>
     </div>
     <div id="players"></div>
+  </section>
+  <section id="tab-season" role="tabpanel" aria-labelledby="tb-season" hidden>
+    <p class="take" id="season-take">Season so far</p>
+    <p class="lead" id="season-lead">Every regular-season game this season, from the box scores.</p>
+    <div class="seg" id="s-view" role="group" aria-label="View"></div>
+    <div id="season-body"></div>
   </section>
   <section id="tab-roles" role="tabpanel" aria-labelledby="tb-roles" hidden>
     <p class="take">Role changes this season</p>
@@ -553,6 +573,9 @@
       confidence score. <b>Take at</b> is the no-vig fair price: odds at or above it are worth taking, on any book.
       Sharp picks are the best leans with two or more books (fair odds 1.30 to 3.00, one a player, two a game, ten a
       night); the night's last check before the first tip is the one counted. Paper only, no stake.</p>
+    <p><b>Season</b>: every regular-season game so far from the box scores: per-game leaders (3+ games, 15+ minutes),
+      every player's averages and shooting, team pace and ratings per 100 possessions, and every final with its top
+      scorers. Stats only, not picks.</p>
     <p><b>Players</b>: every player who has played for one of tonight's teams this season, and anyone on tonight's
       injury report. Tap one for his last 15 games against any line you set, season and home/away averages, his games
       against tonight's opponent, the opponent's defence against his position (last 20 games against the league), the
@@ -657,7 +680,7 @@
   function recall(k) { try { return localStorage.getItem("eb." + k); } catch (e) { return null; } }
 
   // ---- tabs ----
-  var tabs = ["picks", "lab", "games", "props", "players", "roles", "results"];
+  var tabs = ["picks", "lab", "games", "props", "players", "season", "roles", "results"];
   function show(name) {
     tabs.forEach(function (t) {
       document.getElementById("tb-" + t).setAttribute("aria-selected", String(t === name));
@@ -669,6 +692,7 @@
     if (typeof placeInd === "function") placeInd();
     if ((name === "players" || name === "games" || name === "lab") && data) loadCards();
     if (name === "lab" && data) renderLab();
+    if (name === "season") loadSeason();
   }
   tabs.forEach(function (t) { document.getElementById("tb-" + t).addEventListener("click", function () { show(t); }); });
   show(tabs.indexOf(recall("tab")) >= 0 ? recall("tab") : "picks");
@@ -1911,6 +1935,166 @@
   document.getElementById("f-q").addEventListener("input", function (e) { state.q = e.target.value.trim().toLowerCase(); renderProps(); });
   document.getElementById("f-sharp").addEventListener("change", function (e) { state.sharp = e.target.checked; renderProps(); });
 
+  // ---- season (data: season.json, lab/season_stats.py) ----
+  var SEASON_URL = "/basketball/data/season.json";
+  var season = null, seasonState = "idle";
+  var sv = { view: recall("sview") || "leaders", q: "", sort: "pts", limit: 80 };
+  var S_VIEWS = [["leaders", "Leaders"], ["players", "Players"], ["teams", "Teams"], ["games", "Results"]];
+  var P_COLS = [["gp", "G", "i"], ["min", "MIN", "1"], ["pts", "PTS", "1"], ["reb", "REB", "1"], ["ast", "AST", "1"],
+    ["fg3m", "3PM", "1"], ["stl", "STL", "1"], ["blk", "BLK", "1"], ["tov", "TOV", "1"], ["fg", "FG%", "p"],
+    ["fg3", "3P%", "p"], ["ft", "FT%", "p"], ["l5", "L5 PTS", "1"]];
+  function sfmt(v, kind) {
+    if (v === null || v === undefined) return "–";
+    return kind === "p" ? (v * 100).toFixed(1) : kind === "i" ? String(v) : Number(v).toFixed(1);
+  }
+  function face(url, name) {
+    var w = el("div", "av sm");
+    var ini = el("span", "ini", (name || "?").split(" ").filter(Boolean).map(function (x) { return x[0]; }).slice(0, 2).join(""));
+    ini.style.background = "var(--muted)";
+    if (url) {
+      ini.hidden = true;
+      var img = el("img");
+      img.alt = ""; img.loading = "lazy"; img.decoding = "async"; img.referrerPolicy = "no-referrer";
+      img.addEventListener("error", function () { img.remove(); ini.hidden = false; });
+      img.src = url;
+      w.appendChild(img);
+    }
+    w.appendChild(ini);
+    return w;
+  }
+  function loadSeason() {
+    if (!sv) return;                     // called by the first show() before this block's vars are set; render() retries
+    if (seasonState !== "idle") { renderSeason(); return; }
+    seasonState = "loading";
+    renderSeason();
+    fetch(SEASON_URL + "?t=" + Date.now(), { cache: "no-store" })
+      .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(function (d) { season = d; seasonState = "ready"; renderSeason(); })
+      .catch(function () { seasonState = "missing"; renderSeason(); });
+  }
+  function renderSeason() {
+    var body = document.getElementById("season-body");
+    body.replaceChildren();
+    var seg = document.getElementById("s-view");
+    seg.replaceChildren();
+    S_VIEWS.forEach(function (v) {
+      var b = el("button", null, v[1]);
+      b.setAttribute("aria-pressed", String(sv.view === v[0]));
+      b.addEventListener("click", function () { sv.view = v[0]; sv.limit = 80; store("sview", v[0]); renderSeason(); });
+      seg.appendChild(b);
+    });
+    if (seasonState !== "ready") {
+      body.appendChild(el("div", "empty", seasonState === "missing" ? "Season stats aren't published yet." : "Loading the season…"));
+      return;
+    }
+    document.getElementById("season-take").textContent = "Season " + season.season + " so far";
+    document.getElementById("season-lead").textContent = season.games_played + " games through " + season.through +
+      " (US dates), from the box scores. Leaders: " + season.rules.leaders + ".";
+    if (sv.view === "leaders") {
+      var grid = el("div", "leaders");
+      (season.leaders || []).forEach(function (L) {
+        var c = el("div", "card list");
+        c.appendChild(el("h3", null, L.label + " a game"));
+        L.rows.forEach(function (r, i) {
+          var it = el("div", "item");
+          it.appendChild(el("div", "rank", String(i + 1)));
+          var p = (season.players || []).filter(function (x) { return x.aid === r.aid; })[0];
+          it.appendChild(face(p && p.head, r.name));
+          var mid = el("div", "grow");
+          mid.appendChild(el("div", "ell", r.name));
+          mid.appendChild(el("div", "meta", r.team + " · " + r.gp + " games"));
+          it.appendChild(mid);
+          var n = el("div", "num"); n.appendChild(el("div", "pct", Number(r.v).toFixed(1))); it.appendChild(n);
+          c.appendChild(it);
+        });
+        grid.appendChild(c);
+      });
+      body.appendChild(grid);
+    } else if (sv.view === "players") {
+      var q = el("input");
+      q.type = "search"; q.placeholder = "Search player or team"; q.value = sv.q;
+      q.setAttribute("aria-label", "Search player or team");
+      q.style.marginTop = "10px"; q.style.width = "100%";
+      q.addEventListener("input", function () { sv.q = q.value.trim().toLowerCase(); sv.limit = 80; drawTable(); });
+      body.appendChild(q);
+      var holder = el("div");
+      body.appendChild(holder);
+      function drawTable() {
+        holder.replaceChildren();
+        var rows = (season.players || []).filter(function (p) {
+          return !sv.q || p.name.toLowerCase().indexOf(sv.q) >= 0 || (p.team || "").toLowerCase() === sv.q;
+        }).sort(function (a, b) { return (b[sv.sort] === null ? -1 : b[sv.sort]) - (a[sv.sort] === null ? -1 : a[sv.sort]); });
+        holder.appendChild(el("p", "count", rows.length + " players · tap a column to sort"));
+        var wrap = el("div", "tbl-wrap card");
+        var t = el("table", "st");
+        var hr = el("tr");
+        hr.appendChild(el("th", null, "Player"));
+        P_COLS.forEach(function (c) {
+          var th = el("th", "r" + (sv.sort === c[0] ? " on" : ""), c[1]);
+          th.addEventListener("click", function () { sv.sort = c[0]; drawTable(); });
+          hr.appendChild(th);
+        });
+        t.appendChild(hr);
+        rows.slice(0, sv.limit).forEach(function (p) {
+          var tr = el("tr");
+          var nm = el("td", "nm");
+          nm.appendChild(document.createTextNode(p.name));
+          nm.appendChild(el("span", "tm", p.team || ""));
+          tr.appendChild(nm);
+          P_COLS.forEach(function (c) { tr.appendChild(el("td", "r", sfmt(p[c[0]], c[2]))); });
+          t.appendChild(tr);
+        });
+        wrap.appendChild(t);
+        holder.appendChild(wrap);
+        if (rows.length > sv.limit) {
+          var more = el("button", "btn more-btn", "Show more (" + (rows.length - sv.limit) + " left)");
+          more.type = "button";
+          more.addEventListener("click", function () { sv.limit += 120; drawTable(); });
+          holder.appendChild(more);
+        }
+      }
+      drawTable();
+    } else if (sv.view === "teams") {
+      var wrap2 = el("div", "tbl-wrap card");
+      var t2 = el("table", "st");
+      var h2 = el("tr");
+      ["Team", "W-L", "PTS", "OPP", "Pace", "ORtg", "DRtg", "Net"].forEach(function (h, i) { h2.appendChild(el("th", i ? "r" : null, h)); });
+      t2.appendChild(h2);
+      (season.teams || []).forEach(function (r) {
+        var tr = el("tr");
+        var nm = el("td", "nm", r.team);
+        tr.appendChild(nm);
+        [r.w + "-" + r.l, sfmt(r.pf), sfmt(r.pa), sfmt(r.pace), sfmt(r.ortg), sfmt(r.drtg),
+         (r.net > 0 ? "+" : "") + sfmt(r.net)].forEach(function (v) { tr.appendChild(el("td", "r", v)); });
+        t2.appendChild(tr);
+      });
+      wrap2.appendChild(t2);
+      body.appendChild(el("p", "count", "Ratings are points per 100 possessions; net = ORtg - DRtg. Best net first."));
+      body.appendChild(wrap2);
+    } else {
+      var day = null, box = null;
+      (season.games || []).forEach(function (g) {
+        if (g.date !== day) {
+          day = g.date;
+          body.appendChild(el("div", "gday", g.date));
+          box = el("div", "card list");
+          body.appendChild(box);
+        }
+        var it = el("div", "item");
+        var mid = el("div", "grow");
+        var line = el("div", "gline");
+        var a = el("span", g.as > g.hs ? "w" : null, g.away + " " + g.as);
+        var h = el("span", g.hs > g.as ? "w" : null, g.hs + " " + g.home);
+        line.appendChild(a); line.appendChild(el("span", "meta", "@")); line.appendChild(h);
+        mid.appendChild(line);
+        mid.appendChild(el("div", "meta", [g.away_top, g.home_top].filter(Boolean).join(" · ")));
+        it.appendChild(mid);
+        box.appendChild(it);
+      });
+      if (!(season.games || []).length) body.appendChild(el("div", "empty", "No finals yet."));
+    }
+  }
+
   // ---- results ----
   function tile(k, v, s) {
     var t = el("div", "card tile");
@@ -2079,6 +2263,9 @@
       return;
     }
     var games = cards.games || [];
+    var pt = document.getElementById("players-take");
+    if (pt) pt.textContent = data && data.summary && cards.night && cards.night !== data.summary.tonight
+      ? "Everyone in the next games (" + cards.night + ")" : "Everyone in tonight's games";
     [{ game_id: "", game: "All games" }].concat(games).forEach(function (g) {
       var b = el("button", null, g.game);
       b.setAttribute("aria-pressed", String(pstate.game === String(g.game_id)));
@@ -2424,6 +2611,7 @@
     var lm = /^#lab=(\d+)\/([^\/]+)\/([\d.]+)/.exec(location.hash);
     if (lm) openLab(lm[1], decodeURIComponent(lm[2]), parseFloat(lm[3]));
     if (recall("tab") === "players") loadCards();
+    if (recall("tab") === "season") loadSeason();
     var m = /^#p=(\d+)/.exec(location.hash);
     if (m) openSheet(m[1], true);
   }
