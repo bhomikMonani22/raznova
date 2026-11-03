@@ -717,6 +717,8 @@
         "have the full board. Every prop's confidence is on All props now.";
     } else if (s.stake_props_listed == null) {
       take.textContent = "No prices checked yet for tonight. Next check: " + (s.next_refresh || "this evening") + ".";
+    } else if (!(data.game_lines || []).length && !(data.confidence || []).length && !mrows().length) {
+      take.textContent = "No NBA games tonight. Results for every pick so far are on the Results tab.";
     } else if ((data.market || {}).picks && data.market.picks.length) {
       take.textContent = data.market.picks.length + " sharp picks tonight. Stake's feed has props for only " +
         new Set((data.confidence || []).map(function (r) { return r.player; })).size + " players, so they come from the sharp books' prices for everyone.";
