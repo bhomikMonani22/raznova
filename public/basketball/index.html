@@ -277,6 +277,13 @@
 
   /* my money: real slips (lab/my_slips.py) */
   .money .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .money .tiles.four { grid-template-columns: repeat(2, 1fr); }
+  .money .nrow { display: grid; grid-template-columns: 52px 1fr 78px; gap: 8px; align-items: center; font-size: 13px; padding: 5px 0; }
+  .money .bars { display: grid; gap: 3px; }
+  .money .bar { height: 8px; border-radius: 4px; min-width: 2px; }
+  .money .bar.inv { background: var(--mist); opacity: .55; } .money .bar.pf { background: var(--make); } .money .bar.ls { background: var(--miss); }
+  .money .key { display: flex; gap: 14px; font-size: 12px; color: var(--mist); margin-bottom: 6px; }
+  .money .key i { display: inline-block; width: 10px; height: 8px; border-radius: 3px; margin-right: 5px; }
   .money .tile { background: var(--raised); border-radius: 10px; padding: 10px; }
   .money .tile small { display: block; color: var(--mist); font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em; }
   .money .tile b { font: 800 22px/1.2 var(--display); }
@@ -460,6 +467,7 @@
 </div>
 <nav class="tabs" aria-label="Sections"><div class="wrap" role="tablist" id="tablist">
   <button role="tab" id="tb-picks" aria-controls="tab-picks" aria-selected="true">Tonight</button>
+  <button role="tab" id="tb-money" aria-controls="tab-money" aria-selected="false">Money</button>
   <button role="tab" id="tb-lab" aria-controls="tab-lab" aria-selected="false">Line Lab</button>
   <button role="tab" id="tb-games" aria-controls="tab-games" aria-selected="false">Games</button>
   <button role="tab" id="tb-props" aria-controls="tab-props" aria-selected="false">Props</button>
@@ -472,7 +480,7 @@
 <main class="wrap">
   <section id="tab-picks" role="tabpanel" aria-labelledby="tb-picks">
     <div id="money-wrap" hidden>
-      <h2 style="margin-top:6px">My money</h2>
+      <h2 style="margin-top:6px">My open slips</h2>
       <div class="card money" id="money"></div>
     </div>
     <div id="brief-wrap" hidden>
@@ -563,7 +571,15 @@
     <h2>Smaller role</h2>
     <div class="stack" id="roles-down"></div>
   </section>
+  <section id="tab-money" role="tabpanel" aria-labelledby="tb-money" hidden>
+    <h2 style="margin-top:6px">My money this season</h2>
+    <div class="card money" id="money-season"></div>
+    <h2>Invested vs profit by night</h2>
+    <div class="card money" id="money-nights"></div>
+  </section>
   <section id="tab-results" role="tabpanel" aria-labelledby="tb-results" hidden>
+    <div id="myres-wrap" hidden><h2 style="margin-top:6px">My slips: results</h2>
+      <div class="card money" id="myres"></div></div>
     <p class="take" id="review-take"></p>
     <div class="card list" id="review"></div>
     <h2>Record so far</h2>
@@ -703,7 +719,7 @@
   function recall(k) { try { return localStorage.getItem("eb." + k); } catch (e) { return null; } }
 
   // ---- tabs ----
-  var tabs = ["picks", "lab", "games", "props", "players", "season", "roles", "results"];
+  var tabs = ["picks", "money", "lab", "games", "props", "players", "season", "roles", "results"];
   function show(name) {
     tabs.forEach(function (t) {
       document.getElementById("tb-" + t).setAttribute("aria-selected", String(t === name));
@@ -1355,34 +1371,78 @@
   // ---- my money: Bhoomik's real slips, apart from every paper record (lab/my_slips.py) ----
   var MK = { pts: "pts", reb: "reb", ast: "ast", "pts+reb": "P+R", "pts+ast": "P+A", "reb+ast": "R+A", "pts+reb+ast": "PRA" };
   function rs(x) { return "₹" + Number(x).toFixed(2); }
+  function slipNode(sl) {
+    var d = document.createElement("details"), sm = document.createElement("summary");
+    sm.appendChild(el("span", "", sl.night.slice(5) + " · " + sl.legs.length + " legs @" + sl.odds.toFixed(2) + " · " + rs(sl.stake)));
+    sm.appendChild(el("span", "st " + sl.status, sl.status === "won" ? "Won " + rs(sl.returned) : sl.status));
+    d.appendChild(sm);
+    sl.legs.forEach(function (l) {
+      var r = el("div", "leg");
+      r.appendChild(el("span", "", l.market === "win" ? l.team + " to win" : l.player + " " + (l.side === "Over" ? "O" : "U") + l.line + " " + (MK[l.market] || l.market)));
+      r.appendChild(el("span", l.result, (l.actual !== undefined && l.actual !== null ? l.actual + " · " : "") + l.result));
+      d.appendChild(r);
+    });
+    return d;
+  }
+  function mtile(label, val, cls) {
+    var d = el("div", "tile"); d.appendChild(el("small", "", label)); d.appendChild(el("b", cls || "", val)); return d;
+  }
+  function pm(x) { return (x >= 0 ? "+" : "−") + rs(Math.abs(x)); }
   function renderMoney() {
-    var m = data.my_slips, box = document.getElementById("money");
-    document.getElementById("money-wrap").hidden = !m;
-    if (!m) return;
-    var t = m.totals;
+    var m = data.my_slips;
+    var open = m ? m.slips.filter(function (s) { return s.status === "open" || s.status === "check"; }) : [];
+    var done = m ? m.slips.filter(function (s) { return s.status === "won" || s.status === "lost"; }) : [];
+    // Tonight: open slips only
+    var box = document.getElementById("money");
+    document.getElementById("money-wrap").hidden = !open.length;
     box.replaceChildren();
-    var tiles = el("div", "tiles");
-    [["Invested", rs(t.staked), ""], ["Returned", rs(t.returned), ""],
-     ["Profit", (t.profit >= 0 ? "+" : "−") + rs(Math.abs(t.profit)), t.staked_settled ? (t.profit >= 0 ? "pos" : "neg") : ""]
-    ].forEach(function (x) {
-      var d = el("div", "tile"); d.appendChild(el("small", "", x[0])); d.appendChild(el("b", x[2], x[1])); tiles.appendChild(d);
+    if (open.length) {
+      var st = open.reduce(function (a, s) { return a + s.stake; }, 0);
+      var tiles = el("div", "tiles");
+      tiles.appendChild(mtile("Slips", String(open.length)));
+      tiles.appendChild(mtile("Staked", rs(st)));
+      tiles.appendChild(mtile("If all hit", rs(m.totals.potential), "pos"));
+      box.appendChild(tiles);
+      open.forEach(function (sl) { box.appendChild(slipNode(sl)); });
+    }
+    // Results: settled slips
+    var rb = document.getElementById("myres");
+    document.getElementById("myres-wrap").hidden = !done.length;
+    rb.replaceChildren();
+    done.forEach(function (sl) { rb.appendChild(slipNode(sl)); });
+    // Money tab: season totals and nights
+    var sb = document.getElementById("money-season"), nb = document.getElementById("money-nights");
+    sb.replaceChildren(); nb.replaceChildren();
+    if (!m) { sb.appendChild(el("p", "rec", "No slips logged yet.")); return; }
+    var t = m.totals;
+    var tl = el("div", "tiles four");
+    tl.appendChild(mtile("Invested", rs(t.staked_settled)));
+    tl.appendChild(mtile("Returned", rs(t.returned)));
+    tl.appendChild(mtile("Profit", pm(t.profit), t.staked_settled ? (t.profit >= 0 ? "pos" : "neg") : ""));
+    tl.appendChild(mtile("ROI", t.roi === null || t.roi === undefined ? "–" : (t.roi >= 0 ? "+" : "") + (t.roi * 100).toFixed(1) + "%",
+                        t.roi === null || t.roi === undefined ? "" : (t.roi >= 0 ? "pos" : "neg")));
+    sb.appendChild(tl);
+    sb.appendChild(el("p", "rec", t.won + " won · " + t.lost + " lost" + (t.open ? " · " + t.open + " open (" + rs(t.staked - t.staked_settled) + " staked, not counted yet)" : "")));
+    var ns = t.nights || [];
+    if (!ns.length) { nb.appendChild(el("p", "rec", "Nothing settled yet. Nights show here once slips settle.")); return; }
+    var key = el("div", "key");
+    [["inv", "Invested"], ["pf", "Profit"], ["ls", "Loss"]].forEach(function (k) {
+      var x = el("span", ""); var i = document.createElement("i"); i.className = "bar " + k[0]; x.appendChild(i); x.appendChild(document.createTextNode(k[1])); key.appendChild(x);
     });
-    box.appendChild(tiles);
-    box.appendChild(el("p", "rec", t.won + " won · " + t.lost + " lost · " + t.open + " open" +
-      (t.open ? " (" + rs(t.potential) + " if all open slips hit)" : "")));
-    m.slips.forEach(function (sl) {
-      var d = document.createElement("details"), sm = document.createElement("summary");
-      sm.appendChild(el("span", "", sl.night.slice(5) + " · " + sl.legs.length + " legs @" + sl.odds.toFixed(2) + " · " + rs(sl.stake)));
-      sm.appendChild(el("span", "st " + sl.status, sl.status === "won" ? "Won " + rs(sl.returned) : sl.status));
-      d.appendChild(sm);
-      sl.legs.forEach(function (l) {
-        var r = el("div", "leg");
-        r.appendChild(el("span", "", l.market === "win" ? l.team + " to win" : l.player + " " + (l.side === "Over" ? "O" : "U") + l.line + " " + (MK[l.market] || l.market)));
-        r.appendChild(el("span", l.result, (l.actual !== undefined && l.actual !== null ? l.actual + " · " : "") + l.result));
-        d.appendChild(r);
-      });
-      box.appendChild(d);
+    nb.appendChild(key);
+    var mx = Math.max.apply(null, ns.map(function (n) { return Math.max(n.staked, Math.abs(n.profit)); })) || 1;
+    ns.slice().reverse().forEach(function (n) {
+      var r = el("div", "nrow");
+      r.appendChild(el("span", "", n.night.slice(5)));
+      var bars = el("div", "bars");
+      var b1 = el("div", "bar inv"); b1.style.width = (n.staked / mx * 100) + "%";
+      var b2 = el("div", "bar " + (n.profit >= 0 ? "pf" : "ls")); b2.style.width = (Math.abs(n.profit) / mx * 100) + "%";
+      bars.appendChild(b1); bars.appendChild(b2); r.appendChild(bars);
+      r.appendChild(el("span", n.profit >= 0 ? "pos" : "neg", pm(n.profit)));
+      nb.appendChild(r);
     });
+    var last = ns[ns.length - 1];
+    nb.appendChild(el("p", "rec", "Season: " + rs(last.cum_staked) + " in, " + pm(last.cum_profit) + " profit."));
   }
 
   // ---- the Tonight briefing (lab/briefing.py writes every sentence) ----
