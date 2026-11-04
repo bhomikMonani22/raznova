@@ -355,6 +355,8 @@
   .strip .c { display: block; font-size: 11px; color: var(--mist); }
   .venue { margin-top: 10px; }
   .brief .tag.sharp { background: var(--make-soft); color: var(--make); }
+  .gseg { overflow-x: auto; flex-wrap: nowrap; scrollbar-width: none; margin: 4px 0 12px; }
+  .gseg button { white-space: nowrap; flex: none; }
   .tbl-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin-top: 10px; }
   table.st { min-width: 100%; font-size: 13px; }
   table.st th, table.st td { white-space: nowrap; padding: 7px 6px; }
@@ -458,6 +460,7 @@
       <div class="card list brief" id="brief"></div>
     </div>
     <p class="take" id="take"></p>
+    <div class="seg gseg" id="t-games" role="group" aria-label="Game" hidden></div>
     <div id="hero"></div>
     <h2 id="list-h" hidden>Top 2–10</h2>
     <div class="card list" id="toplist" hidden></div>
@@ -729,7 +732,8 @@
   }
   function renderPicks() {
     var s = data.summary || {};
-    var tonight = (data.picks || []).filter(function (r) { return r.night === s.tonight; });
+    renderGameChips();
+    var tonight = (data.picks || []).filter(function (r) { return r.night === s.tonight && (!tgame || ng(r.game) === tgame); });
     var tops = tonight.filter(function (r) { return r.kind === "Top 10"; }).sort(function (a, b) { return a.rank - b.rank; });
     var par = tonight.filter(function (r) { return r.kind === "Parlay"; })[0];
     var take = document.getElementById("take");
@@ -789,7 +793,7 @@
     }
     var best = document.getElementById("best");
     best.replaceChildren();
-    var rated = (data.confidence || []).filter(function (r) { return r.key !== "none"; });
+    var rated = (data.confidence || []).filter(function (r) { return r.key !== "none" && (!tgame || ng(r.game) === tgame); });
     if (!tops.length && rated.length) rated.slice(0, 3).forEach(function (r) { best.appendChild(propCard(r)); });
     document.getElementById("best-h").hidden = !best.children.length;
     renderSharp();
@@ -1769,17 +1773,53 @@
     }
     return c;
   }
+  var tgame = "";
+  var GABBR = { SAS: "SA", NYK: "NY", GSW: "GS", NOP: "NO", UTA: "UTAH", WAS: "WSH", PHO: "PHX", BRK: "BKN" };
+  function ng(g) { return String(g || "").split(" @ ").map(function (t) { return GABBR[t] || t; }).join(" @ "); }
+  function renderGameChips() {
+    var seg = document.getElementById("t-games");
+    var seen = {}, games = [];
+    mrows().concat(data.picks || []).forEach(function (r) {
+      var gk = ng(r.game);
+      if (r.game && !seen[gk] && (!r.night || r.night === (data.summary || {}).tonight)) {
+        seen[gk] = 1; games.push({ game: gk, tip: r.tip_utc || r.tip });
+      }
+    });
+    games.sort(function (a, b) { return String(a.tip).localeCompare(String(b.tip)); });
+    seg.replaceChildren();
+    seg.hidden = games.length < 2;
+    if (tgame && !seen[tgame]) tgame = "";
+    [{ game: "", tip: null }].concat(games).forEach(function (g) {
+      var b = el("button", null, g.game ? g.game + (g.tip ? " · " + istTime(g.tip) : "") : "All games");
+      b.type = "button";
+      b.setAttribute("aria-pressed", String(tgame === g.game));
+      b.addEventListener("click", function () { tgame = g.game; renderPicks(); });
+      seg.appendChild(b);
+    });
+  }
+  function istTime(t) {
+    try { return new Date(t).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Kolkata" }); }
+    catch (e) { return ""; }
+  }
   function renderSharp() {
     var m = data.market || {};
     var by = {};
     mrows().forEach(function (r) { by[r.key] = r; });
     var ps = (m.picks || []).map(function (k) { return by[k]; }).filter(Boolean);
+    if (tgame) {
+      ps = mrows().filter(function (r) { return ng(r.game) === tgame && r.n_books >= 2; })
+        .sort(function (a, b) { return (b.rank ? 1 : 0) - (a.rank ? 1 : 0) || b.score - a.score; }).slice(0, 10);
+    }
     var box = document.getElementById("sharp");
     box.replaceChildren();
     ps.forEach(function (r) { box.appendChild(marketCard(r)); });
     var lead = document.getElementById("sharp-lead");
     lead.textContent = "Stake's feed lists props for only a few players tonight, so these come from the sharp books' prices " +
       "for everyone (" + mrows().length + " lines), rated like All props. Take one only at the odds shown or better. Paper picks, judged on 1 Dec.";
+    if (tgame) {
+      document.getElementById("sharp-h").textContent = "Best sharp lines · " + tgame;
+      lead.textContent = "The 10 strongest leans in this game (2+ sharp books). Cards marked # are tonight's counted sharp picks; the rest are stats, not picks. Take one only at the odds shown or better.";
+    } else document.getElementById("sharp-h").textContent = "Sharp picks · every player";
     document.getElementById("sharp-h").hidden = lead.hidden = !ps.length;
   }
   function propCard(r, inSheet) {
