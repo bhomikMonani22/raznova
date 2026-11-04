@@ -2597,6 +2597,49 @@
     sheetBody.appendChild(lc);
     sheetBody.appendChild(el("p", "small", "Box scores from ESPN via hoopR, through " + (cards.box_through || "–") +
       ". Regular season, play-in and playoffs; All-Star games left out."));
+    highlight(p, aid, idx);
+  }
+  // Highlight: his steadiest stats over the last 10 games he played (lowest spread relative to his average)
+  function highlight(p, aid, idx) {
+    var log = (p.log || []).filter(function (r) { return (r[idx.min] || 0) > 0; }).slice(0, 10);
+    if (log.length < 5) return;
+    var out = [];
+    MKTS.forEach(function (m) {
+      if (m[0].indexOf("1Q") === 0) return;
+      var v = valsOf(log, m[1], idx);
+      if (v.length < 5) return;
+      var mean = v.reduce(function (a, b) { return a + b; }, 0) / v.length;
+      if (mean < 5) return;
+      var sd = Math.sqrt(v.reduce(function (a, b) { return a + (b - mean) * (b - mean); }, 0) / v.length);
+      var sorted = v.slice().sort(function (a, b) { return a - b; });
+      var floor = Math.floor(sorted[1]) - 0.5;                 // a line he went over in all but one game
+      var over = v.filter(function (x) { return x > floor; }).length;
+      out.push({ label: m[0], mean: mean, sd: sd, cv: sd / mean, lo: sorted[0], hi: sorted[sorted.length - 1],
+        floor: floor, over: over, n: v.length });
+    });
+    if (!out.length) return;
+    out.sort(function (a, b) { return a.cv - b.cv; });
+    sheetBody.appendChild(el("h2", null, "Highlight · most consistent"));
+    var c = el("div", "card list");
+    out.slice(0, 3).forEach(function (h, i) {
+      var it = el("div", "item");
+      it.appendChild(el("div", "rank", String(i + 1)));
+      var mid = el("div", "grow");
+      mid.appendChild(el("div", "ell", h.label + ": " + h.mean.toFixed(1) + " a game, usually within ±" + h.sd.toFixed(1)));
+      var sharp = marketFor(aid).filter(function (r) { return r.label === h.label; })[0];
+      var sp = stakeProp(aid, h.label);
+      var lines = [];
+      if (sharp) lines.push("sharp line " + sharp.line);
+      if (sp) lines.push("Stake " + sp.line);
+      mid.appendChild(el("div", "meta", "Range " + h.lo + "–" + h.hi + " · over " + h.floor + " in " + h.over + " of " + h.n +
+        (lines.length ? " · " + lines.join(" · ") : "")));
+      it.appendChild(mid);
+      var n = el("div", "num"); n.appendChild(el("div", "pct", Math.round((1 - h.cv) * 100) + "%")); n.appendChild(el("div", "pct-label", "steady"));
+      it.appendChild(n);
+      c.appendChild(it);
+    });
+    sheetBody.appendChild(c);
+    sheetBody.appendChild(el("p", "small", "Last " + Math.min(10, log.length) + " games he played. Steady = 100% minus the spread as a share of his average. Stats, not picks."));
   }
   function openSheet(aid, fromHistory) {
     if (cardsState === "idle" || cardsState === "loading") { pendingAid = aid; loadCards(); return; }
