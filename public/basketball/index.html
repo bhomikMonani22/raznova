@@ -275,6 +275,22 @@
   .chart .knob.on { r: 11; }
   .chart .grab { fill: transparent; cursor: ns-resize; touch-action: none; }
 
+  /* my money: real slips (lab/my_slips.py) */
+  .money .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .money .tile { background: var(--raised); border-radius: 10px; padding: 10px; }
+  .money .tile small { display: block; color: var(--mist); font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em; }
+  .money .tile b { font: 800 22px/1.2 var(--display); }
+  .money .pos { color: var(--make); } .money .neg { color: var(--miss); }
+  .money .rec { margin: 10px 0 4px; color: var(--mist); font-size: 13.5px; }
+  .money details { border-top: 1px solid var(--seam); padding: 8px 0; }
+  .money summary { display: flex; justify-content: space-between; gap: 8px; cursor: pointer; font-size: 14px; }
+  .money .st { font: 700 12px var(--display); text-transform: uppercase; padding: 3px 6px; border-radius: 6px;
+               background: var(--raised); color: var(--mist); }
+  .money .st.won { background: var(--make-soft); color: var(--make); }
+  .money .st.lost { background: var(--miss-soft); color: var(--miss); }
+  .money .leg { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; padding: 3px 0 3px 8px; }
+  .money .leg .won { color: var(--make); } .money .leg .lost { color: var(--miss); } .money .leg .open { color: var(--mist); }
+
   /* briefing */
   .brief .item { align-items: flex-start; cursor: pointer; transition: background .2s; }
   .brief .item:active { background: rgba(255, 255, 255, .04); }
@@ -455,6 +471,10 @@
 </div></nav>
 <main class="wrap">
   <section id="tab-picks" role="tabpanel" aria-labelledby="tb-picks">
+    <div id="money-wrap" hidden>
+      <h2 style="margin-top:6px">My money</h2>
+      <div class="card money" id="money"></div>
+    </div>
     <div id="brief-wrap" hidden>
       <h2 style="margin-top:6px">Tonight</h2>
       <div class="card list brief" id="brief"></div>
@@ -1330,6 +1350,39 @@
     }
     body.replaceChildren(frag);
     labUpdate();
+  }
+
+  // ---- my money: Bhoomik's real slips, apart from every paper record (lab/my_slips.py) ----
+  var MK = { pts: "pts", reb: "reb", ast: "ast", "pts+reb": "P+R", "pts+ast": "P+A", "reb+ast": "R+A", "pts+reb+ast": "PRA" };
+  function rs(x) { return "₹" + Number(x).toFixed(2); }
+  function renderMoney() {
+    var m = data.my_slips, box = document.getElementById("money");
+    document.getElementById("money-wrap").hidden = !m;
+    if (!m) return;
+    var t = m.totals;
+    box.replaceChildren();
+    var tiles = el("div", "tiles");
+    [["Invested", rs(t.staked), ""], ["Returned", rs(t.returned), ""],
+     ["Profit", (t.profit >= 0 ? "+" : "−") + rs(Math.abs(t.profit)), t.staked_settled ? (t.profit >= 0 ? "pos" : "neg") : ""]
+    ].forEach(function (x) {
+      var d = el("div", "tile"); d.appendChild(el("small", "", x[0])); d.appendChild(el("b", x[2], x[1])); tiles.appendChild(d);
+    });
+    box.appendChild(tiles);
+    box.appendChild(el("p", "rec", t.won + " won · " + t.lost + " lost · " + t.open + " open" +
+      (t.open ? " (" + rs(t.potential) + " if all open slips hit)" : "")));
+    m.slips.forEach(function (sl) {
+      var d = document.createElement("details"), sm = document.createElement("summary");
+      sm.appendChild(el("span", "", sl.night.slice(5) + " · " + sl.legs.length + " legs @" + sl.odds.toFixed(2) + " · " + rs(sl.stake)));
+      sm.appendChild(el("span", "st " + sl.status, sl.status === "won" ? "Won " + rs(sl.returned) : sl.status));
+      d.appendChild(sm);
+      sl.legs.forEach(function (l) {
+        var r = el("div", "leg");
+        r.appendChild(el("span", "", l.market === "win" ? l.team + " to win" : l.player + " " + (l.side === "Over" ? "O" : "U") + l.line + " " + (MK[l.market] || l.market)));
+        r.appendChild(el("span", l.result, (l.actual !== undefined && l.actual !== null ? l.actual + " · " : "") + l.result));
+        d.appendChild(r);
+      });
+      box.appendChild(d);
+    });
   }
 
   // ---- the Tonight briefing (lab/briefing.py writes every sentence) ----
@@ -2683,7 +2736,7 @@
     st.appendChild(document.createTextNode("US night "));
     st.appendChild(el("b", null, s.tonight || "–"));
     st.appendChild(document.createTextNode(" · prices checked " + (s.updated || "–")));
-    renderBriefing(); renderPicks(); renderEdges(); renderMoves(); setupFilters(); renderProps(); renderRoles();
+    renderMoney(); renderBriefing(); renderPicks(); renderEdges(); renderMoves(); setupFilters(); renderProps(); renderRoles();
     renderResults(); renderGameResults(); renderMarketResults(); renderGames();
     if (recall("tab") === "games" || recall("tab") === "lab") loadCards();
     placeInd();
