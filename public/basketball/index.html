@@ -277,6 +277,14 @@
 
   /* my money: real slips (lab/my_slips.py) */
   .money .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .duel { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: start; }
+  .duel .card { padding: 10px; }
+  .duel h2 { font-size: 18px; }
+  .duel .money summary { flex-direction: column; gap: 4px; font-size: 12.5px; }
+  .duel .money summary .st { align-self: flex-start; }
+  .duel .money .leg { flex-direction: column; gap: 0; font-size: 12px; padding-left: 4px; }
+  .duel .money .rec { margin: 0 0 6px; font-size: 12.5px; }
+  .duel .money .big { font: 800 20px/1.1 var(--display); }
   .money .tiles.four { grid-template-columns: repeat(2, 1fr); }
   .money .nrow { display: grid; grid-template-columns: 52px 1fr 78px; gap: 8px; align-items: center; font-size: 13px; padding: 5px 0; }
   .money .bars { display: grid; gap: 3px; }
@@ -578,8 +586,10 @@
     <div class="card money" id="money-nights"></div>
   </section>
   <section id="tab-results" role="tabpanel" aria-labelledby="tb-results" hidden>
-    <div id="myres-wrap" hidden><h2 style="margin-top:6px">My slips: results</h2>
-      <div class="card money" id="myres"></div></div>
+    <div class="duel">
+      <div><h2 style="margin-top:6px">My slips</h2><div class="card money" id="myres"></div></div>
+      <div><h2 style="margin-top:6px">Claude's slips</h2><div class="card money" id="clres"></div></div>
+    </div>
     <p class="take" id="review-take"></p>
     <div class="card list" id="review"></div>
     <h2>Record so far</h2>
@@ -1388,6 +1398,52 @@
     var d = el("div", "tile"); d.appendChild(el("small", "", label)); d.appendChild(el("b", cls || "", val)); return d;
   }
   function pm(x) { return (x >= 0 ? "+" : "−") + rs(Math.abs(x)); }
+  // Claude's slips: the lab's paper picks per night: Top picks (Stake odds, Rs 500 paper each) and sharp picks (M1)
+  function renderClaudeSlips() {
+    var box = document.getElementById("clres");
+    box.replaceChildren();
+    var top = (data.picks || []), sharp = ((data.market || {}).history || []);
+    var nights = {};
+    top.forEach(function (p) { (nights[p.night] = nights[p.night] || { top: [], sharp: [] }).top.push(p); });
+    sharp.forEach(function (r) { (nights[r.night] = nights[r.night] || { top: [], sharp: [] }).sharp.push(r); });
+    var keys = Object.keys(nights).sort().reverse();
+    if (!keys.length) { box.appendChild(el("p", "rec", "No picks yet.")); return; }
+    var tp = 0, sh = 0, sn = 0;
+    top.forEach(function (p) { if (p.profit_inr !== null && p.profit_inr !== undefined) tp += p.profit_inr; });
+    sharp.forEach(function (r) { if (r.result === "hit" || r.result === "miss") { sn++; if (r.result === "hit") sh++; } });
+    box.appendChild(el("div", "big " + (tp >= 0 ? "pos" : "neg"), pm(tp)));
+    box.appendChild(el("p", "rec", "Top picks (paper ₹500 each) · sharp " + sh + "/" + sn + " hit"));
+    keys.forEach(function (n) {
+      var g = nights[n];
+      var tset = g.top.filter(function (p) { return p.result === "win" || p.result === "loss"; });
+      var tpl = tset.reduce(function (a, p) { return a + p.profit_inr; }, 0);
+      var shs = g.sharp.filter(function (r) { return r.result === "hit" || r.result === "miss"; });
+      var shh = shs.filter(function (r) { return r.result === "hit"; }).length;
+      var open = g.top.length - tset.length + g.sharp.length - shs.length;
+      var d = document.createElement("details"), sm = document.createElement("summary");
+      sm.appendChild(el("span", "", n.slice(5) + " · " + (g.top.length ? g.top.length + " top" : "") +
+        (g.top.length && g.sharp.length ? " + " : "") + (g.sharp.length ? g.sharp.length + " sharp" : "")));
+      var lab = [];
+      if (tset.length) lab.push(pm(tpl));
+      if (shs.length) lab.push(shh + "/" + shs.length);
+      if (open) lab.push(open + " open");
+      sm.appendChild(el("span", "st " + (tset.length ? (tpl >= 0 ? "won" : "lost") : shs.length ? (shh / shs.length >= .5 ? "won" : "lost") : ""), lab.join(" · ")));
+      d.appendChild(sm);
+      g.top.forEach(function (p) {
+        var r = el("div", "leg"), res = p.result === "win" ? "won" : p.result === "loss" ? "lost" : "open";
+        r.appendChild(el("span", "", "Top: " + p.player + " " + (p.side === "Over" ? "O" : "U") + p.line + " " + p.market + " @" + (p.stake_odds || 0).toFixed(2)));
+        r.appendChild(el("span", res, (p.actual !== null && p.actual !== undefined ? p.actual + " · " : "") + res));
+        d.appendChild(r);
+      });
+      g.sharp.forEach(function (x) {
+        var r = el("div", "leg"), res = x.result === "hit" ? "won" : x.result === "miss" ? "lost" : "open";
+        r.appendChild(el("span", "", x.player + " " + (x.lean === "Over" ? "O" : "U") + x.line + " " + x.label));
+        r.appendChild(el("span", res, (x.actual !== null && x.actual !== undefined ? x.actual + " · " : "") + res));
+        d.appendChild(r);
+      });
+      box.appendChild(d);
+    });
+  }
   function renderMoney() {
     var m = data.my_slips;
     var open = m ? m.slips.filter(function (s) { return s.status === "open" || s.status === "check"; }) : [];
@@ -1405,11 +1461,17 @@
       box.appendChild(tiles);
       open.forEach(function (sl) { box.appendChild(slipNode(sl)); });
     }
-    // Results: settled slips
+    // Results: two columns, my settled slips vs Claude's paper picks
     var rb = document.getElementById("myres");
-    document.getElementById("myres-wrap").hidden = !done.length;
     rb.replaceChildren();
-    done.forEach(function (sl) { rb.appendChild(slipNode(sl)); });
+    if (done.length) {
+      var pf = done.reduce(function (a, s) { return a + s.returned - s.stake; }, 0);
+      var won = done.filter(function (s) { return s.status === "won"; }).length;
+      rb.appendChild(el("div", "big " + (pf >= 0 ? "pos" : "neg"), pm(pf)));
+      rb.appendChild(el("p", "rec", won + " won · " + (done.length - won) + " lost"));
+      done.forEach(function (sl) { rb.appendChild(slipNode(sl)); });
+    } else rb.appendChild(el("p", "rec", "No settled slips yet."));
+    renderClaudeSlips();
     // Money tab: season totals and nights
     var sb = document.getElementById("money-season"), nb = document.getElementById("money-nights");
     sb.replaceChildren(); nb.replaceChildren();
