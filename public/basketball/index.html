@@ -275,6 +275,18 @@
   .chart .knob.on { r: 11; }
   .chart .grab { fill: transparent; cursor: ns-resize; touch-action: none; }
 
+  /* desktop: sideways rows get a thin scrollbar, wheel and drag (phones keep swipe) */
+  @media (hover: hover) and (pointer: fine) {
+    .seg, .mkts, .gseg, .stake-chips, nav.tabs .wrap, .scroll-x, .tbl-wrap {
+      scrollbar-width: thin !important; scrollbar-color: rgba(255,255,255,.28) transparent; }
+    .seg::-webkit-scrollbar, .mkts::-webkit-scrollbar, .gseg::-webkit-scrollbar, .stake-chips::-webkit-scrollbar,
+    .scroll-x::-webkit-scrollbar, .tbl-wrap::-webkit-scrollbar { display: block !important; height: 6px; }
+    .seg::-webkit-scrollbar-thumb, .mkts::-webkit-scrollbar-thumb, .gseg::-webkit-scrollbar-thumb,
+    .stake-chips::-webkit-scrollbar-thumb, .scroll-x::-webkit-scrollbar-thumb, .tbl-wrap::-webkit-scrollbar-thumb {
+      background: rgba(255,255,255,.28); border-radius: 3px; }
+    .hscroll-drag { cursor: grabbing; user-select: none; }
+  }
+
   /* my money: real slips (lab/my_slips.py) */
   .money .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
   /* hot streak: consecutive nights in profit */
@@ -1400,6 +1412,37 @@
     labUpdate();
   }
 
+  // ---- desktop sideways scrolling: a vertical wheel moves a row sideways when it overflows; drag to scroll ----
+  (function () {
+    var SEL = ".seg, .mkts, .gseg, .stake-chips, nav.tabs .wrap, .scroll-x, .tbl-wrap";
+    function row(t) { var r = t && t.closest ? t.closest(SEL) : null; return r && r.scrollWidth > r.clientWidth + 1 ? r : null; }
+    document.addEventListener("wheel", function (e) {
+      var r = row(e.target);
+      if (!r || e.shiftKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+      var max = r.scrollWidth - r.clientWidth;
+      if ((e.deltaY < 0 && r.scrollLeft <= 0) || (e.deltaY > 0 && r.scrollLeft >= max - 1)) return;  // ends: page scrolls
+      if (r.matches(".scroll-x, .tbl-wrap")) return;                                                   // tables: page scrolls
+      r.scrollLeft += e.deltaY; e.preventDefault();
+    }, { passive: false });
+    var drag = null;
+    document.addEventListener("mousedown", function (e) {
+      if (e.button !== 0) return;
+      var r = row(e.target); if (!r) return;
+      drag = { r: r, x: e.clientX, s: r.scrollLeft, moved: false };
+    });
+    document.addEventListener("mousemove", function (e) {
+      if (!drag) return;
+      var dx = e.clientX - drag.x;
+      if (!drag.moved && Math.abs(dx) < 5) return;
+      drag.moved = true; drag.r.classList.add("hscroll-drag"); drag.r.scrollLeft = drag.s - dx;
+    });
+    document.addEventListener("mouseup", function () {
+      if (!drag) return;
+      var d = drag; drag = null; d.r.classList.remove("hscroll-drag");
+      if (d.moved) document.addEventListener("click", function (e) { e.stopPropagation(); e.preventDefault(); }, { capture: true, once: true });
+    });
+  })();
+
   // ---- my money: Bhoomik's real slips, apart from every paper record (lab/my_slips.py) ----
   var MK = { pts: "pts", reb: "reb", ast: "ast", "pts+reb": "P+R", "pts+ast": "P+A", "reb+ast": "R+A", "pts+reb+ast": "PRA" };
   function rs(x) { return "₹" + Number(x).toFixed(2); }
@@ -2199,7 +2242,7 @@
   var sv = { view: recall("sview") || "leaders", q: "", sort: "pts", limit: 80 };
   var S_VIEWS = [["leaders", "Leaders"], ["players", "Players"], ["teams", "Teams"], ["games", "Results"]];
   var P_COLS = [["gp", "G", "i"], ["min", "MIN", "1"], ["pts", "PTS", "1"], ["reb", "REB", "1"], ["ast", "AST", "1"],
-    ["fg3m", "3PM", "1"], ["stl", "STL", "1"], ["blk", "BLK", "1"], ["tov", "TOV", "1"], ["fg", "FG%", "p"],
+    ["fg3m", "3PM", "1"], ["fg3a", "3PA", "1"], ["stl", "STL", "1"], ["blk", "BLK", "1"], ["tov", "TOV", "1"], ["fg", "FG%", "p"],
     ["fg3", "3P%", "p"], ["ft", "FT%", "p"], ["l5", "L5 PTS", "1"]];
   function sfmt(v, kind) {
     if (v === null || v === undefined) return "–";
@@ -2761,10 +2804,10 @@
     }
     sheetBody.appendChild(el("h2", null, "Season averages"));
     var sc = el("div", "card scroll-x");
-    sc.appendChild(wide(table(["Season", "G", "MIN", "PTS", "REB", "AST", "3PM", "STL", "BLK", "TO"],
+    sc.appendChild(wide(table(["Season", "G", "MIN", "PTS", "REB", "AST", "3PM", "3PA", "STL", "BLK", "TO"],
       Object.keys(p.season || {}).filter(function (k) { return p.season[k]; }).map(function (k) {
         var v = p.season[k];
-        return [k, v[0], fmt1(v[1]), fmt1(v[2]), fmt1(v[3]), fmt1(v[4]), fmt1(v[5]), fmt1(v[6]), fmt1(v[7]), fmt1(v[8])];
+        return [k, v[0], fmt1(v[1]), fmt1(v[2]), fmt1(v[3]), fmt1(v[4]), fmt1(v[5]), v.length > 9 ? fmt1(v[9]) : "–", fmt1(v[6]), fmt1(v[7]), fmt1(v[8])];
       }), 1)));
     sheetBody.appendChild(sc);
     sheetBody.appendChild(el("h2", null, "Home and away (last " + ((cards.constants || {}).split_n || 40) + " games)"));
@@ -2801,16 +2844,17 @@
     if (p.vs && p.vs.length) {
       sheetBody.appendChild(el("h2", null, "Against " + p.opp));
       var vc = el("div", "card scroll-x");
-      vc.appendChild(table(["Date", "MIN", "PTS", "REB", "AST", "3PM"], p.vs.map(function (r) {
-        return [shortDate(r[idx.date]), r[idx.min], r[idx.pts], r[idx.reb], r[idx.ast], r[idx["3pm"]]];
+      vc.appendChild(table(["Date", "MIN", "PTS", "REB", "AST", "3PM", "3PA"], p.vs.map(function (r) {
+        return [shortDate(r[idx.date]), r[idx.min], r[idx.pts], r[idx.reb], r[idx.ast], r[idx["3pm"]],
+                idx["3pa"] !== undefined && r[idx["3pa"]] !== null ? r[idx["3pa"]] : "–"];
       }), 1));
       sheetBody.appendChild(vc);
     }
     sheetBody.appendChild(el("h2", null, "Game log (last " + Math.min(20, (p.log || []).length) + ")"));
     var lc = el("div", "card scroll-x");
-    lc.appendChild(wide(table(["Date", "Opp", "MIN", "PTS", "REB", "AST", "3PM", "STL", "BLK", "TO"], (p.log || []).slice(0, 20).map(function (r) {
+    lc.appendChild(wide(table(["Date", "Opp", "MIN", "PTS", "REB", "AST", "3PM", "3PA", "STL", "BLK", "TO"], (p.log || []).slice(0, 20).map(function (r) {
       return [shortDate(r[idx.date]), (r[idx.ha] === "A" ? "@" : "vs ") + r[idx.opp], r[idx.min], r[idx.pts], r[idx.reb],
-        r[idx.ast], r[idx["3pm"]], r[idx.stl], r[idx.blk], r[idx.tov]];
+        r[idx.ast], r[idx["3pm"]], idx["3pa"] !== undefined && r[idx["3pa"]] !== null ? r[idx["3pa"]] : "–", r[idx.stl], r[idx.blk], r[idx.tov]];
     }), 2)));
     sheetBody.appendChild(lc);
     sheetBody.appendChild(el("p", "small", "Box scores from ESPN via hoopR, through " + (cards.box_through || "–") +
