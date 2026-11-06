@@ -277,6 +277,26 @@
 
   /* my money: real slips (lab/my_slips.py) */
   .money .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  /* hot streak: consecutive nights in profit */
+  .streak { position: relative; overflow: hidden; display: flex; align-items: center; gap: 12px; margin: 10px 0 4px;
+            padding: 12px 14px; border-radius: 14px; color: #fff;
+            background: linear-gradient(110deg, #7a1d00, #d9480f 45%, #f59f00 70%, #d9480f);
+            background-size: 220% 100%; animation: heat 3.2s ease-in-out infinite;
+            box-shadow: 0 0 0 1px rgba(255,160,40,.5), 0 6px 22px rgba(245,100,0,.45); }
+  .streak .fl { position: relative; width: 34px; height: 44px; flex: none; }
+  .streak .fl i { position: absolute; left: 50%; bottom: 0; border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+                  transform-origin: 50% 100%; animation: flick 0.9s ease-in-out infinite alternate; }
+  .streak .fl i:nth-child(1) { width: 30px; height: 42px; margin-left: -15px; background: #ff6a00; }
+  .streak .fl i:nth-child(2) { width: 20px; height: 30px; margin-left: -10px; background: #ffb000; animation-duration: .7s; animation-delay: -.2s; }
+  .streak .fl i:nth-child(3) { width: 10px; height: 17px; margin-left: -5px; background: #fff3c4; animation-duration: .55s; animation-delay: -.4s; }
+  .streak b { font: 800 22px/1.1 var(--display); letter-spacing: .01em; text-shadow: 0 1px 6px rgba(0,0,0,.35); }
+  .streak small { display: block; font-size: 12.5px; opacity: .92; margin-top: 2px; }
+  .streak .sp { position: absolute; bottom: -6px; width: 4px; height: 4px; border-radius: 50%; background: #ffd27a;
+                opacity: 0; animation: rise 2.4s linear infinite; }
+  @keyframes heat { 0%,100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+  @keyframes flick { 0% { transform: scale(1, 1) rotate(-3deg); } 100% { transform: scale(.92, 1.08) rotate(3deg); } }
+  @keyframes rise { 0% { transform: translateY(0); opacity: 0; } 15% { opacity: 1; } 100% { transform: translateY(-80px); opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { .streak, .streak .fl i, .streak .sp { animation: none; } .streak .sp { display: none; } }
   .duel { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: start; }
   .duel .card { padding: 10px; }
   .duel h2 { font-size: 18px; }
@@ -487,6 +507,7 @@
 </div></nav>
 <main class="wrap">
   <section id="tab-picks" role="tabpanel" aria-labelledby="tb-picks">
+    <div class="streak" id="streak-t" hidden></div>
     <div id="money-wrap" hidden>
       <h2 style="margin-top:6px">My open slips</h2>
       <div class="card money" id="money"></div>
@@ -580,6 +601,7 @@
     <div class="stack" id="roles-down"></div>
   </section>
   <section id="tab-money" role="tabpanel" aria-labelledby="tb-money" hidden>
+    <div class="streak" id="streak-m" hidden></div>
     <h2 style="margin-top:6px">My money this season</h2>
     <div class="card money" id="money-season"></div>
     <h2>Invested vs profit by night</h2>
@@ -1444,8 +1466,29 @@
       box.appendChild(d);
     });
   }
+  function renderStreak(m) {
+    var n = m && m.totals ? m.totals.streak || 0 : 0;
+    ["streak-t", "streak-m"].forEach(function (id) {
+      var b = document.getElementById(id);
+      b.hidden = n < 2;
+      b.replaceChildren();
+      if (n < 2) return;
+      var ns = m.totals.nights.slice(-n), pf = ns.reduce(function (a, x) { return a + x.profit; }, 0);
+      var fl = el("div", "fl"); for (var i = 0; i < 3; i++) fl.appendChild(document.createElement("i"));
+      b.appendChild(fl);
+      var tx = el("div", "");
+      tx.appendChild(el("b", "", n + "-night win streak"));
+      tx.appendChild(el("small", "", pm(pf) + " over the run · keep it going"));
+      b.appendChild(tx);
+      for (var k = 0; k < 9; k++) {
+        var sp = el("span", "sp"); sp.style.left = (8 + k * 10.5) + "%"; sp.style.animationDelay = (k * 0.27) + "s";
+        b.appendChild(sp);
+      }
+    });
+  }
   function renderMoney() {
     var m = data.my_slips;
+    renderStreak(m);
     var open = m ? m.slips.filter(function (s) { return s.status === "open" || s.status === "check"; }) : [];
     var done = m ? m.slips.filter(function (s) { return s.status === "won" || s.status === "lost"; }) : [];
     // Tonight: open slips only
