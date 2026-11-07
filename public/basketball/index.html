@@ -275,6 +275,23 @@
   .chart .knob.on { r: 11; }
   .chart .grab { fill: transparent; cursor: ns-resize; touch-action: none; }
 
+  /* hot picks: lines a player cleared in 6+ of his last 7, priced from the sharp line */
+  .hot .hsec { font: 700 12px var(--display); text-transform: uppercase; letter-spacing: .06em; color: var(--mist);
+               margin: 10px 0 4px; display: flex; justify-content: space-between; }
+  .hot .hsec:first-child { margin-top: 0; }
+  .hot .hrow { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; padding: 8px 0; border-top: 1px solid var(--seam); cursor: pointer; }
+  .hot .hrow .who { font-weight: 700; font-size: 14px; }
+  .hot .hrow .ln { font-size: 13.5px; }
+  .hot .hrow .od { text-align: right; font: 800 18px/1.1 var(--display); }
+  .hot .hrow .od small { display: block; font: 600 11px var(--body, inherit); color: var(--mist); }
+  .hot .hrow.value .od { color: #ffb000; }
+  .hot .l7 { grid-column: 1 / -1; display: flex; gap: 4px; flex-wrap: wrap; }
+  .hot .l7 span { font-size: 11.5px; min-width: 24px; text-align: center; padding: 2px 4px; border-radius: 5px; }
+  .hot .l7 .y { background: var(--make-soft); color: var(--make); } .hot .l7 .n { background: var(--miss-soft); color: var(--miss); }
+  .teamhit .rec { font-size: 12.5px; color: var(--mist); margin: 0 0 6px; }
+  .teamhit .th { font-size: 12.5px; padding: 5px 0; border-top: 1px solid var(--seam); }
+  .teamhit .th b { font-weight: 700; } .teamhit .th small { display: block; color: var(--mist); font-size: 11.5px; }
+
   /* desktop: sideways rows get a thin scrollbar, wheel and drag (phones keep swipe) */
   @media (hover: hover) and (pointer: fine) {
     .seg, .mkts, .gseg, .stake-chips, nav.tabs .wrap, .scroll-x, .tbl-wrap {
@@ -530,6 +547,13 @@
     </div>
     <p class="take" id="take"></p>
     <div class="seg gseg" id="t-games" role="group" aria-label="Game" hidden></div>
+    <div id="hot-wrap" hidden>
+      <h2 id="hot-h">Hot picks</h2>
+      <p class="small" id="hot-lead"></p>
+      <div class="card hot" id="hot"></div>
+      <h2>Our hits by team</h2>
+      <div class="duel" id="teamhits"></div>
+    </div>
     <div id="hero"></div>
     <h2 id="list-h" hidden>Top 2–10</h2>
     <div class="card list" id="toplist" hidden></div>
@@ -876,7 +900,7 @@
     var rated = (data.confidence || []).filter(function (r) { return r.key !== "none" && (!tgame || ng(r.game) === tgame); });
     if (!tops.length && rated.length) rated.slice(0, 3).forEach(function (r) { best.appendChild(propCard(r)); });
     document.getElementById("best-h").hidden = !best.children.length;
-    renderSharp();
+    renderSharp(); renderHot();
   }
 
 
@@ -2061,6 +2085,69 @@
   function istTime(t) {
     try { return new Date(t).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Kolkata" }); }
     catch (e) { return ""; }
+  }
+  // ---- hot picks and our hits by team, for the chosen game (lab/hot_picks.py) ----
+  var HOT_MKT = { "3-pointers": "threes" };
+  function hotRow(r) {
+    var row = tappable(el("div", "hrow " + r.kind), r.aid);
+    var l = el("div", "");
+    l.appendChild(el("div", "who", r.player));
+    l.appendChild(el("div", "ln", r.side + " " + r.line + " " + (HOT_MKT[r.label] || r.label)));
+    row.appendChild(l);
+    var od = el("div", "od", r.fair.toFixed(2));
+    od.appendChild(el("small", "", r.hits + "/" + r.n + " · sharp " + r.sharp_line));
+    row.appendChild(od);
+    var l7 = el("div", "l7");
+    r.last.forEach(function (v) {
+      var ok = r.side === "Over" ? v > r.line : v < r.line;
+      l7.appendChild(el("span", ok ? "y" : "n", String(v)));
+    });
+    row.appendChild(l7);
+    return row;
+  }
+  function renderHot() {
+    var wrap = document.getElementById("hot-wrap"), H = data.hot;
+    if (!tgame || !H) { wrap.hidden = true; return; }
+    var key = Object.keys(H.games || {}).filter(function (g) { return ng(g) === tgame; })[0];
+    var g = key ? H.games[key] : null;
+    wrap.hidden = false;
+    document.getElementById("hot-h").textContent = "Hot picks · " + tgame;
+    var ru = H.rules || {};
+    document.getElementById("hot-lead").textContent = "Lines he cleared in " + (ru.min || 6) + "+ of his last " + (ru.n || 7) +
+      " games. Odds are fair odds from the sharp books' line: only take one if Stake pays at least that. Tap a row for the player.";
+    var box = document.getElementById("hot");
+    box.replaceChildren();
+    if (!g) { box.appendChild(el("p", "rec", "No sharp lines for this game yet.")); }
+    else {
+      [["safe", "Safe · around " + (ru.aim || 1.32), g.safe], ["value", "Value · " + (ru.value || 1.8) + "+ and still hitting", g.value]].forEach(function (s) {
+        if (!s[2] || !s[2].length) return;
+        var hd = el("div", "hsec"); hd.appendChild(el("span", "", s[1])); hd.appendChild(el("span", "", "fair odds"));
+        box.appendChild(hd);
+        s[2].forEach(function (r) { box.appendChild(hotRow(r)); });
+      });
+    }
+    var th = document.getElementById("teamhits");
+    th.replaceChildren();
+    tgame.split(" @ ").forEach(function (t) {
+      var tk = Object.keys(H.teams || {}).filter(function (k) { return (GABBR[k] || k) === t; })[0];
+      var d = H.teams && tk ? H.teams[tk] : null;
+      var col = el("div", "");
+      col.appendChild(el("h2", "", t));
+      var c = el("div", "card teamhit");
+      if (!d) c.appendChild(el("p", "rec", "No picks on " + t + " players yet."));
+      else {
+        c.appendChild(el("p", "rec", d.won + " of " + d.n + " hit (" + Math.round(d.won / d.n * 100) + "%)"));
+        d.hits.slice(0, 8).forEach(function (h) {
+          var r = el("div", "th");
+          r.appendChild(el("b", "", h.player + " "));
+          r.appendChild(document.createTextNode(h.text + (h.actual !== null && h.actual !== undefined ? " (" + h.actual + ")" : "")));
+          r.appendChild(el("small", "", h.night.slice(5) + " · " + h.by));
+          c.appendChild(r);
+        });
+      }
+      col.appendChild(c);
+      th.appendChild(col);
+    });
   }
   function renderSharp() {
     var m = data.market || {};
