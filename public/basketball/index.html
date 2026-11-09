@@ -2786,10 +2786,17 @@
       bar.appendChild(b);
     });
     wrap.appendChild(bar);
-    var toLab = el("button", "btn go-lab", "Open in Line Lab");
-    toLab.type = "button";
-    toLab.style.marginTop = "10px";
-    toLab.addEventListener("click", function () { openLab(aid, sheetState.mkt, sheetState.line); });
+    // opens in a new tab, keeping this sheet where it is (the #lab= deep link loads the Line Lab on arrival)
+    var toLab = el("a", "btn go-lab", "Open in Line Lab ↗");
+    toLab.target = "_blank"; toLab.rel = "noopener";
+    toLab.style.marginTop = "10px"; toLab.style.display = "inline-block"; toLab.style.textDecoration = "none";
+    var labHref = function () {
+      return location.pathname + "#lab=" + aid + "/" + encodeURIComponent(mk[0]) + "/" + sheetState.line;
+    };
+    toLab.href = labHref();
+    toLab.addEventListener("mousedown", function () { toLab.href = labHref(); });
+    toLab.addEventListener("touchstart", function () { toLab.href = labHref(); }, { passive: true });
+    toLab.addEventListener("click", function () { toLab.href = labHref(); });
     wrap.appendChild(toLab);
     var st = el("div", "stepper");
     var minus = el("button", null, "−"); minus.type = "button"; minus.setAttribute("aria-label", "Lower line");
