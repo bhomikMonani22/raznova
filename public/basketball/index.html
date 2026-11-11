@@ -275,6 +275,33 @@
   .chart .knob.on { r: 11; }
   .chart .grab { fill: transparent; cursor: ns-resize; touch-action: none; }
 
+  /* top picks shortlist (lab/shortlist.py) */
+  .tp-ctl { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 8px 0; }
+  .tp-ctl input { grid-column: 1 / -1; }
+  .tp-ctl input, .tp-ctl select { background: var(--raised); color: inherit; border: 1px solid var(--seam); border-radius: 10px;
+                                  padding: 10px 12px; font: inherit; font-size: 14px; min-width: 0; }
+  .tp { margin-bottom: 10px; }
+  .tp .hd { display: grid; grid-template-columns: 30px 1fr auto; gap: 10px; align-items: start; }
+  .tp .rk { font: 800 20px/1 var(--display); color: var(--mist); padding-top: 2px; }
+  .tp .nm { font-weight: 800; font-size: 16px; } .tp .sub { font-size: 12.5px; color: var(--mist); margin-top: 2px; }
+  .tp .ln { margin: 10px 0 8px; font: 800 20px/1.15 var(--display); }
+  .tp .ln small { display: block; font: 600 13px var(--body, inherit); color: var(--mist); }
+  .tp .st { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .tp .st div { background: var(--raised); border-radius: 8px; padding: 7px 6px; text-align: center; }
+  .tp .st b { display: block; font: 800 16px/1.1 var(--display); }
+  .tp .st small { font-size: 10px; color: var(--mist); text-transform: uppercase; letter-spacing: .04em; }
+  .tp .sc { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 12.5px; color: var(--mist); }
+  .tp .bar { flex: 1; height: 6px; border-radius: 3px; background: var(--raised); overflow: hidden; }
+  .tp .bar i { display: block; height: 100%; background: var(--make); }
+  .tp details { margin-top: 8px; border-top: 1px solid var(--seam); padding-top: 6px; }
+  .tp details summary { cursor: pointer; font-weight: 700; font-size: 13.5px; }
+  .tp .ev { font-size: 13px; margin: 6px 0; } .tp .ev p { margin: 3px 0; }
+  .tp .ev h4 { margin: 8px 0 2px; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--mist); }
+  .tp .l10 { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px; }
+  .tp .l10 span { font-size: 11.5px; min-width: 24px; text-align: center; padding: 2px 4px; border-radius: 5px; }
+  .tp .l10 .y { background: var(--make-soft); color: var(--make); } .tp .l10 .n { background: var(--miss-soft); color: var(--miss); }
+  .tp-how { margin-top: 12px; font-size: 13.5px; } .tp-how summary { cursor: pointer; font-weight: 700; }
+
   /* hot picks: lines a player cleared in 6+ of his last 7, priced from the sharp line */
   .hot .hsec { font: 700 12px var(--display); text-transform: uppercase; letter-spacing: .06em; color: var(--mist);
                margin: 10px 0 4px; display: flex; justify-content: space-between; }
@@ -524,6 +551,7 @@
 </div>
 <nav class="tabs" aria-label="Sections"><div class="wrap" role="tablist" id="tablist">
   <button role="tab" id="tb-picks" aria-controls="tab-picks" aria-selected="true">Tonight</button>
+  <button role="tab" id="tb-top" aria-controls="tab-top" aria-selected="false">Top Picks</button>
   <button role="tab" id="tb-money" aria-controls="tab-money" aria-selected="false">Money</button>
   <button role="tab" id="tb-lab" aria-controls="tab-lab" aria-selected="false">Line Lab</button>
   <button role="tab" id="tb-games" aria-controls="tab-games" aria-selected="false">Games</button>
@@ -635,6 +663,19 @@
     <div class="stack" id="roles-up"></div>
     <h2>Smaller role</h2>
     <div class="stack" id="roles-down"></div>
+  </section>
+  <section id="tab-top" role="tabpanel" aria-labelledby="tb-top" hidden>
+    <h2 style="margin-top:6px">Top Picks</h2>
+    <p class="small">A shortlist with the line, the sharp books' price and the evidence behind each. One pick per player.</p>
+    <div class="tp-ctl">
+      <input id="tp-q" type="search" placeholder="Search player" autocomplete="off">
+      <select id="tp-stat"><option value="">All stats</option></select>
+      <select id="tp-game"><option value="">All games</option></select>
+    </div>
+    <p class="small" id="tp-count"></p>
+    <div id="tp-list"></div>
+    <button type="button" class="btn" id="tp-more" hidden>Show more</button>
+    <details class="card tp-how"><summary>How picks qualify and rank</summary><div id="tp-rules"></div></details>
   </section>
   <section id="tab-money" role="tabpanel" aria-labelledby="tb-money" hidden>
     <div class="streak" id="streak-m" hidden></div>
@@ -787,7 +828,7 @@
   function recall(k) { try { return localStorage.getItem("eb." + k); } catch (e) { return null; } }
 
   // ---- tabs ----
-  var tabs = ["picks", "money", "lab", "games", "props", "players", "season", "roles", "results"];
+  var tabs = ["picks", "top", "money", "lab", "games", "props", "players", "season", "roles", "results"];
   function show(name) {
     tabs.forEach(function (t) {
       document.getElementById("tb-" + t).setAttribute("aria-selected", String(t === name));
@@ -900,7 +941,7 @@
     var rated = (data.confidence || []).filter(function (r) { return r.key !== "none" && (!tgame || ng(r.game) === tgame); });
     if (!tops.length && rated.length) rated.slice(0, 3).forEach(function (r) { best.appendChild(propCard(r)); });
     document.getElementById("best-h").hidden = !best.children.length;
-    renderSharp(); renderHot();
+    renderSharp(); renderHot(); renderTop();
   }
 
 
@@ -2086,6 +2127,91 @@
     try { return new Date(t).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Kolkata" }); }
     catch (e) { return ""; }
   }
+  // ---- Top Picks shortlist (lab/shortlist.py: Sideline Research's published rules, priced from the sharp books) ----
+  var tpShown = 12, TP_STEP = 12;
+  function tipIST(t) {
+    if (!t) return "";
+    try { return new Date(t).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }); }
+    catch (e) { return ""; }
+  }
+  function tpCard(p, i) {
+    var c = el("div", "card tp");
+    var hd = el("div", "hd");
+    hd.appendChild(el("div", "rk", String(i + 1)));
+    var who = tappable(el("div", ""), p.aid);
+    who.style.cursor = "pointer";
+    who.appendChild(el("div", "nm", p.player));
+    who.appendChild(el("div", "sub", p.team + " · " + (p.pos || "") + " · " + p.game + " · " + tipIST(p.tip) + " IST"));
+    hd.appendChild(who);
+    hd.appendChild(el("div", "", ""));
+    c.appendChild(hd);
+    var ln = el("div", "ln", p.side + " " + p.line);
+    ln.appendChild(el("small", "", p.label));
+    c.appendChild(ln);
+    var st = el("div", "st");
+    [[p.l10[0] + "/" + p.l10[1], "Last 10"], [p.season[1] ? p.season[0] + "/" + p.season[1] : "–", "Season"],
+     [(p.implied * 100).toFixed(1) + "%", "Market"], [p.stake_odds ? Number(p.stake_odds).toFixed(2) : p.fair.toFixed(2), p.stake_odds ? "Stake" : "Fair odds"]
+    ].forEach(function (s) { var d = el("div", ""); d.appendChild(el("b", "", s[0])); d.appendChild(el("small", "", s[1])); st.appendChild(d); });
+    c.appendChild(st);
+    var sc = el("div", "sc");
+    sc.appendChild(el("span", "", "Support " + Math.round(p.score) + "/100"));
+    var bar = el("div", "bar"), fill = document.createElement("i"); fill.style.width = Math.min(100, p.score) + "%"; bar.appendChild(fill);
+    sc.appendChild(bar);
+    c.appendChild(sc);
+    var dt = document.createElement("details"), sm = document.createElement("summary");
+    sm.textContent = "Why this prop?"; dt.appendChild(sm);
+    var ev = el("div", "ev");
+    ev.appendChild(el("h4", "", "Evidence for " + p.side));
+    ev.appendChild(el("p", "", "✓ " + p.l10[0] + "/" + p.l10[1] + " recent games hit " + p.side.toLowerCase() + " " + p.line));
+    ev.appendChild(el("p", "", "✓ " + p.l5[0] + "/" + p.l5[1] + " of the last 5"));
+    if (p.season[1]) ev.appendChild(el("p", "", "✓ " + p.season[0] + "/" + p.season[1] + " games this season hit this side"));
+    ev.appendChild(el("p", "", "✓ " + (p.implied * 100).toFixed(1) + "% chance from the sharp books at this exact line (" + p.books + " books, fair " + p.fair.toFixed(2) + ")"));
+    ev.appendChild(el("h4", "", "Context and cautions"));
+    ev.appendChild(el("p", "", "Against " + p.opp + ": " + (p.vs[1] ? p.vs[0] + "/" + p.vs[1] + " hits" + (p.vs[1] < 5 ? " (small sample)" : "") : "no games on record")));
+    ev.appendChild(el("p", "", "No reported injury · recent minutes " + p.min5 + " · last-10 average " + p.avg10));
+    (p.notes || []).forEach(function (n) { ev.appendChild(el("p", "", n)); });
+    if (!p.stake_odds) ev.appendChild(el("p", "", "Stake has no price on this exact line in the feed: only take it at " + p.fair.toFixed(2) + " or better."));
+    var l10 = el("div", "l10");
+    p.last.forEach(function (v) { var ok = p.side === "Over" ? v > p.line : v < p.line; l10.appendChild(el("span", ok ? "y" : "n", String(v))); });
+    ev.appendChild(l10);
+    ev.appendChild(el("p", "small", "Past results and market prices do not guarantee the next result."));
+    dt.appendChild(ev);
+    c.appendChild(dt);
+    return c;
+  }
+  function renderTop() {
+    var S = data.shortlist, list = document.getElementById("tp-list");
+    list.replaceChildren();
+    if (!S || !S.picks || !S.picks.length) { list.appendChild(el("p", "rec", "No shortlist for this slate yet.")); return; }
+    var sStat = document.getElementById("tp-stat"), sGame = document.getElementById("tp-game");
+    if (sStat.options.length === 1) {
+      Array.from(new Set(S.picks.map(function (p) { return p.label; }))).sort().forEach(function (v) { var o = document.createElement("option"); o.value = v; o.textContent = v; sStat.appendChild(o); });
+      Array.from(new Set(S.picks.map(function (p) { return p.game; }))).sort().forEach(function (v) { var o = document.createElement("option"); o.value = v; o.textContent = v; sGame.appendChild(o); });
+      var R = S.rules || {};
+      var rb = document.getElementById("tp-rules");
+      [
+        "Rules follow Sideline Research's published method (sidelineresearch.app). Prices come from the sharp books, no-vig, at the exact line; each line needs " + (R.books || 2) + "+ books.",
+        "A pick needs " + (R.min_games || 8) + "+ recorded games (last season fills in early on). The side must hit in at least " + Math.round((R.l10 || .6) * 100) + "% of the last 10 and " + Math.round((R.l5 || .4) * 100) + "% of the last 5.",
+        "Market chance must be " + Math.round((R.implied || [.55, .8])[0] * 100) + "–" + Math.round((R.implied || [.55, .8])[1] * 100) + "%: heavy favourites above 80% are left out. Players listed Out, Doubtful or Questionable are excluded.",
+        "Support score: 35% market chance, 45% smoothed last-10 hits, 10% season hits, 10% last-5 hits, adjusted for minutes, sample size, form far ahead of the market, and distance from the line. " + (R.score_min || 60) + "+ makes the list; the best line per player only.",
+        "Hit rates are history, not forecasts, and picks in the same game can be correlated."
+      ].forEach(function (t) { rb.appendChild(el("p", "", t)); });
+    }
+    var q = (document.getElementById("tp-q").value || "").toLowerCase(), fs = sStat.value, fg = sGame.value;
+    var rows = S.picks.filter(function (p) {
+      return (!q || p.player.toLowerCase().indexOf(q) >= 0) && (!fs || p.label === fs) && (!fg || p.game === fg);
+    });
+    document.getElementById("tp-count").textContent = rows.length + " qualified players" + (rows.length !== S.picks.length ? " (of " + S.picks.length + ")" : "");
+    rows.slice(0, tpShown).forEach(function (p, i) { list.appendChild(tpCard(p, i)); });
+    var more = document.getElementById("tp-more");
+    more.hidden = rows.length <= tpShown;
+    more.textContent = "Show more picks (" + (rows.length - tpShown) + " remaining)";
+  }
+  ["tp-q", "tp-stat", "tp-game"].forEach(function (id) {
+    document.getElementById(id).addEventListener(id === "tp-q" ? "input" : "change", function () { tpShown = 12; renderTop(); });
+  });
+  document.getElementById("tp-more").addEventListener("click", function () { tpShown += TP_STEP; renderTop(); });
+
   // ---- hot picks and our hits by team, for the chosen game (lab/hot_picks.py) ----
   var HOT_MKT = { "3-pointers": "threes" };
   function hotRow(r) {
