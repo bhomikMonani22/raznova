@@ -11,12 +11,14 @@ const nextConfig: NextConfig = {
     qualities: [65, 68, 75],
   },
   // /basketball: the owner's private NBA research board, plain static files in public/basketball. /fantasy: his
-  // friends' NBA + IPL league, a static page in public/fantasy talking to /api/fantasy. Serve each index file at
+  // friends' NBA + IPL league, a static page in public/fantasy talking to /api/fantasy. /tracker: his private Stake
+  // bet tracker (installable PWA), static files in public/tracker talking to /api/tracker/{nba,sync}. Serve each index file at
   // the folder URL, never cache their data, and keep every page of them out of search engines.
   async rewrites() {
     return [
       { source: "/basketball", destination: "/basketball/index.html" },
       { source: "/fantasy", destination: "/fantasy/index.html" },
+      { source: "/tracker", destination: "/tracker/index.html" },
     ];
   },
   async headers() {
@@ -28,6 +30,15 @@ const nextConfig: NextConfig = {
       { source: "/fantasy", headers: noindex },
       { source: "/fantasy/:path*", headers: noindex },
       { source: "/fantasy/data/:path*", headers: [{ key: "Cache-Control", value: "no-store, max-age=0" }] },
+      { source: "/tracker", headers: noindex },
+      { source: "/tracker/:path*", headers: noindex },
+      {
+        source: "/tracker/sw.js",
+        headers: [
+          { key: "Service-Worker-Allowed", value: "/tracker" },
+          { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
+        ],
+      },
     ];
   },
 };

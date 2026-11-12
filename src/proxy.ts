@@ -21,7 +21,9 @@ export function proxy(request: NextRequest) {
   // /fantasy is the owner's private NBA + IPL friends' league (static page in public/fantasy + /api/fantasy).
   const isBasketball = pathname === "/basketball" || pathname.startsWith("/basketball/");
   const isFantasy = pathname === "/fantasy" || pathname.startsWith("/fantasy/");
-  if (hasLocale || LANDING_PATHS.has(pathname) || pathname === "/insights" || isBasketball || isFantasy) {
+  // /tracker is the owner's private Stake bet tracker (static PWA in public/tracker + /api/tracker/*).
+  const isTracker = pathname === "/tracker" || pathname.startsWith("/tracker/");
+  if (hasLocale || LANDING_PATHS.has(pathname) || pathname === "/insights" || isBasketball || isFantasy || isTracker) {
     return NextResponse.next();
   }
 

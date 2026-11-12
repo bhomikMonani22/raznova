@@ -1,0 +1,63 @@
+{
+  "name": "EasyBuckets Ledger",
+  "short_name": "EB Ledger",
+  "description": "NBA bet portfolio: P&L, live slip sweat board, insights.",
+  "id": "/tracker",
+  "start_url": "/tracker#/portfolio",
+  "scope": "/tracker",
+  "display": "standalone",
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ],
+  "orientation": "any",
+  "background_color": "#07090d",
+  "theme_color": "#07090d",
+  "categories": [
+    "finance",
+    "sports",
+    "productivity"
+  ],
+  "icons": [
+    {
+      "src": "/tracker/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/tracker/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/tracker/icons/maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Sweat board",
+      "url": "/tracker#/live",
+      "icons": [
+        {
+          "src": "/tracker/icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "New slip",
+      "url": "/tracker#/portfolio?add=1",
+      "icons": [
+        {
+          "src": "/tracker/icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ]
+}

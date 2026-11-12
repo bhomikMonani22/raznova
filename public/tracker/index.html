@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>EasyBuckets Ledger</title>
+  <meta name="description" content="Personal NBA bet portfolio: P&L, live slip sweat board, insights." />
+  <meta name="theme-color" content="#07090d" />
+  <meta name="color-scheme" content="dark" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="manifest" href="/tracker/manifest.webmanifest" />
+  <link rel="icon" href="/tracker/icons/icon-192.png" type="image/png" />
+  <link rel="apple-touch-icon" href="/tracker/icons/icon-192.png" />
+  <link rel="stylesheet" href="/tracker/styles.css" />
+</head>
+<body>
+  <div id="app" class="app">
+    <aside class="sidenav" aria-label="Main">
+      <div class="brand">
+        <img src="/tracker/icons/icon-192.png" alt="" width="32" height="32" />
+        <div><b>EasyBuckets</b><small>Ledger</small></div>
+      </div>
+      <nav id="nav-side"></nav>
+      <button class="btn primary wide" data-act="add">+ New slip</button>
+      <div class="side-foot" id="sync-side"></div>
+    </aside>
+
+    <header class="topbar">
+      <div class="brand sm">
+        <img src="/tracker/icons/icon-192.png" alt="" width="26" height="26" />
+        <b id="top-title">Portfolio</b>
+      </div>
+      <div class="top-actions">
+        <span class="sync-dot" id="sync-dot" title="Sync status"></span>
+        <button class="icon-btn" data-go="tools" aria-label="Tools">
+          <svg viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/></svg>
+        </button>
+        <button class="icon-btn" data-go="settings" aria-label="Settings">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <main id="view" class="view" tabindex="-1"></main>
+
+    <nav class="tabbar" id="nav-tab" aria-label="Tabs"></nav>
+  </div>
+
+  <div id="sheet-root"></div>
+  <div id="toast-root" aria-live="polite"></div>
+
+  <noscript>EasyBuckets Ledger needs JavaScript.</noscript>
+  <script type="module" src="/tracker/js/app.js"></script>
+</body>
+</html>
