@@ -412,7 +412,7 @@ function vPortfolio() {
         <div>In play<b>${money(P.openStake)} · ${P.openCount}</b></div>
         <div>Max return<b>${money(P.openPotential)}</b></div>
         <div>Hit rate<b>${pct(P.hitRate, 0)}</b></div>
-        <div>Avg odds<b>${odds(P.avgOdds)}</b></div>
+        <div>Typical odds<b>${odds(P.avgOdds)}</b></div>
       </div>
       ${noCash ? `<div class="alert info" style="margin-top:14px">Add your starting Stake balance so bankroll is real. <button class="btn sm" data-act="txn" data-kind="deposit" style="margin-left:auto">+ Deposit</button></div>` : ''}
     </div>

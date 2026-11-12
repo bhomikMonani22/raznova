@@ -255,7 +255,9 @@ export function portfolio(bets, txns, period = 'all') {
   const profit = settled.reduce((s, b) => s + betProfit(b), 0);
   const graded = settled.filter((b) => b.status === 'won' || b.status === 'lost' || b.status === 'cashout');
   const wins = graded.filter((b) => betProfit(b) > 0).length;
-  const avgOdds = graded.length ? graded.reduce((s, b) => s + Number(b.odds || 0), 0) / graded.length : 0;
+  // median, not mean: one 30,000x longshot would otherwise swamp the number
+  const oddsSorted = graded.map((b) => Number(b.odds || 0)).sort((x, y) => x - y);
+  const avgOdds = oddsSorted.length ? (oddsSorted.length % 2 ? oddsSorted[(oddsSorted.length - 1) / 2] : (oddsSorted[oddsSorted.length / 2 - 1] + oddsSorted[oddsSorted.length / 2]) / 2) : 0;
   const impl = graded.length ? graded.reduce((s, b) => s + 1 / (Number(b.odds) || 1), 0) / graded.length : 0;
 
   // equity curve + drawdown (by settle time)
