@@ -5,6 +5,8 @@ import { NextRequest } from "next/server";
 // GET ?fn=scoreboard[&date=YYYYMMDD]   that day's games (ESPN's current day if no date)
 // GET ?fn=game&id=EVENT_ID              status, score and every player's line for one game
 // GET ?fn=players&date=YYYYMMDD         every rostered player on that day's teams, for name matching
+// GET ?fn=league                        season-to-date team offence/defence per game + league ranks (1 = most)
+// GET ?fn=gamelog&id=ATHLETE_ID         a player's last 10 regular-season games
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
@@ -106,6 +108,91 @@ function slimGame(d: J, id: string) {
   };
 }
 
+const TEAM_KEYS = ["pts", "oppPts", "fgPct", "oppFgPct", "reb", "oppReb", "ast", "oppAst", "tpm", "oppTpm", "miss", "oppMiss", "total", "chances"] as const;
+type TeamAgg = Record<(typeof TEAM_KEYS)[number], number> & { gp: number; abbr: string; name: string; id: string; rank: Record<string, number> };
+
+function statOf(c: J, name: string) {
+  const s = ((c.statistics || []) as J[]).find((x) => x.name === name);
+  return s ? Number(s.displayValue) || 0 : 0;
+}
+
+async function leagueStats() {
+  const now = new Date();
+  const startYear = now.getUTCMonth() >= 7 ? now.getUTCFullYear() : now.getUTCFullYear() - 1;
+  const months: string[] = [];
+  for (let d = new Date(Date.UTC(startYear, 9, 1)); d <= now; d.setUTCMonth(d.getUTCMonth() + 1)) {
+    months.push(`${d.getUTCFullYear()}${String(d.getUTCMonth() + 1).padStart(2, "0")}`);
+  }
+  const boards = await Promise.all(months.map((m) => getJSON(`${BASE}/scoreboard?dates=${m}&limit=500`).catch(() => ({ events: [] }))));
+  const sums = new Map<string, J>();
+  let games = 0;
+  for (const b of boards) {
+    for (const e of (b.events || []) as J[]) {
+      if (!e.status?.type?.completed || (e.season?.type && e.season.type !== 2)) continue;
+      const cs: J[] = e.competitions?.[0]?.competitors || [];
+      if (cs.length !== 2 || !cs.every((c) => c.statistics?.length)) continue;
+      games++;
+      for (const [me, op] of [[cs[0], cs[1]], [cs[1], cs[0]]]) {
+        const k = me.team.abbreviation as string;
+        const t = sums.get(k) || { gp: 0, abbr: k, name: me.team.displayName, id: me.team.id, pts: 0, oppPts: 0, fgm: 0, fga: 0, ofgm: 0, ofga: 0, reb: 0, oppReb: 0, ast: 0, oppAst: 0, tpm: 0, oppTpm: 0 };
+        t.gp++;
+        t.pts += Number(me.score) || statOf(me, "points");
+        t.oppPts += Number(op.score) || statOf(op, "points");
+        t.fgm += statOf(me, "fieldGoalsMade"); t.fga += statOf(me, "fieldGoalsAttempted");
+        t.ofgm += statOf(op, "fieldGoalsMade"); t.ofga += statOf(op, "fieldGoalsAttempted");
+        t.reb += statOf(me, "rebounds"); t.oppReb += statOf(op, "rebounds");
+        t.ast += statOf(me, "assists"); t.oppAst += statOf(op, "assists");
+        t.tpm += statOf(me, "threePointFieldGoalsMade"); t.oppTpm += statOf(op, "threePointFieldGoalsMade");
+        sums.set(k, t);
+      }
+    }
+  }
+  const r1 = (x: number) => Math.round(x * 10) / 10;
+  const teams: Record<string, TeamAgg> = {};
+  for (const t of sums.values()) {
+    const g = t.gp || 1;
+    const miss = (t.fga - t.fgm) / g, oppMiss = (t.ofga - t.ofgm) / g;
+    teams[t.abbr] = {
+      gp: t.gp, abbr: t.abbr, name: t.name, id: t.id, rank: {},
+      pts: r1(t.pts / g), oppPts: r1(t.oppPts / g),
+      fgPct: r1((t.fgm / (t.fga || 1)) * 100), oppFgPct: r1((t.ofgm / (t.ofga || 1)) * 100),
+      reb: r1(t.reb / g), oppReb: r1(t.oppReb / g), ast: r1(t.ast / g), oppAst: r1(t.oppAst / g),
+      tpm: r1(t.tpm / g), oppTpm: r1(t.oppTpm / g), miss: r1(miss), oppMiss: r1(oppMiss),
+      total: r1((t.pts + t.oppPts) / g), chances: r1(miss + oppMiss),
+    };
+  }
+  // rank 1 = highest value (for "opp*" that means the most generous defence)
+  const list = Object.values(teams);
+  for (const k of TEAM_KEYS) {
+    [...list].sort((a, b) => b[k] - a[k]).forEach((t, i) => { t.rank[k] = i + 1; });
+  }
+  const avg: Record<string, number> = {};
+  for (const k of TEAM_KEYS) avg[k] = r1(list.reduce((s, t) => s + t[k], 0) / (list.length || 1));
+  return { season: `${startYear}-${String(startYear + 1).slice(2)}`, games, teams, avg, fetchedAt: Date.now() };
+}
+
+async function gamelog(id: string) {
+  const d = await getJSON(`https://site.web.api.espn.com/apis/common/v3/sports/basketball/nba/athletes/${id}/gamelog`);
+  const names: string[] = d.names || [];
+  const ix = (n: string) => names.indexOf(n);
+  const I = { MIN: ix("minutes"), PTS: ix("points"), REB: ix("totalRebounds"), AST: ix("assists"), STL: ix("steals"), BLK: ix("blocks"), TO: ix("turnovers"), TPM: ix("threePointFieldGoalsMade-threePointFieldGoalsAttempted") };
+  const reg = ((d.seasonTypes || []) as J[]).find((s) => /regular/i.test(s.displayName || "")) || (d.seasonTypes || [])[0];
+  const rows: J[] = [];
+  for (const cat of (reg?.categories || []) as J[]) {
+    for (const ev of (cat.events || []) as J[]) {
+      const meta: J = d.events?.[ev.eventId] || {};
+      const st: string[] = ev.stats || [];
+      const n = (i: number) => (i >= 0 ? num(st[i]) : 0);
+      rows.push({
+        id: ev.eventId, date: meta.gameDate, opp: meta.opponent?.abbreviation, at: meta.atVs, res: meta.gameResult, score: meta.score,
+        MIN: n(I.MIN), PTS: n(I.PTS), REB: n(I.REB), AST: n(I.AST), STL: n(I.STL), BLK: n(I.BLK), TO: n(I.TO), "3PM": n(I.TPM),
+      });
+    }
+  }
+  rows.sort((a, b) => String(b.date).localeCompare(String(a.date)));
+  return { id, games: rows.slice(0, 10), fetchedAt: Date.now() };
+}
+
 function send(body: unknown, maxAge: number, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -157,6 +244,12 @@ export async function GET(req: NextRequest) {
         })
       );
       return send({ date, events, players: rosters.flat(), fetchedAt: Date.now() }, 3600);
+    }
+    if (fn === "league") return send(await leagueStats(), 21600);
+    if (fn === "gamelog") {
+      const id = (sp.get("id") || "").replace(/\D/g, "");
+      if (!id) return send({ error: "id required" }, 5, 400);
+      return send(await gamelog(id), 10800);
     }
     return send({ error: "unknown fn" }, 5, 400);
   } catch (err) {

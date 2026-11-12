@@ -5,6 +5,7 @@ import {
 import { parseSlip } from './parser.js';
 import { equityChart, heatmap, ring, hbar } from './charts.js';
 import { flexCard } from './flex.js';
+import { legHistory, compareOpp, formFromLog, gameAngles, metricFor, FAMILY } from './deep.js';
 
 /* =========================================================
    State
@@ -638,9 +639,9 @@ after.slips = () => {
 };
 
 /* ---------- insights ---------- */
-function vInsights() {
+function vSlipInsights() {
   const X = insights(bets());
-  if (X.all.n < 1) return `<div class="stack"><h1 class="h1">Insights</h1><div class="card empty"><b>Needs settled slips</b>Insights unlock after your first results — leg killers, odds-bucket edge, player hit rates and more.</div></div>`;
+  if (X.all.n < 1) return '';
   const tbl = (rows, cols) => `<div class="tscroll"><table class="t"><thead><tr>${cols.map((c) => `<th class="${c.r ? 'r' : ''}">${c.h}</th>`).join('')}</tr></thead><tbody>${rows.map((r) => `<tr>${cols.map((c) => `<td class="${c.r ? 'r num' : ''} ${c.c ? c.c(r) : ''}">${c.f(r)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
   const betCols = [
     { h: 'Bucket', f: (r) => esc(r.k) },
@@ -665,7 +666,7 @@ function vInsights() {
     return lines;
   })();
   return `<div class="stack">
-    <div><h1 class="h1">Insights</h1><p class="sub">${X.all.n} settled slips · ${X.legCount} graded legs · leg hit rate ${pct(X.legHit, 0)}</p></div>
+    <h2 class="sec-h">Slips &amp; formats <span class="dim">${X.all.n} settled slips</span></h2>
     ${verdict.length ? `<div class="card" style="border-color:rgba(255,122,26,.35)"><h3>Desk read</h3>${verdict.map((v) => `<p style="margin:6px 0">${v}</p>`).join('')}</div>` : ''}
     <div class="cols t2">
       <div class="card"><h3>By number of legs <span class="r">is the parlay tax real?</span></h3>${tbl(X.byLegs, betCols)}</div>
@@ -694,6 +695,235 @@ function vInsights() {
       </div>
     </div>
   </div>`;
+}
+
+/* ---------- insights: Today / History ---------- */
+const tblH = (rows, cols) => `<div class="tscroll"><table class="t"><thead><tr>${cols.map((c) => `<th class="${c.r ? 'r' : ''}">${c.h}</th>`).join('')}</tr></thead><tbody>${rows.map((r) => `<tr>${cols.map((c) => `<td class="${c.r ? 'r num' : ''} ${c.c ? c.c(r) : ''}">${c.f(r)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+const sgn = (v) => (v == null ? '—' : `${v > 0 ? '+' : v < 0 ? '−' : ''}${Math.abs(v)}`);
+const sideTxt = (sd) => (sd === 'under' ? 'U' : 'O');
+
+function vInsights() {
+  const tab = L.insTab || 'today';
+  return `<div class="stack">
+    <div class="row between wrap" style="gap:10px"><h1 class="h1" style="margin:0">Insights</h1>
+      <div class="seg" role="tablist" aria-label="Insights view"><button data-instab="today" class="${tab === 'today' ? 'on' : ''}">Today</button><button data-instab="history" class="${tab === 'history' ? 'on' : ''}">History</button></div></div>
+    ${tab === 'today' ? vToday() : vHistory()}
+  </div>`;
+}
+
+function vHistory() {
+  const H = legHistory(bets());
+  if (!H.legs.length) return `<div class="card empty"><b>No graded legs yet</b>History fills in as your slips settle.</div>${vSlipInsights()}`;
+  const hit = (H.legs.filter((l) => l.result === 'won').length / H.legs.length) * 100;
+  const wins = H.legs.filter((l) => l.result === 'won' && l.m != null).map((l) => l.m);
+  const cushion = wins.length ? Math.round((wins.reduce((a, b) => a + b, 0) / wins.length) * 10) / 10 : null;
+  const comboCols = [
+    { h: 'Leg', f: (r) => `${esc(r.player)} <span class="dim">${sideTxt(r.side)} ${esc(r.stat)}</span>` },
+    { h: 'Hit', f: (r) => `${r.w}/${r.n}`, r: 1, c: (r) => (r.hit >= 60 ? 'pos' : r.hit <= 40 ? 'neg' : '') },
+    { h: 'Usual line', f: (r) => r.avgLine ?? '—', r: 1 },
+    { h: 'Avg result', f: (r) => r.avgFinal ?? '—', r: 1 },
+    { h: 'Cushion', f: (r) => sgn(r.avgMargin), r: 1, c: (r) => cls(r.avgMargin) },
+    { h: 'Last', f: (r) => `${r.last.result === 'won' ? '✓' : '✕'} ${r.last.finalValue ?? ''}/${r.last.line}${r.last.opp ? ' v ' + esc(r.last.opp) : ''}`, r: 1 },
+  ];
+  const famName = { scoring: 'Scoring (PTS, PR, PA, PRA)', boards: 'Boards (REB, RA)', assists: 'Assists', small: 'Threes, steals, blocks' };
+  const fams = ['scoring', 'boards', 'assists', 'small'].filter((f) => H.buckets.some((b) => b.fam === f));
+  return `
+    <div class="lsum">
+      <div><span>Graded legs</span><b>${H.legs.length}</b><small>props only</small></div>
+      <div><span>Leg hit rate</span><b class="${hit >= 55 ? 'pos' : hit < 45 ? 'neg' : ''}">${pct(hit, 0)}</b><small>${H.legs.filter((l) => l.result === 'won').length} won</small></div>
+      <div><span>Win cushion</span><b>${sgn(cushion)}</b><small>avg beat line by</small></div>
+      <div><span>Near misses</span><b class="${H.near.length ? 'amber' : ''}">${H.near.length}</b><small>lost by a hair</small></div>
+    </div>
+    <div class="card"><h3>Legs you cash most <span class="r">same player · stat · side, 2+ picks</span></h3>
+      ${H.best.length ? tblH(H.best, comboCols) : '<div class="dim">Repeat a leg twice to see it here.</div>'}</div>
+    <div class="cols t2">
+      <div class="card"><h3>Cushion by stat <span class="r">how far past the line</span></h3>${tblH(H.byStat, [
+        { h: 'Stat', f: (r) => esc(r.label) },
+        { h: 'Hit', f: (r) => `${pct(r.hit, 0)} <span class="dim">${r.w}/${r.n}</span>`, r: 1, c: (r) => (r.hit >= 60 ? 'pos' : r.hit < 45 ? 'neg' : '') },
+        { h: 'Line', f: (r) => r.avgLine ?? '—', r: 1 },
+        { h: 'Won by', f: (r) => sgn(r.winCushion), r: 1, c: () => 'pos' },
+        { h: 'Lost by', f: (r) => sgn(r.lossMiss), r: 1, c: () => 'neg' },
+        { h: 'Near', f: (r) => r.near || '—', r: 1, c: (r) => (r.near ? 'amber' : '') },
+      ])}</div>
+      <div class="card"><h3>Line sweet spots <span class="r">hit rate by line size</span></h3>
+        ${fams.map((f) => `<div class="dim" style="font-size:11.5px;margin:6px 0 2px">${famName[f]}</div>${H.buckets.filter((b) => b.fam === f).map((b) => hbar(esc(b.b), b.hit, 100, `${pct(b.hit, 0)} <span class="dim">${b.w}/${b.n}</span>`)).join('')}`).join('')}
+        <div class="divider"></div>
+        <div class="dim" style="font-size:11.5px;margin-bottom:2px">Overs vs unders</div>
+        ${H.bySide.sort((a, b) => a.fam.localeCompare(b.fam)).map((r) => hbar(`${r.fam} ${sideTxt(r.side)}`, r.hit, 100, `${pct(r.hit, 0)} <span class="dim">${r.w}/${r.n}</span>`)).join('')}
+      </div>
+    </div>
+    <div class="cols t2">
+      <div class="card"><h3>Legs that burn you <span class="r">2+ picks, ≤40% hit</span></h3>
+        ${H.worst.length ? tblH(H.worst, comboCols.slice(0, 5)) : '<div class="dim">No repeat offenders yet.</div>'}</div>
+      <div class="card"><h3>Closest calls <span class="r">lost by a hair</span></h3>
+        ${H.near.slice(0, 8).map((l) => `<div class="row between" style="padding:7px 0;border-bottom:1px solid var(--line);font-size:13px"><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(l.player)} <span class="dim">${sideTxt(l.side)} ${l.line} ${esc(l.stat)}${l.opp ? ' v ' + esc(l.opp) : ''}</span></span><b class="num amber">${l.finalValue} <span class="dim">(${sgn(Math.round(l.m * 10) / 10)})</span></b></div>`).join('') || '<div class="dim">None. Clean misses only.</div>'}
+      </div>
+    </div>
+    ${H.byOpp.length ? (() => {
+      const oc = [
+        { h: 'Opponent', f: (r) => esc(r.opp) }, { h: 'Legs', f: (r) => r.n, r: 1 },
+        { h: 'Hit', f: (r) => pct(r.hit, 0), r: 1, c: (r) => (r.hit >= 60 ? 'pos' : r.hit < 45 ? 'neg' : '') },
+        { h: 'Cushion', f: (r) => sgn(r.avgMargin), r: 1, c: (r) => cls(r.avgMargin) },
+      ];
+      const best = H.byOpp.slice(0, 6), worst = [...H.byOpp].reverse().slice(0, 6).filter((r) => !best.includes(r));
+      return `<div class="cols t2"><div class="card"><h3>Best opponents to target <span class="r">3+ legs</span></h3>${tblH(best, oc)}</div>
+        <div class="card"><h3>Toughest opponents <span class="r">3+ legs</span></h3>${worst.length ? tblH(worst, oc) : '<div class="dim">Not enough data yet.</div>'}</div></div>`;
+    })() : ''}
+    ${vSlipInsights()}`;
+}
+
+/* Today: the next slate, your players on it, matchup context */
+const today = { date: null, slate: null, league: null, logs: {}, loading: false, err: null, at: 0 };
+async function loadToday(force = false) {
+  if (today.loading || (!force && today.slate && Date.now() - today.at < 10 * 60000)) return;
+  today.loading = true; today.err = null;
+  try {
+    const leagueP = api('/api/tracker/nba?fn=league');
+    let d = etYMD(), slate = null;
+    for (let i = 0; i < 4; i++) {
+      slate = await playersFor(d);
+      if (slate.events.length && slate.events.some((e) => e.status.state !== 'post')) break;
+      d = addDays(d, 1);
+    }
+    today.slate = slate; today.date = d; today.league = await leagueP; today.at = Date.now();
+  } catch (e) { today.err = e.message; }
+  today.loading = false;
+  if (route === 'insights') softRender();
+  loadLogs();
+}
+async function loadLogs() {
+  const ids = [...new Set((today.mine || []).map((x) => x.p.id))].filter((id) => id && !(id in today.logs)).slice(0, 30);
+  if (!ids.length) return;
+  ids.forEach((id) => { today.logs[id] = null; });
+  await Promise.all(ids.map((id) => api(`/api/tracker/nba?fn=gamelog&id=${id}`).then((g) => { today.logs[id] = g; }).catch(() => { today.logs[id] = { games: [] }; })));
+  if (route === 'insights' && (L.insTab || 'today') === 'today') softRender();
+}
+
+function rankCell(t, k, allowed) {
+  if (!t) return '—';
+  const r = t.rank[k];
+  const c = allowed ? (r <= 10 ? 'pos' : r > 20 ? 'neg' : '') : '';
+  return `<span class="num">${Number(t[k]).toFixed(1)}</span> <span class="rk ${c}">#${r}</span>`;
+}
+
+function vToday() {
+  if (!today.slate || !today.league) {
+    loadToday();
+    return today.err ? `<div class="card empty"><b>Couldn't load today's slate</b>${esc(today.err)}<div style="margin-top:10px"><button class="btn sm" data-act="reloadtoday">Retry</button></div></div>`
+      : `<div class="stack"><div class="skeleton" style="height:70px"></div><div class="skeleton" style="height:160px"></div><div class="skeleton" style="height:160px"></div></div>`;
+  }
+  const { slate, league } = today;
+  const H = legHistory(bets());
+  const byId = new Map(slate.players.map((p) => [String(p.id), p]));
+  const byName = new Map(slate.players.map((p) => [norm(p.name), p]));
+  const mine = new Map();
+  for (const c of H.combos) {
+    const p = (c.playerId && byId.get(String(c.playerId))) || byName.get(norm(c.player)) || findPlayer(slate.players, { player: c.player });
+    if (!p) continue;
+    if (!mine.has(p.id)) mine.set(p.id, { p, combos: [] });
+    mine.get(p.id).combos.push(c);
+  }
+  const evById = new Map(slate.events.map((e) => [e.id, e]));
+  const list = [...mine.values()].map((x) => {
+    x.combos.sort((a, b) => b.n - a.n || b.w - a.w);
+    x.main = x.combos[0];
+    x.ev = evById.get(x.p.gameId);
+    return x;
+  }).sort((a, b) => (new Date(a.ev?.date) - new Date(b.ev?.date)) || b.main.n - a.main.n);
+  // open picks on this slate (any leg of an open slip in the current account)
+  const openLegs = [];
+  const seenOpen = new Set();
+  for (const bt of bets().filter((x) => x.status === 'open')) {
+    for (const l of bt.legs) {
+      if (l.market !== 'prop' || !STATS[l.stat] || STATS[l.stat].special) continue;
+      const p = (l.playerId && byId.get(String(l.playerId))) || byName.get(norm(l.player)) || findPlayer(slate.players, l);
+      if (!p) continue;
+      const k = `${p.id}|${l.stat}|${l.side}|${l.line}`;
+      if (seenOpen.has(k)) continue;
+      seenOpen.add(k);
+      const hist = H.combos.find((c) => norm(c.player) === norm(p.name) && c.stat === l.stat && c.side === l.side);
+      openLegs.push({ p, l, bt, hist, ev: evById.get(p.gameId) });
+    }
+  }
+  openLegs.sort((a, b) => new Date(a.ev?.date) - new Date(b.ev?.date));
+  today.mine = [...openLegs.map((o) => ({ p: o.p })), ...list];
+  if (list.some((x) => !(x.p.id in today.logs))) setTimeout(loadLogs, 0);
+
+  const day = new Date(today.date + 'T12:00:00').toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' });
+  // most-picked first; show 10 unless expanded
+  const ranked = [...list].sort((a, b) => b.main.n - a.main.n || b.main.w - a.main.w || (new Date(a.ev?.date) - new Date(b.ev?.date)));
+  const shown = today.showAll ? ranked : ranked.slice(0, 10);
+  const cards = shown.map((x) => {
+    const { p, main, ev } = x;
+    const cmp = compareOpp(league, main.stat, main.last.opp, p.opp, main.side);
+    const log = today.logs[p.id];
+    const form = log ? formFromLog(log, main.stat, main.avgLine, main.side) : null;
+    // signal: recent form vs your usual line + how generous tonight's opponent is for this stat
+    let score = 0;
+    if (form) { const edge = (form.avg - main.avgLine) * (main.side === 'under' ? -1 : 1); score += edge > 0.5 ? 1 : edge < -0.5 ? -1 : 0; score += form.hits >= 4 ? 0.5 : form.hits <= 1 ? -0.5 : 0; }
+    if (cmp.cur) score += (cmp.cur.tag === 'soft' ? 1 : cmp.cur.tag === 'tough' ? -1 : 0) * (main.side === 'under' ? -1 : 1);
+    if (main.hit >= 60) score += 0.5; else if (main.hit <= 40) score -= 0.5;
+    const sig = score >= 1.5 ? ['pos', '▲ Lines up'] : score <= -1 ? ['neg', '▼ Caution'] : ['amber', '• Mixed'];
+    const tip = ev ? new Date(ev.date).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '';
+    const spark = form ? `<span class="spark">${form.vals.map((v, i) => { const ok = main.side === 'under' ? v < main.avgLine : v > main.avgLine; const h = Math.max(8, Math.min(100, (v / Math.max(main.avgLine * 1.6, 1)) * 100)); return `<i class="${ok ? 'ok' : 'no'}" style="height:${h}%" title="${v} v ${esc(form.opps[i] || '')}"></i>`; }).join('')}</span>` : '';
+    const others = x.combos.slice(1, 3).map((c) => `${sideTxt(c.side)} ${esc(c.stat)} ${c.w}/${c.n}`).join(' · ');
+    return `<div class="pcard">
+      <div class="row between" style="gap:8px"><div style="min-width:0"><b class="pc-nm">${esc(p.name)}</b> <span class="dim">${esc(p.team)} v ${esc(p.opp || '')} · ${tip}</span></div><span class="pill ${sig[0] === 'pos' ? 'won' : sig[0] === 'neg' ? 'lost' : 'live'}">${sig[1]}</span></div>
+      <div class="pc-grid">
+        <div><span>Your record</span><b>${sideTxt(main.side)} ${esc(main.stat)} <span class="${main.hit >= 60 ? 'pos' : main.hit <= 40 ? 'neg' : ''}">${main.w}/${main.n}</span></b><small>usual line ${main.avgLine} · avg ${main.avgFinal ?? '—'} (${sgn(main.avgMargin)})</small></div>
+        <div><span>Last 5 games</span><b>${form ? `${form.avg} avg <span class="${form.hits >= 3 ? 'pos' : 'neg'}">${form.hits}/${form.n}</span>` : log === null || !log ? '<span class="dim">loading…</span>' : '<span class="dim">no games</span>'}</b><small>${form ? `${spark} ${form.mins} min` : `vs line ${main.avgLine}`}</small></div>
+      </div>
+      <div class="pc-cmp">${cmp.prev ? `Last: v <b>${esc(cmp.prev.opp)}</b> <span class="${cmp.prev.cls}">${cmp.prev.v} ${cmp.metric.label} (#${cmp.prev.rank})</span> → ` : ''}Tonight: v <b>${esc(p.opp || '?')}</b> ${cmp.cur ? `<span class="${cmp.cur.cls}">${cmp.cur.v} ${cmp.metric.label} (#${cmp.cur.rank}, ${cmp.cur.tag})</span>` : ''}${cmp.shift ? ` · <b class="${/softer/.test(cmp.shift) ? 'pos' : /tougher/.test(cmp.shift) ? 'neg' : ''}">${cmp.shift}</b>` : ''}
+        <div class="dim" style="margin-top:2px">Last pick: ${main.last.result === 'won' ? '✓' : '✕'} ${main.last.finalValue ?? '—'} v line ${main.last.line}${others ? ' · also ' + others : ''}</div></div>
+    </div>`;
+  }).join('');
+
+  const games = [...slate.events].sort((a, b) => new Date(a.date) - new Date(b.date)).map((e) => {
+    const A = league.teams[e.away.abbr], Hm = league.teams[e.home.abbr];
+    const rows = [
+      ['Points / g', 'pts', false], ['Allowed / g', 'oppPts', true], ['FG%', 'fgPct', false], ['Opp FG%', 'oppFgPct', true],
+      ['Rebounds / g', 'reb', false], ['Reb chances', 'chances', true], ['AST allowed', 'oppAst', true], ['3s allowed', 'oppTpm', true],
+    ];
+    const ang = gameAngles(league, e.away.abbr, e.home.abbr);
+    const mineN = list.filter((x) => x.p.gameId === e.id).length;
+    const st = e.status.state === 'in' ? `<span class="pill live"><span class="dot"></span>${esc(e.status.detail)}</span>` : e.status.state === 'post' ? '<span class="pill void">Final</span>' : `<span class="dim">${new Date(e.date).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>`;
+    return `<div class="gcard">
+      <div class="gsec-h"><div class="row" style="gap:8px"><span>${esc(e.away.abbr)} <span class="dim">${esc(e.away.record || '')}</span> @ ${esc(e.home.abbr)} <span class="dim">${esc(e.home.record || '')}</span></span>${st}</div>${mineN ? `<span class="pill cashout">${mineN} of yours</span>` : ''}</div>
+      <table class="t mt"><thead><tr><th></th><th class="r">${esc(e.away.abbr)}</th><th class="r">${esc(e.home.abbr)}</th></tr></thead><tbody>
+        ${rows.map(([lbl, k, allowed]) => `<tr><td class="mute">${lbl}</td><td class="r">${rankCell(A, k, allowed)}</td><td class="r">${rankCell(Hm, k, allowed)}</td></tr>`).join('')}
+      </tbody></table>
+      ${ang.length ? `<ul class="angles">${ang.map((a) => `<li class="${a.cls}">${esc(a.t)}</li>`).join('')}</ul>` : ''}
+    </div>`;
+  }).join('');
+
+  const openCards = openLegs.map(({ p, l, bt, hist, ev }) => {
+    const cmp = compareOpp(league, l.stat, null, p.opp, l.side);
+    const log = today.logs[p.id];
+    const form = log ? formFromLog(log, l.stat, l.line, l.side) : null;
+    let score = 0;
+    if (form) { const edge = (form.avg - Number(l.line)) * (l.side === 'under' ? -1 : 1); score += edge > 0.5 ? 1 : edge < -0.5 ? -1 : 0; score += form.hits >= 4 ? 0.5 : form.hits <= 1 ? -0.5 : 0; }
+    if (cmp.cur) score += (cmp.cur.tag === 'soft' ? 1 : cmp.cur.tag === 'tough' ? -1 : 0) * (l.side === 'under' ? -1 : 1);
+    if (hist) score += hist.hit >= 60 ? 0.5 : hist.hit <= 40 ? -0.5 : 0;
+    const sig = score >= 1.5 ? ['won', '▲ Lines up'] : score <= -1 ? ['lost', '▼ Caution'] : ['live', '• Mixed'];
+    const spark = form ? `<span class="spark">${form.vals.map((v, i) => { const ok = l.side === 'under' ? v < l.line : v > l.line; const h = Math.max(8, Math.min(100, (v / Math.max(l.line * 1.6, 1)) * 100)); return `<i class="${ok ? 'ok' : 'no'}" style="height:${h}%" title="${v} v ${esc(form.opps[i] || '')}"></i>`; }).join('')}</span>` : '';
+    const tip = ev ? new Date(ev.date).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '';
+    return `<div class="pcard" data-act="detail" data-id="${bt.id}" style="cursor:pointer">
+      <div class="row between" style="gap:8px"><div style="min-width:0"><b class="pc-nm">${esc(legLabel(l))}</b> <span class="dim">${esc(p.team)} v ${esc(p.opp || '')} · ${tip}${acct() === 'all' && bt.placedBy ? ' · ' + esc(bt.placedBy) : ''}</span></div><span class="pill ${sig[0]}">${sig[1]}</span></div>
+      <div class="pc-grid">
+        <div><span>Last 5 v this line</span><b>${form ? `${form.avg} avg <span class="${form.hits >= 3 ? 'pos' : 'neg'}">${form.hits}/${form.n}</span>` : log ? '<span class="dim">no games</span>' : '<span class="dim">loading…</span>'}</b><small>${form ? `${spark} ${form.mins} min` : `line ${l.line}`}</small></div>
+        <div><span>${esc(p.opp || 'Opp')} ${esc(cmp.metric.label)}</span><b>${cmp.cur ? `<span class="${cmp.cur.cls}">${cmp.cur.v}</span> <span class="dim">#${cmp.cur.rank}</span>` : '—'}</b><small>${cmp.cur ? `${cmp.cur.tag} · ${esc(cmp.metric.unit)}` : ''}</small></div>
+      </div>
+      <div class="dim" style="font-size:12px">${hist ? `Your history on this leg: <b class="${hist.hit >= 60 ? 'pos' : hist.hit <= 40 ? 'neg' : ''}">${hist.w}/${hist.n}</b> · usual line ${hist.avgLine} · avg ${hist.avgFinal ?? '—'}` : 'First time on this leg'} · ${money(bt.stake)}→${money(potential(bt))}</div>
+    </div>`;
+  }).join('');
+
+  return `<p class="sub" style="margin:0">Slate: <b>${day}</b> (US date) · ${slate.events.length} games · season stats from ${league.games} games · ranks: #1 = most per game; green = generous for overs</p>
+    ${openLegs.length ? `<h2 class="sec-h">Your open picks tonight <span class="dim">${openLegs.length}</span></h2><div class="pgrid">${openCards}</div>` : ''}
+    <h2 class="sec-h">Your players on this slate <span class="dim">${list.length} · most-picked first</span></h2>
+    ${list.length ? `<div class="pgrid">${cards}</div>${list.length > shown.length ? `<button class="btn wide" data-act="todayall">${today.showAll ? 'Show top 10' : `Show all ${list.length} players`}</button>` : ''}` : `<div class="card empty"><b>No settled history with players on this slate yet</b>Once your slips settle, past picks on these players show up here.</div>`}
+    <h2 class="sec-h">Matchups</h2>
+    <div class="ggrid">${games}</div>
+    <p class="dim" style="font-size:11.5px;margin:0">Signals combine your hit rate on the leg, last-5 form vs your usual line, and how much tonight's opponent allows for that stat. They're context, not picks — check the injury report before you lock anything.</p>`;
 }
 
 /* ---------- tools ---------- */
@@ -1084,9 +1314,10 @@ function sheetTxn() {
    Actions
    ========================================================= */
 document.addEventListener('click', async (e) => {
-  const t = e.target.closest('[data-act],[data-go],[data-period],[data-filter],[data-mode],[data-day],[data-profile]');
+  const t = e.target.closest('[data-act],[data-go],[data-period],[data-filter],[data-mode],[data-day],[data-profile],[data-instab]');
   if (!t) return;
   if (t.dataset.profile) { L.profile = t.dataset.profile; saveL(); return render(); }
+  if (t.dataset.instab) { L.insTab = t.dataset.instab; saveL(); return render(); }
   if (t.dataset.go) { if (sheetState) closeSheet(); return go(t.dataset.go); }
   if (t.dataset.period) { L.period = t.dataset.period; saveL(); return render(); }
   if (t.dataset.filter) { L.slipFilter = t.dataset.filter; saveL(); return render(); }
@@ -1118,6 +1349,8 @@ document.addEventListener('click', async (e) => {
     }
     case 'localmode': L.mode = 'local'; saveL(); render(); pollLive(true); break;
     case 'lock': L.mode = null; L.pin = ''; saveL(); setSync('local'); render(); break;
+    case 'todayall': today.showAll = !today.showAll; render(); break;
+    case 'reloadtoday': today.err = null; loadToday(true); render(); break;
     case 'syncnow': await syncNow('push'); toast('Synced', 'good'); render(); break;
     case 'refresh': t.textContent = '↻ …'; await pollLive(true); break;
     case 'notify': {
