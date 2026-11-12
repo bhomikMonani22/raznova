@@ -245,10 +245,11 @@ export function portfolio(bets, txns, period = 'all') {
   const open = live.filter((b) => b.status === 'open');
   const deposits = txns.filter((t) => !t.deleted && t.kind === 'deposit').reduce((s, t) => s + Number(t.amount || 0), 0);
   const withdrawals = txns.filter((t) => !t.deleted && t.kind === 'withdraw').reduce((s, t) => s + Number(t.amount || 0), 0);
+  const adjust = txns.filter((t) => !t.deleted && t.kind === 'adjust').reduce((s, t) => s + Number(t.amount || 0), 0);
   const allSettled = live.filter(isSettled);
   const realizedAll = allSettled.reduce((s, b) => s + betProfit(b), 0);
   const openStake = open.reduce((s, b) => s + Number(b.stake || 0), 0);
-  const bankroll = deposits - withdrawals + realizedAll - openStake;
+  const bankroll = deposits - withdrawals + adjust + realizedAll - openStake;
 
   const staked = settled.filter((b) => b.status !== 'void').reduce((s, b) => s + Number(b.stake || 0), 0);
   const profit = settled.reduce((s, b) => s + betProfit(b), 0);
@@ -282,7 +283,7 @@ export function portfolio(bets, txns, period = 'all') {
   const best = graded.reduce((m, b) => (betProfit(b) > (m ? betProfit(m) : -Infinity) ? b : m), null);
 
   return {
-    bankroll, deposits, withdrawals, realizedAll, openStake,
+    bankroll, deposits, withdrawals, adjust, realizedAll, openStake,
     openCount: open.length, openPotential: open.reduce((s, b) => s + potential(b), 0),
     staked, profit, roi: staked ? (profit / staked) * 100 : 0,
     count: settled.length, graded: graded.length, wins, hitRate: graded.length ? (wins / graded.length) * 100 : 0,

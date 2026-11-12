@@ -330,11 +330,31 @@ function softRender() {
 const after = {};
 
 /* ---------- account switcher ---------- */
+// A slip is "live" while it's open and any of its games is in progress or tips off within the next hour.
+const SOON_MS = 60 * 60 * 1000;
+function isLiveSlip(b) {
+  if (b.status !== 'open') return false;
+  const now = Date.now();
+  return b.legs.some((l) => {
+    const g = games[l.gameId];
+    if (g?.status.state === 'in') return true;
+    if (g?.status.state === 'post') return false;
+    const start = g ? new Date(g.date).getTime() : l.startTime ? new Date(l.startTime).getTime() : null;
+    return start != null && start - now < SOON_MS && now - start < 4 * SOON_MS;
+  });
+}
 function profileBar() {
   const opts = ['all', ...(S.settings.people || [])];
-  const count = (p) => S.bets.filter((b) => !b.deleted && (p === 'all' || (b.placedBy || S.settings.people?.[0]) === p)).length;
+  const mine = (p) => S.bets.filter((b) => !b.deleted && (p === 'all' || (b.placedBy || S.settings.people?.[0]) === p));
+  const badge = (p) => {
+    const list = mine(p);
+    const live = list.filter(isLiveSlip).length;
+    return live
+      ? `<span class="pill live" style="margin-left:4px"><span class="dot"></span>${live} live</span>`
+      : `<span class="dim">${list.length}</span>`;
+  };
   return `<div class="row between wrap" style="margin-bottom:14px"><div class="seg" role="tablist" aria-label="Account">${opts
-    .map((p) => `<button data-profile="${esc(p)}" class="${acct() === p ? 'on' : ''}">${p === 'all' ? 'Combined' : esc(p) + ' acc'} <span class="dim">${count(p)}</span></button>`)
+    .map((p) => `<button data-profile="${esc(p)}" class="${acct() === p ? 'on' : ''}">${p === 'all' ? 'Combined' : esc(p) + ' acc'} ${badge(p)}</button>`)
     .join('')}</div></div>`;
 }
 
@@ -389,7 +409,7 @@ function vPortfolio() {
       ${kpi('Max drawdown', money(-P.maxDD), 'peak to trough', P.maxDD ? 'neg' : '')}
       ${kpi('Streak', P.streak ? `${P.streak}${P.streakType}` : '—', P.streakType === 'W' ? 'heater 🔥' : P.streakType === 'L' ? 'cold — size down' : '', P.streakType === 'W' ? 'pos' : P.streakType === 'L' ? 'neg' : '')}
       ${kpi('Best hit', P.best ? money(betProfit(P.best), { sign: true }) : '—', P.best ? `@${odds(P.best.odds)} · ${esc(betTitle(P.best))}` : '', 'pos')}
-      ${kpi('Deposited', money(P.deposits - P.withdrawals), `${money(P.withdrawals)} withdrawn`)}
+      ${kpi('Deposited', money(P.deposits - P.withdrawals), `${money(P.withdrawals)} withdrawn${P.adjust ? ` · ${money(P.adjust, { sign: true })} unmatched` : ''}`)}
       ${kpi('Lifetime P&L', money(P.realizedAll, { sign: true }), 'all settled slips', cls(P.realizedAll))}
     </div>
 
@@ -398,7 +418,7 @@ function vPortfolio() {
       <div class="card"><h3>Daily P&L <span class="r">last 18 weeks</span></h3><div id="heat"></div>
         <div class="divider"></div>
         <h3 style="margin-bottom:8px">Cash <span class="r"><button class="btn sm" data-act="txn" data-kind="deposit">+ Deposit</button> <button class="btn sm" data-act="txn" data-kind="withdraw">− Withdraw</button></span></h3>
-        ${txns().sort((a, b) => b.at - a.at).slice(0, 4).map((t) => `<div class="row between" style="padding:6px 0;font-size:13px"><span class="mute">${dateOnly(t.at)} · ${acct() === 'all' && t.account ? esc(t.account) + ' · ' : ''}${t.kind === 'deposit' ? 'Deposit' : 'Withdrawal'}${t.note ? ' · ' + esc(t.note) : ''}</span><span class="row"><b class="num ${t.kind === 'deposit' ? 'pos' : 'neg'}">${t.kind === 'deposit' ? '+' : '−'}${money(t.amount)}</b><button class="btn ghost sm" data-act="deltxn" data-id="${t.id}" aria-label="Delete">✕</button></span></div>`).join('') || '<div class="dim" style="font-size:12.5px">No deposits logged.</div>'}
+        ${txns().sort((a, b) => b.at - a.at).slice(0, 4).map((t) => `<div class="row between" style="padding:6px 0;font-size:13px"><span class="mute">${dateOnly(t.at)} · ${acct() === 'all' && t.account ? esc(t.account) + ' · ' : ''}${t.kind === 'deposit' ? 'Deposit' : t.kind === 'adjust' ? 'Adjustment' : 'Withdrawal'}${t.note ? ' · ' + esc(t.note) : ''}</span><span class="row"><b class="num ${t.kind === 'withdraw' ? 'neg' : t.kind === 'adjust' ? 'amber' : 'pos'}">${t.kind === 'adjust' ? money(t.amount, { sign: true }) : (t.kind === 'deposit' ? '+' : '−') + money(t.amount)}</b><button class="btn ghost sm" data-act="deltxn" data-id="${t.id}" aria-label="Delete">✕</button></span></div>`).join('') || '<div class="dim" style="font-size:12.5px">No deposits logged.</div>'}
       </div>
     </div>
 

@@ -1,4 +1,4 @@
-const V = 'rz-tracker-v1.2.0';
+const V = 'rz-tracker-v1.4.0';
 const B = '/tracker';
 const SHELL = [B, B + '/index.html', B + '/styles.css', B + '/js/app.js', B + '/js/engine.js', B + '/js/parser.js', B + '/js/charts.js', B + '/js/flex.js', B + '/manifest.webmanifest', B + '/icons/icon-192.png', B + '/icons/icon-512.png'];
 
