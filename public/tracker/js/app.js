@@ -13,17 +13,22 @@ const KEY = 'ebl.v1';
 const LKEY = 'ebl.local.v1';
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
 
-const DEFAULT_SETTINGS = { currency: '₹', unit: 500, lossLimit: 0, people: ['Bhoomik', 'Cousin'], autoSettle: true, handle: '', updatedAt: 0 };
+const DEFAULT_SETTINGS = { currency: '₹', unit: 500, lossLimit: 0, people: ['Bhoomik', 'Tanay'], autoSettle: true, handle: '', updatedAt: 0 };
 
 let S = load(KEY, { bets: [], txns: [], settings: { ...DEFAULT_SETTINGS } });
 S.settings = { ...DEFAULT_SETTINGS, ...S.settings };
-let L = load(LKEY, { mode: null, pin: '', notify: false, auto: true, lastSync: 0, period: 'all', slipFilter: 'all' });
+if (JSON.stringify(S.settings.people) === '["Bhoomik","Cousin"]') S.settings.people = ['Bhoomik', 'Tanay'];
+let L = load(LKEY, { mode: null, pin: '', notify: false, auto: true, lastSync: 0, period: 'all', slipFilter: 'all', profile: 'all' });
 
 function load(k, d) { try { return JSON.parse(localStorage.getItem(k)) || d; } catch { return d; } }
 function save() { localStorage.setItem(KEY, JSON.stringify(S)); }
 function saveL() { localStorage.setItem(LKEY, JSON.stringify(L)); }
-const bets = () => S.bets.filter((b) => !b.deleted);
-const txns = () => S.txns.filter((t) => !t.deleted);
+// Accounts: every slip and cash entry belongs to one Stake account (placedBy / account). 'all' = combined view.
+const acct = () => L.profile || 'all';
+const inAcct = (name) => acct() === 'all' || (name || S.settings.people?.[0]) === acct();
+const bets = () => S.bets.filter((b) => !b.deleted && inAcct(b.placedBy));
+const txns = () => S.txns.filter((t) => !t.deleted && inAcct(t.account));
+const allBets = () => S.bets.filter((b) => !b.deleted);
 
 function commit(rec) {
   if (rec) rec.updatedAt = Date.now();
@@ -199,7 +204,7 @@ let lastLive = 0;
 let liveTimer = null;
 const legPrev = {};
 
-const openBets = () => bets().filter((b) => b.status === 'open');
+const openBets = () => allBets().filter((b) => b.status === 'open');
 function liveBadge() {
   let n = 0;
   for (const b of openBets()) if (b.legs.some((l) => games[l.gameId]?.status.state === 'in')) n++;
@@ -313,7 +318,7 @@ function render() {
   setSync(L.mode === 'cloud' ? (syncState === 'local' ? 'ok' : syncState) : 'local');
   if (!L.mode) { view().innerHTML = lockView(); return; }
   const fn = { portfolio: vPortfolio, live: vLive, slips: vSlips, insights: vInsights, tools: vTools, settings: vSettings }[route];
-  view().innerHTML = fn();
+  view().innerHTML = (['portfolio', 'live', 'slips', 'insights'].includes(route) ? profileBar() : '') + fn();
   after[route]?.();
   if (sheetState?.kind === 'detail') renderSheet();
 }
@@ -323,6 +328,15 @@ function softRender() {
   render();
 }
 const after = {};
+
+/* ---------- account switcher ---------- */
+function profileBar() {
+  const opts = ['all', ...(S.settings.people || [])];
+  const count = (p) => S.bets.filter((b) => !b.deleted && (p === 'all' || (b.placedBy || S.settings.people?.[0]) === p)).length;
+  return `<div class="row between wrap" style="margin-bottom:14px"><div class="seg" role="tablist" aria-label="Account">${opts
+    .map((p) => `<button data-profile="${esc(p)}" class="${acct() === p ? 'on' : ''}">${p === 'all' ? 'Combined' : esc(p) + ' acc'} <span class="dim">${count(p)}</span></button>`)
+    .join('')}</div></div>`;
+}
 
 /* ---------- lock / onboarding ---------- */
 function lockView() {
@@ -384,7 +398,7 @@ function vPortfolio() {
       <div class="card"><h3>Daily P&L <span class="r">last 18 weeks</span></h3><div id="heat"></div>
         <div class="divider"></div>
         <h3 style="margin-bottom:8px">Cash <span class="r"><button class="btn sm" data-act="txn" data-kind="deposit">+ Deposit</button> <button class="btn sm" data-act="txn" data-kind="withdraw">− Withdraw</button></span></h3>
-        ${txns().sort((a, b) => b.at - a.at).slice(0, 4).map((t) => `<div class="row between" style="padding:6px 0;font-size:13px"><span class="mute">${dateOnly(t.at)} · ${t.kind === 'deposit' ? 'Deposit' : 'Withdrawal'}${t.note ? ' · ' + esc(t.note) : ''}</span><span class="row"><b class="num ${t.kind === 'deposit' ? 'pos' : 'neg'}">${t.kind === 'deposit' ? '+' : '−'}${money(t.amount)}</b><button class="btn ghost sm" data-act="deltxn" data-id="${t.id}" aria-label="Delete">✕</button></span></div>`).join('') || '<div class="dim" style="font-size:12.5px">No deposits logged.</div>'}
+        ${txns().sort((a, b) => b.at - a.at).slice(0, 4).map((t) => `<div class="row between" style="padding:6px 0;font-size:13px"><span class="mute">${dateOnly(t.at)} · ${acct() === 'all' && t.account ? esc(t.account) + ' · ' : ''}${t.kind === 'deposit' ? 'Deposit' : 'Withdrawal'}${t.note ? ' · ' + esc(t.note) : ''}</span><span class="row"><b class="num ${t.kind === 'deposit' ? 'pos' : 'neg'}">${t.kind === 'deposit' ? '+' : '−'}${money(t.amount)}</b><button class="btn ghost sm" data-act="deltxn" data-id="${t.id}" aria-label="Delete">✕</button></span></div>`).join('') || '<div class="dim" style="font-size:12.5px">No deposits logged.</div>'}
       </div>
     </div>
 
@@ -672,7 +686,7 @@ function vSettings() {
           <label class="f">Daily loss limit (0 = off)<input class="in num" data-set="lossLimit" inputmode="decimal" value="${esc(s.lossLimit)}"></label>
           <label class="f">Flex-card handle<input class="in" data-set="handle" placeholder="@easybuckets" value="${esc(s.handle)}"></label>
         </div>
-        <label class="f">People who place slips (comma separated)<input class="in" data-set="people" value="${esc((s.people || []).join(', '))}"></label>
+        <label class="f">Stake accounts (comma separated)<input class="in" data-set="people" value="${esc((s.people || []).join(', '))}"></label>
         <label class="row" style="gap:8px;font-size:13px"><input type="checkbox" data-set="autoSettle" ${s.autoSettle !== false ? 'checked' : ''}> Auto-settle slips from live boxscores</label>
       </div>
       <div class="card stack"><h3>App</h3>
@@ -722,7 +736,7 @@ function blankLeg() { return { id: uid(), market: 'prop', player: '', playerId: 
 function newDraft() {
   return {
     id: uid(), createdAt: Date.now(), placedAt: Date.now(), gameDate: etYMD(), type: 'single', stake: S.settings.unit || '', odds: '', boost: '',
-    status: 'open', payout: '', cashout: '', placedBy: S.settings.people?.[0] || '', notes: '', legs: [blankLeg()], source: 'build',
+    status: 'open', payout: '', cashout: '', placedBy: acct() !== 'all' ? acct() : S.settings.people?.[0] || '', notes: '', legs: [blankLeg()], source: 'build',
   };
 }
 
@@ -806,7 +820,7 @@ function sheetEdit() {
       <label class="f">Boost %<input class="in num" data-d="boost" inputmode="decimal" value="${esc(d.boost)}" placeholder="0"></label>
     </div>
     <div class="grid g2">
-      <label class="f">Placed by<select class="in" data-d="placedBy">${(S.settings.people || []).map((p) => `<option ${d.placedBy === p ? 'selected' : ''}>${esc(p)}</option>`).join('')}</select></label>
+      <label class="f">Stake account<select class="in" data-d="placedBy">${(S.settings.people || []).map((p) => `<option ${d.placedBy === p ? 'selected' : ''}>${esc(p)}</option>`).join('')}</select></label>
       <label class="f">Placed at<input type="datetime-local" class="in" data-d="placedAt" value="${new Date(d.placedAt - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}"></label>
     </div>
     <div class="grid g2">
@@ -960,6 +974,7 @@ function sheetTxn() {
   return `<div class="sheet-h"><h2>${k === 'deposit' ? 'Deposit' : 'Withdrawal'}</h2><button class="btn ghost sm" data-act="close">✕</button></div>
   <div class="stack">
     <label class="f">Amount (${esc(cur().trim())})<input class="in num" id="tx-amt" inputmode="decimal" autofocus></label>
+    <label class="f">Stake account<select class="in" id="tx-acct">${(S.settings.people || []).map((p) => `<option ${acct() === p ? 'selected' : ''}>${esc(p)}</option>`).join('')}</select></label>
     <label class="f">Date<input type="date" class="in" id="tx-date" value="${new Date().toISOString().slice(0, 10)}"></label>
     <label class="f">Note<input class="in" id="tx-note" placeholder="${k === 'deposit' ? 'Starting balance' : 'Profit taken'}"></label>
     <button class="btn primary" data-act="savetxn">Save</button>
@@ -970,8 +985,9 @@ function sheetTxn() {
    Actions
    ========================================================= */
 document.addEventListener('click', async (e) => {
-  const t = e.target.closest('[data-act],[data-go],[data-period],[data-filter],[data-mode],[data-day]');
+  const t = e.target.closest('[data-act],[data-go],[data-period],[data-filter],[data-mode],[data-day],[data-profile]');
   if (!t) return;
+  if (t.dataset.profile) { L.profile = t.dataset.profile; saveL(); return render(); }
   if (t.dataset.go) { if (sheetState) closeSheet(); return go(t.dataset.go); }
   if (t.dataset.period) { L.period = t.dataset.period; saveL(); return render(); }
   if (t.dataset.filter) { L.slipFilter = t.dataset.filter; saveL(); return render(); }
@@ -1067,7 +1083,7 @@ document.addEventListener('click', async (e) => {
     case 'savetxn': {
       const amt = Number(document.getElementById('tx-amt').value);
       if (!(amt > 0)) return toast('Enter an amount', 'bad');
-      const tx = { id: uid(), kind: sheetState.txnKind, amount: amt, at: new Date(document.getElementById('tx-date').value + 'T12:00:00').getTime(), note: document.getElementById('tx-note').value.trim() };
+      const tx = { id: uid(), kind: sheetState.txnKind, amount: amt, at: new Date(document.getElementById('tx-date').value + 'T12:00:00').getTime(), note: document.getElementById('tx-note').value.trim(), account: document.getElementById('tx-acct').value };
       S.txns.push(tx); closeSheet(); commit(tx); break;
     }
     case 'deltxn': { const tx = S.txns.find((x) => x.id === id); if (tx && confirmInline(t, '?')) { tx.deleted = true; commit(tx); } break; }
@@ -1105,6 +1121,27 @@ function toCSV() {
 }
 
 /* =========================================================
+   Built-in slip history (public/tracker/data/history.json)
+   Records keep fixed ids, so loading twice never duplicates; a local edit (newer updatedAt) wins over the file.
+   ========================================================= */
+async function loadHistory() {
+  try {
+    const r = await fetch('/tracker/data/history.json', { cache: 'no-store' });
+    if (!r.ok) return;
+    const h = await r.json();
+    let n = 0;
+    const up = (arr, list) => {
+      for (const rec of list || []) {
+        const i = arr.findIndex((x) => x.id === rec.id);
+        if (i < 0) { arr.push(rec); n++; } else if ((rec.updatedAt || 0) > (arr[i].updatedAt || 0)) { arr[i] = rec; n++; }
+      }
+    };
+    up(S.bets, h.bets); up(S.txns, h.txns);
+    if (n) { save(); render(); if (L.mode) pollLive(true); }
+  } catch {}
+}
+
+/* =========================================================
    Boot
    ========================================================= */
 if ('serviceWorker' in navigator) {
@@ -1116,6 +1153,7 @@ if ('serviceWorker' in navigator) {
   }).catch(() => {});
 }
 render();
+loadHistory();
 if (L.mode && /add=1/.test(location.hash)) { history.replaceState(null, '', '#/portfolio'); setTimeout(() => document.querySelector('[data-act="add"]')?.click(), 50); }
 if (L.mode) {
   pollLive(true);

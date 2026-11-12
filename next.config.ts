@@ -32,6 +32,7 @@ const nextConfig: NextConfig = {
       { source: "/fantasy/data/:path*", headers: [{ key: "Cache-Control", value: "no-store, max-age=0" }] },
       { source: "/tracker", headers: noindex },
       { source: "/tracker/:path*", headers: noindex },
+      { source: "/tracker/data/:path*", headers: [{ key: "Cache-Control", value: "no-store, max-age=0" }] },
       {
         source: "/tracker/sw.js",
         headers: [

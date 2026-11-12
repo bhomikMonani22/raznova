@@ -1,4 +1,4 @@
-const V = 'rz-tracker-v1.0.0';
+const V = 'rz-tracker-v1.1.0';
 const B = '/tracker';
 const SHELL = [B, B + '/index.html', B + '/styles.css', B + '/js/app.js', B + '/js/engine.js', B + '/js/parser.js', B + '/js/charts.js', B + '/js/flex.js', B + '/manifest.webmanifest', B + '/icons/icon-192.png', B + '/icons/icon-512.png'];
 
@@ -12,11 +12,11 @@ self.addEventListener('fetch', (e) => {
   const u = new URL(e.request.url);
   if (e.request.method !== 'GET' || u.origin !== location.origin) return;
   if (!u.pathname.startsWith(B) && !u.pathname.startsWith('/api/tracker/')) return;
-  if (u.pathname.startsWith('/api/tracker/')) {
+  if (u.pathname.startsWith('/api/tracker/') || u.pathname.startsWith(B + '/data/')) {
     // network first; fall back to last good response so the app opens offline
     e.respondWith(
       fetch(e.request).then((r) => {
-        if (r.ok && u.searchParams.get('fn') !== 'game') { const cp = r.clone(); caches.open(V + '-api').then((c) => c.put(e.request, cp)); }
+        if (r.ok && u.searchParams.get('fn') !== 'game' && !u.pathname.startsWith(B + '/data/')) { const cp = r.clone(); caches.open(V + '-api').then((c) => c.put(e.request, cp)); }
         return r;
       }).catch(() => caches.match(e.request).then((m) => m || new Response('{"error":"offline"}', { status: 503, headers: { 'Content-Type': 'application/json' } })))
     );
