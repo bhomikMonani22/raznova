@@ -392,7 +392,13 @@ function vPortfolio() {
     <div class="hero">
       <div class="row between hero-top"><span class="lbl">Bankroll</span><div class="chips">${periods.map(([k, t]) => `<button class="chip ${L.period === k ? 'on' : ''}" data-period="${k}">${t}</button>`).join('')}</div></div>
       <div class="big">${money(P.bankroll)}</div>
-      <div class="chg ${cls(P.profit)}">${money(P.profit, { sign: true })} <span style="opacity:.8">(${spct(P.roi)} ROI)</span> <span class="mute" style="font-weight:500">· ${periods.find((p) => p[0] === L.period)[1]}</span></div>
+      ${L.period === 'all' && P.deposits
+        ? (() => {
+            const acctPL = P.realizedAll + P.adjust;
+            const net = P.deposits - P.withdrawals;
+            return `<div class="chg ${cls(acctPL)}">${money(acctPL, { sign: true })} <span style="opacity:.8">(${spct(net ? (acctPL / net) * 100 : 0)} on deposits)</span> <span class="mute" style="font-weight:500">· account</span></div>`;
+          })()
+        : `<div class="chg ${cls(P.profit)}">${money(P.profit, { sign: true })} <span style="opacity:.8">(${spct(P.roi)} ROI)</span> <span class="mute" style="font-weight:500">· ${periods.find((p) => p[0] === L.period)[1]}</span></div>`}
       <div class="meta">
         <div>In play<b>${money(P.openStake)} · ${P.openCount}</b></div>
         <div>Max return<b>${money(P.openPotential)}</b></div>
@@ -403,8 +409,8 @@ function vPortfolio() {
     </div>
 
     <div class="grid g4">
-      ${kpi('Net P&L', money(P.profit, { sign: true }), `${P.count} settled`, cls(P.profit))}
-      ${kpi('ROI / yield', spct(P.roi), `${money(P.staked)} staked`, cls(P.roi))}
+      ${kpi('Slip P&L', money(P.profit, { sign: true }), `${P.count} settled slips`, cls(P.profit))}
+      ${kpi('Slip ROI', spct(P.roi), `${money(P.staked)} staked`, cls(P.roi))}
       ${kpi('Edge vs odds', spct(edge), `hit ${pct(P.hitRate, 0)} vs implied ${pct(P.implied, 0)}`, cls(edge))}
       ${kpi('Max drawdown', money(-P.maxDD), 'peak to trough', P.maxDD ? 'neg' : '')}
       ${kpi('Streak', P.streak ? `${P.streak}${P.streakType}` : '—', P.streakType === 'W' ? 'heater 🔥' : P.streakType === 'L' ? 'cold — size down' : '', P.streakType === 'W' ? 'pos' : P.streakType === 'L' ? 'neg' : '')}
