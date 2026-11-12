@@ -1,4 +1,4 @@
-const V = 'rz-tracker-v1.8.0';
+const V = 'rz-tracker-v2.0.0';
 const B = '/tracker';
 const SHELL = [B, B + '/index.html', B + '/styles.css', B + '/js/app.js', B + '/js/engine.js', B + '/js/parser.js', B + '/js/charts.js', B + '/js/flex.js', B + '/manifest.webmanifest', B + '/icons/icon-192.png', B + '/icons/icon-512.png'];
 
@@ -22,12 +22,16 @@ self.addEventListener('fetch', (e) => {
     );
     return;
   }
-  // shell: stale-while-revalidate
+  // shell: network-first so every visit gets the latest app; cache is only the offline fallback
   e.respondWith(
     caches.open(V).then(async (c) => {
-      const hit = await c.match(e.request, { ignoreSearch: true }) || (e.request.mode === 'navigate' ? await c.match(B) : null);
-      const net = fetch(e.request).then((r) => { if (r.ok) c.put(e.request, r.clone()); return r; }).catch(() => hit);
-      return hit || net;
+      try {
+        const r = await Promise.race([fetch(e.request, { cache: 'no-cache' }), new Promise((_, rej) => setTimeout(() => rej(new Error('slow')), 4000))]);
+        if (r.ok) c.put(e.request, r.clone());
+        return r;
+      } catch {
+        return (await c.match(e.request, { ignoreSearch: true })) || (e.request.mode === 'navigate' ? await c.match(B) : Response.error());
+      }
     })
   );
 });

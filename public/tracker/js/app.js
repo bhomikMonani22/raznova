@@ -1244,7 +1244,12 @@ async function loadHistory() {
    Boot
    ========================================================= */
 if ('serviceWorker' in navigator) {
+  // when a new version takes over, reload once into it (no more "refresh twice")
+  let swReloaded = false;
+  const hadController = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.addEventListener('controllerchange', () => { if (hadController && !swReloaded) { swReloaded = true; location.reload(); } });
   navigator.serviceWorker.register('/tracker/sw.js', { scope: '/tracker' }).then((reg) => {
+    reg.update().catch(() => {});
     reg.addEventListener('updatefound', () => {
       const nw = reg.installing;
       nw?.addEventListener('statechange', () => { if (nw.state === 'installed' && navigator.serviceWorker.controller) toast('Update ready — <a href="#" onclick="location.reload()">reload</a>', '', 8000); });
