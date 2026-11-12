@@ -202,6 +202,8 @@ const games = {}; // id -> slim game
 let board = null; // scoreboard
 let lastLive = 0;
 let liveTimer = null;
+let nextPoll = 0, liveMode = false;
+const LIVE_EVERY = 5 * 60 * 1000;
 const legPrev = {};
 
 const openBets = () => allBets().filter((b) => b.status === 'open');
@@ -229,10 +231,16 @@ async function pollLive(force = false) {
   lastLive = Date.now();
   const changed = evaluateAll();
   if (changed || route === 'live' || route === 'portfolio') softRender();
+  // Auto-refresh only while this page is open: every 5 min if any game is in progress,
+  // otherwise sleep until the next tip-off (no polling at all when nothing is scheduled).
   const anyLive = [...ids].some((id) => games[id]?.status.state === 'in') || board?.events?.some((e) => e.status.state === 'in');
-  const soon = [...ids].some((id) => games[id]?.status.state === 'pre' && new Date(games[id].date) - Date.now() < 15 * 60000);
-  const delay = anyLive || soon ? 20000 : 120000;
-  if (L.auto) liveTimer = setTimeout(() => { if (document.visibilityState === 'visible') pollLive(); else liveTimer = setTimeout(pollLive, 5000); }, delay);
+  const starts = [...[...ids].map((id) => games[id]), ...(board?.events || [])]
+    .filter((g) => g && g.status.state === 'pre').map((g) => new Date(g.date).getTime()).filter((t) => t > Date.now());
+  const nextTip = starts.length ? Math.min(...starts) : null;
+  const delay = anyLive ? LIVE_EVERY : nextTip ? Math.min(Math.max(nextTip - Date.now() + 60000, 60000), 6 * 3600000) : null;
+  nextPoll = delay ? Date.now() + delay : 0;
+  liveMode = anyLive;
+  if (L.auto && delay) liveTimer = setTimeout(() => { if (document.visibilityState === 'visible') pollLive(); }, delay);
 }
 
 async function linkOrphans() {
@@ -497,40 +505,105 @@ function legRow(l, e, b) {
 
 /* ---------- live ---------- */
 function vLive() {
-  const ob = openBets();
+  const ob = bets().filter((b) => b.status === 'open'); // respects the account toggle
   const evs = ob.map((b) => ({ b, ev: legsEval(b) }));
-  const sortKey = ({ ev }) => (ev.some((e) => e.state === 'live') ? 0 : ev.some((e) => e.state === 'pending') ? 1 : 2);
-  evs.sort((a, b) => sortKey(a) - sortKey(b));
   const legsAll = evs.flatMap((x) => x.ev);
   const exp = ob.reduce((s, b) => s + Number(b.stake || 0), 0);
-  const mx = ob.reduce((s, b) => s + potential(b), 0);
   const alive = evs.filter(({ ev }) => !ev.some((e) => e.state === 'dead'));
+  const mx = alive.reduce((s, { b }) => s + potential(b), 0);
+  const hitN = legsAll.filter((e) => e.state === 'hit').length;
+  const liveN = legsAll.filter((e) => e.state === 'live').length;
+  const deadN = legsAll.filter((e) => e.state === 'dead').length;
   const myGames = new Set(ob.flatMap((b) => b.legs.map((l) => l.gameId)));
-  const tk = (board?.events || []).map((e) => {
+  const gameStart = (id, l) => (games[id] ? new Date(games[id].date).getTime() : l?.startTime || 9e15);
+  const gameRank = (id, l) => { const st = games[id]?.status.state; return (st === 'in' ? 0 : st === 'pre' || !st ? 1 : 2) * 1e16 + gameStart(id, l); };
+
+  // ticker: my games first
+  const tkEvents = [...(board?.events || [])].sort((a, b) => (myGames.has(b.id) - myGames.has(a.id)) || (a.status.state === 'in' ? -1 : 0));
+  const tk = tkEvents.map((e) => {
     const lead = (e.home.score || 0) > (e.away.score || 0) ? 'h' : (e.away.score || 0) > (e.home.score || 0) ? 'a' : '';
     const st = e.status.state === 'pre' ? new Date(e.date).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : e.status.detail;
-    return `<div class="tk ${e.status.state} ${myGames.has(e.id) ? 'mine' : ''}">
+    return `<div class="tk tk-${e.status.state} ${myGames.has(e.id) ? 'mine' : ''}">
       <div class="tr ${lead === 'a' ? 'lead' : ''}"><span>${esc(e.away.abbr)}</span><b>${e.status.state === 'pre' ? '' : e.away.score ?? ''}</b></div>
       <div class="tr ${lead === 'h' ? 'lead' : ''}"><span>${esc(e.home.abbr)}</span><b>${e.status.state === 'pre' ? '' : e.home.score ?? ''}</b></div>
       <div class="st"><span>${esc(st)}</span>${myGames.has(e.id) ? '<span style="color:var(--accent)">●</span>' : ''}</div></div>`;
   }).join('');
-  return `<div class="stack">
-    <div class="row between wrap">
-      <div><h1 class="h1">Sweat board</h1><p class="sub" style="margin:0">Live ESPN data · updates every 20s while games are on</p></div>
-      <div class="row"><span class="dim" style="font-size:12px">${lastLive ? 'Updated ' + ago(lastLive) : ''}</span><button class="btn sm" data-act="refresh">↻ Refresh</button>
-      ${'Notification' in window && !L.notify ? '<button class="btn sm" data-act="notify">🔔 Alerts</button>' : ''}</div>
+
+  // singles grouped under their game; multis stay as full cards
+  const singles = evs.filter(({ b }) => b.legs.length === 1);
+  const multis = evs.filter(({ b }) => b.legs.length > 1);
+  const byGame = new Map();
+  for (const x of singles) {
+    const k = x.b.legs[0].gameId || 'none';
+    if (!byGame.has(k)) byGame.set(k, []);
+    byGame.get(k).push(x);
+  }
+  const order = { live: 0, pending: 1, hit: 2, push: 3, dead: 4 };
+  const gameSections = [...byGame]
+    .sort(([a, xa], [b, xb]) => gameRank(a, xa[0].b.legs[0]) - gameRank(b, xb[0].b.legs[0]))
+    .map(([gid, arr]) => {
+      arr.sort((x, y) => (order[x.ev[0].state] ?? 9) - (order[y.ev[0].state] ?? 9));
+      const g = games[gid];
+      const l0 = arr[0].b.legs[0];
+      const st = g?.status.state;
+      const score = g && st !== 'pre'
+        ? `<span class="num">${esc(g.away.abbr)} <b>${g.away.score ?? ''}</b> – <b>${g.home.score ?? ''}</b> ${esc(g.home.abbr)}</span>`
+        : `<span>${esc(l0.gameLabel || 'Game')}</span>`;
+      const clock = st === 'in' ? `<span class="pill live"><span class="dot"></span>Q${g.status.period > 4 ? 'OT' : g.status.period} ${esc(g.status.clock)}</span>`
+        : st === 'post' ? '<span class="pill void">Final</span>'
+        : `<span class="dim">${new Date(g?.date || l0.startTime || Date.now()).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>`;
+      const stake = arr.reduce((s, x) => s + Number(x.b.stake || 0), 0);
+      const h = arr.filter((x) => x.ev[0].state === 'hit').length;
+      return `<section class="gsec ${st === 'in' ? 'live' : ''}">
+        <header class="gsec-h"><div class="row" style="gap:8px;min-width:0">${score}${clock}</div>
+          <span class="dim mono" style="font-size:12px">${h}/${arr.length} · ${money(stake)}</span></header>
+        ${arr.map(({ b, ev }) => srow(b, ev[0])).join('')}
+      </section>`;
+    }).join('');
+
+  return `<div class="stack live-page">
+    <div class="row between" style="gap:8px">
+      <div style="min-width:0"><h1 class="h1">Sweat board</h1><p class="sub" style="margin:0;font-size:12px">${!L.auto ? 'Auto-refresh off' : liveMode ? `Live · auto-refresh every 5 min${nextPoll ? ' · next ' + new Date(nextPoll).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : ''}` : nextPoll ? `No game live · wakes at tip-off ${new Date(nextPoll - 60000).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}` : 'No games scheduled'}${lastLive ? ' · updated ' + ago(lastLive) : ''}</p></div>
+      <div class="row" style="gap:6px;flex:none">
+        <button class="btn sm" data-act="refresh" aria-label="Refresh">↻<span class="hide-sm"> Refresh</span></button>
+        ${'Notification' in window && !L.notify ? '<button class="btn sm" data-act="notify" aria-label="Alerts">🔔<span class="hide-sm"> Alerts</span></button>' : ''}</div>
     </div>
-    ${tk ? `<div class="ticker">${tk}</div>` : '<div class="ticker"><div class="tk skeleton" style="height:66px"></div><div class="tk skeleton" style="height:66px"></div><div class="tk skeleton" style="height:66px"></div></div>'}
-    <div class="grid g4">
-      ${kpi('Open slips', ob.length, `${alive.length} still alive`)}
-      ${kpi('At risk', money(exp), 'total staked')}
-      ${kpi('Max return', money(mx), 'if every alive slip hits', 'pos')}
-      ${kpi('Legs', `${legsAll.filter((e) => e.state === 'hit').length}/${legsAll.length}`, `${legsAll.filter((e) => e.state === 'live').length} live · ${legsAll.filter((e) => e.state === 'dead').length} dead`)}
+    ${tk ? `<div class="ticker">${tk}</div>` : '<div class="ticker"><div class="tk skeleton" style="height:58px"></div><div class="tk skeleton" style="height:58px"></div><div class="tk skeleton" style="height:58px"></div></div>'}
+    <div class="lsum">
+      <div><span>Open</span><b>${ob.length}</b><small>${alive.length} alive</small></div>
+      <div><span>At risk</span><b>${money(exp)}</b><small>staked</small></div>
+      <div><span>Max return</span><b class="pos">${money(mx)}</b><small>if alive hit</small></div>
+      <div><span>Legs hit</span><b>${hitN}/${legsAll.length}</b><small>${liveN} live · ${deadN} dead</small></div>
     </div>
-    <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(min(100%,420px),1fr))">
-      ${evs.map(({ b }) => slipCard(b, { open: true })).join('') || `<div class="card empty"><b>No open slips</b>Paste a Stake slip and it'll track here automatically.<div style="margin-top:12px"><button class="btn primary" data-act="add">+ New slip</button></div></div>`}
-    </div>
+    ${!ob.length ? `<div class="card empty"><b>No open slips${acct() !== 'all' ? ' on ' + esc(acct()) + ' acc' : ''}</b>Paste a Stake slip and it'll track here automatically.<div style="margin-top:12px"><button class="btn primary" data-act="add">+ New slip</button></div></div>` : ''}
+    ${gameSections ? `<div class="gsecs">${gameSections}</div>` : ''}
+    ${multis.length ? `<h3 class="sec-t">Multis <span class="dim">${multis.length}</span></h3>
+      <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(min(100%,420px),1fr))">${multis
+        .sort((a, b) => (a.ev.some((e) => e.state === 'live') ? 0 : 1) - (b.ev.some((e) => e.state === 'live') ? 0 : 1))
+        .map(({ b }) => slipCard(b, { open: true })).join('')}</div>` : ''}
   </div>`;
+}
+
+// One tight row per single: status · player line + progress · stat/line · stake → payout
+function srow(b, e) {
+  const l = b.legs[0];
+  const st = e.state;
+  const ic = st === 'hit' ? '✓' : st === 'dead' ? '✕' : st === 'push' ? '–' : st === 'live' ? '●' : '';
+  const isNum = (l.market === 'prop' && !STATS[l.stat]?.special) || l.market === 'total';
+  const barCls = st === 'hit' ? 'hit' : st === 'dead' ? 'dead' : st === 'live' ? (e.good ? 'good' : 'bad') : '';
+  const note = [acct() === 'all' ? b.placedBy : '', st === 'pending' ? '' : e.note].filter(Boolean).join(' · ');
+  return `<button class="srow st-${st}" data-act="detail" data-id="${b.id}">
+    <span class="ic ${st}">${ic}</span>
+    <span class="sr-main">
+      <span class="sr-nm">${esc(legLabel(l))}</span>
+      ${isNum && e.value != null ? `<span class="bar"><i class="${barCls}" style="width:${e.pct}%"></i></span>` : ''}
+      ${note ? `<span class="sr-ds">${esc(note)}</span>` : ''}
+    </span>
+    <span class="sr-rt">
+      ${isNum && e.value != null ? `<span class="num sr-v">${e.value}<span class="mute">/${l.line}</span></span>` : `<span class="num dim">@${odds(b.odds)}</span>`}
+      <span class="num sr-m ${st === 'dead' ? 'neg' : st === 'hit' ? 'pos' : ''}">${money(b.stake)}→${money(potential(b))}</span>
+    </span>
+  </button>`;
 }
 
 /* ---------- slips ---------- */
@@ -721,7 +794,7 @@ function vSettings() {
         <div class="divider"></div>
         <div class="row between"><span>Install</span>${standalone() ? '<span class="pill won">Installed</span>' : deferredInstall ? '<button class="btn sm primary" data-act="install">Install app</button>' : '<span class="mute" style="font-size:12px">Chrome menu ⋮ → Install app</span>'}</div>
         <div class="row between"><span>Leg alerts</span>${'Notification' in window ? `<button class="btn sm" data-act="notify">${L.notify && Notification.permission === 'granted' ? 'On ✓' : 'Enable'}</button>` : '<span class="mute">Not supported</span>'}</div>
-        <label class="row" style="gap:8px;font-size:13px"><input type="checkbox" data-local="auto" ${L.auto ? 'checked' : ''}> Auto-refresh live data</label>
+        <label class="row" style="gap:8px;font-size:13px"><input type="checkbox" data-local="auto" ${L.auto ? 'checked' : ''}> Auto-refresh every 5 min while a game is live</label>
         <div class="divider"></div>
         <h3>Data</h3>
         <div class="row wrap"><button class="btn sm" data-act="export">⬇ Backup JSON</button><button class="btn sm" data-act="import">⬆ Restore JSON</button><button class="btn sm" data-act="csv">⬇ CSV</button><button class="btn sm danger" data-act="wipe">Wipe this device</button></div>

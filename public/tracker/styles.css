@@ -237,12 +237,12 @@ table.t tr:last-child td { border-bottom: 0; }
 .ticker { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding-bottom: 4px; }
 .ticker::-webkit-scrollbar { display: none; }
 .tk { flex: none; min-width: 148px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 9px 11px; font-size: 12.5px; }
-.tk.in { border-color: rgba(245, 165, 36, 0.45); }
+.tk.tk-in { border-color: rgba(245, 165, 36, 0.45); }
 .tk .tr { display: flex; justify-content: space-between; gap: 8px; }
 .tk .tr b { font-family: var(--mono); }
 .tk .tr.lead { font-weight: 700; }
 .tk .st { color: var(--mute); font-size: 11px; margin-top: 4px; display: flex; justify-content: space-between; }
-.tk.in .st { color: var(--amber); }
+.tk.tk-in .st { color: var(--amber); }
 .tk.mine { box-shadow: inset 0 0 0 1px var(--accent); }
 
 /* ---------- sheet / modal ---------- */
@@ -306,3 +306,40 @@ table.t tr:last-child td { border-bottom: 0; }
 .slip-head .grow, .leg > div { min-width: 0; }
 .app { grid-template-columns: minmax(0, 1fr); }
 @media (min-width: 900px) { .app { grid-template-columns: 236px minmax(0, 1fr); } }
+
+/* ---------- live page (mobile-first) ---------- */
+.lsum { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); }
+.lsum > div { padding: 10px 12px; display: flex; flex-direction: column; gap: 1px; min-width: 0; border-left: 1px solid var(--line); }
+.lsum > div:first-child { border-left: 0; }
+.lsum span { font-size: 11px; color: var(--mute); white-space: nowrap; }
+.lsum b { font-family: var(--mono); font-size: 16px; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lsum small { font-size: 10.5px; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gsecs { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 440px), 1fr)); align-items: start; }
+.gsec { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; min-width: 0; }
+.gsec.live { border-color: rgba(245, 165, 36, 0.45); }
+.gsec-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px; background: var(--panel2); border-bottom: 1px solid var(--line); font-size: 13px; font-weight: 600; }
+.gsec-h b { font-weight: 800; }
+.srow { width: 100%; display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 10px 12px; border: 0; border-bottom: 1px solid var(--line); background: none; text-align: left; cursor: pointer; color: inherit; font: inherit; }
+.srow:last-child { border-bottom: 0; }
+.srow:active { background: var(--panel2); }
+.srow .ic { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 800; background: var(--panel3); color: var(--mute); }
+.srow .ic.hit { background: var(--green); color: #04130a; }
+.srow .ic.dead { background: var(--red); color: #fff; }
+.srow .ic.live { background: var(--amber-bg); color: var(--amber); }
+.srow.st-dead .sr-nm { color: var(--mute); text-decoration: line-through; text-decoration-color: rgba(244, 63, 94, 0.6); }
+.sr-main { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.sr-nm { font-weight: 600; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sr-main .bar { margin-top: 0; height: 5px; }
+.sr-ds { color: var(--mute); font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sr-rt { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.sr-v { font-size: 15px; font-weight: 700; }
+.sr-m { font-size: 11.5px; color: var(--mute); white-space: nowrap; }
+.sec-t { margin: 4px 0 0; font-size: 13px; color: var(--mute); font-weight: 600; }
+@media (max-width: 599px) {
+  .hide-sm { display: none !important; }
+  .live-page .h1 { font-size: 19px; margin: 0; }
+  .live-page { gap: 10px; }
+  .tk { min-width: 112px; padding: 7px 9px; font-size: 12px; }
+  .lsum > div { padding: 8px 8px; }
+  .lsum b { font-size: 14px; }
+}
