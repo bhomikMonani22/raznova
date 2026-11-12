@@ -45,7 +45,7 @@ const cur = () => S.settings.currency || '₹';
 function money(v, { sign = false, dp } = {}) {
   const n = Number(v) || 0;
   const a = Math.abs(n);
-  const d = dp ?? (a !== 0 && a < 100 && a % 1 ? 2 : 0);
+  const d = dp ?? (a !== 0 && a < 100000 && Math.abs(a - Math.round(a)) > 0.004 ? 2 : 0);
   const s = a.toLocaleString(cur() === '₹' ? 'en-IN' : 'en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
   return `${n < 0 ? '−' : sign && n > 0 ? '+' : ''}${cur()}${s}`;
 }
@@ -589,7 +589,7 @@ function vInsights() {
       <div class="card"><h3>Splits</h3>
         ${tbl(X.byType, betCols.filter((c) => !['Implied', 'Edge'].includes(c.h)).map((c) => (c.h === 'Bucket' ? { ...c, h: 'Type' } : c)))}
         <div class="divider"></div>
-        ${tbl(X.byPerson, betCols.filter((c) => !['Implied', 'Edge'].includes(c.h)).map((c) => (c.h === 'Bucket' ? { ...c, h: 'Placed by' } : c)))}
+        ${tbl(X.byPerson, betCols.filter((c) => !['Implied', 'Edge'].includes(c.h)).map((c) => (c.h === 'Bucket' ? { ...c, h: 'Account' } : c)))}
         <div class="divider"></div>
         ${(() => { const m = Math.max(1, ...X.byDow.map((d) => Math.abs(d.profit))); return X.byDow.map((d) => hbar(d.k, d.profit, m, money(d.profit, { sign: true }), true)).join(''); })()}
       </div>

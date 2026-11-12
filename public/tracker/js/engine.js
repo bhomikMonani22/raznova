@@ -338,7 +338,7 @@ export function insights(bets) {
   };
 
   const byLegs = [...group(settled, (b) => {
-    const n = (b.legs || []).length || 1;
+    const n = b.legCount || (b.legs || []).length || 1;
     return n === 1 ? '1 (single)' : n <= 3 ? '2–3 legs' : n <= 5 ? '4–5 legs' : '6+ legs';
   })].map(([k, v]) => ({ k, ...betAgg(v) }));
   const order = ['1 (single)', '2–3 legs', '4–5 legs', '6+ legs'];
@@ -417,7 +417,7 @@ export function discipline(bets, settings) {
 }
 
 export function betTitle(b) {
-  const n = (b.legs || []).length;
+  const n = b.legCount || (b.legs || []).length;
   if (n === 1) return legLabel(b.legs[0]);
   return `${n}-leg ${b.type === 'sgm' ? 'SGM' : 'multi'}`;
 }
