@@ -15,7 +15,7 @@ const STATE = "tracker:state";
 const MAX_BYTES = 4_000_000;
 
 type Rec = { id?: string; updatedAt?: number } & Record<string, unknown>;
-type Vault = { bets: Record<string, Rec>; txns: Record<string, Rec>; settings: Rec; updatedAt: number };
+type Vault = { bets: Record<string, Rec>; txns: Record<string, Rec>; lab?: Record<string, Rec>; settings: Rec; updatedAt: number };
 type Auth = { salt: string; hash: string; createdAt: number };
 
 function json(body: unknown, status = 200) {
@@ -50,6 +50,7 @@ function merge(server: Vault | null, incoming: Partial<Vault> | undefined): Vaul
   return {
     bets: mergeMap(toMap(s.bets), toMap(i.bets)),
     txns: mergeMap(toMap(s.txns), toMap(i.txns)),
+    lab: mergeMap(toMap(s.lab), toMap(i.lab)),
     settings,
     updatedAt: Date.now(),
   };

@@ -367,3 +367,6 @@ table.t tr:last-child td { border-bottom: 0; }
 .rk.pos { color: var(--green); } .rk.neg { color: var(--red); }
 .angles { margin: 0; padding: 4px 14px 12px 28px; font-size: 12.5px; display: flex; flex-direction: column; gap: 4px; }
 .angles li.pos::marker { color: var(--green); } .angles li.neg::marker { color: var(--red); }
+
+.sr-ds.wrap { white-space: normal; }
+.lab-h { align-items: flex-start; }

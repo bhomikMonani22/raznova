@@ -16,8 +16,9 @@ const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString
 
 const DEFAULT_SETTINGS = { currency: '₹', unit: 500, lossLimit: 0, people: ['Bhoomik', 'Tanay'], autoSettle: true, handle: '', updatedAt: 0 };
 
-let S = load(KEY, { bets: [], txns: [], settings: { ...DEFAULT_SETTINGS } });
+let S = load(KEY, { bets: [], txns: [], lab: [], settings: { ...DEFAULT_SETTINGS } });
 S.settings = { ...DEFAULT_SETTINGS, ...S.settings };
+S.lab = S.lab || [];
 if (JSON.stringify(S.settings.people) === '["Bhoomik","Cousin"]') S.settings.people = ['Bhoomik', 'Tanay'];
 let L = load(LKEY, { mode: null, pin: '', notify: false, auto: true, lastSync: 0, period: 'all', slipFilter: 'all', profile: 'all' });
 
@@ -68,11 +69,11 @@ const I = {
   live: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8a6 6 0 0 1 0 8.4M7.8 16.2a6 6 0 0 1 0-8.4M19 5a10 10 0 0 1 0 14M5 19A10 10 0 0 1 5 5"/></svg>',
   slips: '<svg viewBox="0 0 24 24"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2z"/><path d="M9 7h6M9 11h6M9 15h4"/></svg>',
   insights: '<svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/><path d="M9 21h6"/></svg>',
-  tools: '<svg viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h4"/></svg>',
+  lab: '<svg viewBox="0 0 24 24"><path d="M9 3h6M10 3v6.5L4.6 18.2A2 2 0 0 0 6.3 21h11.4a2 2 0 0 0 1.7-2.8L14 9.5V3"/><path d="M7.5 15h9"/></svg>',
   settings: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v3M12 20v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M1 12h3M20 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>',
   plus: '<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
 };
-const ROUTES = { portfolio: 'Portfolio', live: 'Live', slips: 'Slips', insights: 'Insights', tools: 'Tools', settings: 'Settings' };
+const ROUTES = { portfolio: 'Portfolio', live: 'Live', slips: 'Slips', insights: 'Insights', lab: 'Lab', settings: 'Settings' };
 
 /* =========================================================
    Navigation
@@ -82,7 +83,7 @@ if (!ROUTES[route]) route = 'portfolio';
 
 function navHTML() {
   const live = liveBadge();
-  const side = ['portfolio', 'live', 'slips', 'insights', 'tools', 'settings']
+  const side = ['portfolio', 'live', 'slips', 'insights', 'lab', 'settings']
     .map((r) => `<button class="side-link ${route === r ? 'active' : ''}" data-go="${r}">${I[r]}<span>${ROUTES[r]}</span>${r === 'live' && live ? `<span class="badge">${live}</span>` : ''}</button>`)
     .join('');
   const tabs = ['portfolio', 'live', 'add', 'slips', 'insights']
@@ -175,13 +176,14 @@ async function syncNow(action = 'push') {
   setSync('busy');
   try {
     const body = { pin: L.pin, action };
-    if (action === 'push') body.data = { bets: toMap(S.bets), txns: toMap(S.txns), settings: S.settings };
+    if (action === 'push') body.data = { bets: toMap(S.bets), txns: toMap(S.txns), lab: toMap(S.lab), settings: S.settings };
     const j = await api('/api/tracker/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     const st = j.state || {};
     const a = mergeArr(S.bets, st.bets);
     const b = mergeArr(S.txns, st.txns);
     S.bets = a.list;
     S.txns = b.list;
+    if (st.lab) S.lab = mergeArr(S.lab, st.lab).list;
     if ((st.settings?.updatedAt || 0) > (S.settings.updatedAt || 0)) S.settings = { ...DEFAULT_SETTINGS, ...st.settings };
     save();
     L.lastSync = Date.now(); saveL();
@@ -221,6 +223,7 @@ async function pollLive(force = false) {
   if (hasOrphans) await Promise.race([linkOrphans(), new Promise((r) => setTimeout(r, 4000))]);
   const ids = new Set();
   for (const b of openBets()) for (const l of b.legs) if (l.gameId) ids.add(l.gameId);
+  for (const g of labOpen()) for (const l of g.legs) if (l.gameId) ids.add(l.gameId);
   const need = [...ids].filter((id) => force || !games[id] || games[id].status.state !== 'post');
   const tasks = need.map((id) =>
     api(`/api/tracker/nba?fn=game&id=${id}`).then((g) => { games[id] = g; }).catch(() => {})
@@ -267,7 +270,32 @@ async function linkOrphans() {
   }
 }
 
+// Lab: paper legs being observed. Never touches bankroll, P&L or insights.
+const labOpen = () => S.lab.filter((g) => !g.deleted && g.status === 'open');
+function evaluateLab() {
+  let changed = false;
+  for (const g of labOpen()) {
+    const evs = g.legs.map((l) => evalLeg(l, games[l.gameId]));
+    g.legs.forEach((l, i) => {
+      const e = evs[i];
+      const post = games[l.gameId]?.status.state === 'post';
+      const r = e.state === 'hit' ? 'won' : e.state === 'dead' ? 'lost' : e.state === 'push' && post ? 'void' : 'pending';
+      if (l.result !== r || (e.value != null && l.finalValue !== e.value)) { l.result = r; if (e.value != null) l.finalValue = e.value; changed = true; }
+    });
+    const res = g.legs.map((l) => l.result);
+    const done = g.legs.every((l) => games[l.gameId]?.status.state === 'post') || res.includes('lost');
+    if (done && !res.includes('pending')) {
+      g.status = res.includes('lost') ? 'lost' : res.every((r) => r === 'void') ? 'void' : 'won';
+      g.settledAt = Date.now(); changed = true;
+    }
+    if (changed) g.updatedAt = Date.now();
+  }
+  if (changed) { save(); queuePush(); }
+  return changed;
+}
+
 function evaluateAll() {
+  if (evaluateLab() && route === 'lab') setTimeout(softRender, 0);
   let changed = false;
   for (const b of openBets()) {
     const evs = b.legs.map((l) => evalLeg(l, games[l.gameId]));
@@ -326,7 +354,7 @@ function render() {
   navHTML();
   setSync(L.mode === 'cloud' ? (syncState === 'local' ? 'ok' : syncState) : 'local');
   if (!L.mode) { view().innerHTML = lockView(); return; }
-  const fn = { portfolio: vPortfolio, live: vLive, slips: vSlips, insights: vInsights, tools: vTools, settings: vSettings }[route];
+  const fn = { portfolio: vPortfolio, live: vLive, slips: vSlips, insights: vInsights, lab: vLab, settings: vSettings }[route];
   view().innerHTML = (['portfolio', 'live', 'slips', 'insights'].includes(route) ? profileBar() : '') + fn();
   after[route]?.();
   if (sheetState?.kind === 'detail') renderSheet();
@@ -926,71 +954,105 @@ function vToday() {
     <p class="dim" style="font-size:11.5px;margin:0">Signals combine your hit rate on the leg, last-5 form vs your usual line, and how much tonight's opponent allows for that stat. They're context, not picks — check the injury report before you lock anything.</p>`;
 }
 
-/* ---------- tools ---------- */
-function vTools() {
+/* ---------- lab (paper legs, research only) ---------- */
+const labOdds = (g) => g.legs.reduce((a, l) => a * (l.result === 'void' ? 1 : Number(l.odds) || 1), 1);
+function vLab() {
+  const groups = S.lab.filter((g) => !g.deleted).sort((a, b) => (a.status === 'open' ? 0 : 1) - (b.status === 'open' ? 0 : 1) || (b.createdAt || 0) - (a.createdAt || 0));
+  const legs = groups.flatMap((g) => g.legs);
+  const graded = legs.filter((l) => l.result === 'won' || l.result === 'lost');
+  const hitN = graded.filter((l) => l.result === 'won').length;
+  const settled = groups.filter((g) => g.status === 'won' || g.status === 'lost');
+  const paper = settled.reduce((s, g) => s + (g.status === 'won' ? (g.stake || 0) * labOdds(g) - (g.stake || 0) : -(g.stake || 0)), 0);
+  const liveN = legs.filter((l) => games[l.gameId]?.status.state === 'in').length;
+  const card = (g) => {
+    const ev = g.legs.map((l) => (g.status === 'open' ? evalLeg(l, games[l.gameId]) : settledEval(l)));
+    const hit = ev.filter((e) => e.state === 'hit').length;
+    const st = g.status === 'open' ? (ev.some((e) => e.state === 'dead') ? ['lost', 'Busting'] : ev.some((e) => e.state === 'live') ? ['live', 'Live'] : ['open', 'Watching'])
+      : g.status === 'won' ? ['won', 'Would have won'] : g.status === 'lost' ? ['lost', 'Would have lost'] : ['void', 'Void'];
+    const o = labOdds(g);
+    return `<section class="gsec ${st[0] === 'live' ? 'live' : ''}">
+      <header class="gsec-h lab-h"><div style="min-width:0;display:flex;flex-direction:column;gap:3px">
+          <div class="row" style="gap:8px;min-width:0"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(g.name || 'Watchlist')}</span><span class="pill ${st[0]}"><span class="dot"></span>${st[1]}</span></div>
+          <span class="dim mono" style="font-size:12px;font-weight:500">${hit}/${g.legs.length} hit · @${odds(o)}${g.stake ? ` · paper ${money(g.stake)}→${money(g.stake * o)}` : ''}</span></div>
+        <button class="btn ghost sm" data-act="labdel" data-id="${g.id}" aria-label="Remove">✕</button></header>
+      ${g.legs.map((l, i) => labRow(l, ev[i])).join('')}
+    </section>`;
+  };
   return `<div class="stack">
-    <div><h1 class="h1">Tools</h1><p class="sub">Quick math before you lock a slip.</p></div>
-    <div class="cols t2">
-      <div class="card"><h3>Parlay builder</h3>
-        <label class="f">Leg odds (decimal, comma or space separated)<input class="in num" id="t-legs" value="1.85, 1.72, 2.10"></label>
-        <div class="grid g2" style="margin-top:10px"><label class="f">Stake<input class="in num" id="t-stake" inputmode="decimal" value="${S.settings.unit || 500}"></label><label class="f">Boost %<input class="in num" id="t-boost" inputmode="decimal" value="0"></label></div>
-        <div id="t-parlay" style="margin-top:12px"></div></div>
-      <div class="card"><h3>Cash-out check <span class="r">take Stake's offer?</span></h3>
-        <div class="grid g2"><label class="f">Potential payout<input class="in num" id="c-pot" inputmode="decimal" value="3340"></label><label class="f">Cash-out offer<input class="in num" id="c-off" inputmode="decimal" value="1500"></label></div>
-        <label class="f" style="margin-top:10px">Your win chance for the rest (%)<input class="in num" id="c-p" inputmode="decimal" value="50"></label>
-        <div id="t-cash" style="margin-top:12px"></div></div>
-      <div class="card"><h3>Kelly sizing</h3>
-        <div class="grid g2"><label class="f">Odds (decimal)<input class="in num" id="k-o" inputmode="decimal" value="1.91"></label><label class="f">Your win % <input class="in num" id="k-p" inputmode="decimal" value="56"></label></div>
-        <div class="grid g2" style="margin-top:10px"><label class="f">Bankroll<input class="in num" id="k-b" inputmode="decimal" value="${Math.max(0, Math.round(portfolio(bets(), txns()).bankroll)) || 10000}"></label>
-        <label class="f">Fraction<select class="in" id="k-f"><option value="1">Full Kelly</option><option value="0.5">½ Kelly</option><option value="0.25" selected>¼ Kelly</option></select></label></div>
-        <div id="t-kelly" style="margin-top:12px"></div></div>
-      <div class="card"><h3>Odds converter</h3>
-        <div class="grid g3"><label class="f">Decimal<input class="in num" id="o-d" inputmode="decimal" value="1.91"></label><label class="f">American<input class="in num" id="o-a" value=""></label><label class="f">Implied %<input class="in num" id="o-i" inputmode="decimal" value=""></label></div>
-        <p class="dim" style="font-size:12px;margin:10px 0 0">Edit any box. Stake shows decimal odds.</p></div>
+    <div class="row between wrap" style="gap:8px">
+      <div style="min-width:0"><h1 class="h1">🧪 Lab</h1><p class="sub" style="margin:0">Paper legs you're observing. Not bets: nothing here touches bankroll, P&amp;L or insights.</p></div>
+      <button class="btn primary sm" data-act="labadd">+ Watch legs</button>
     </div>
+    <div class="lsum">
+      <div><span>Watching</span><b>${legs.filter((l) => l.result === 'pending').length}</b><small>${liveN} live now</small></div>
+      <div><span>Leg hit rate</span><b class="${graded.length ? (hitN / graded.length >= 0.6 ? 'pos' : hitN / graded.length < 0.45 ? 'neg' : '') : ''}">${graded.length ? pct((hitN / graded.length) * 100, 0) : '—'}</b><small>${hitN}/${graded.length} graded</small></div>
+      <div><span>Paper slips</span><b>${settled.filter((g) => g.status === 'won').length}/${settled.length}</b><small>would have won</small></div>
+      <div><span>Paper P&amp;L</span><b class="${cls(paper)}">${settled.length ? money(paper, { sign: true }) : '—'}</b><small>if you'd staked them</small></div>
+    </div>
+    ${groups.length ? `<div class="gsecs">${groups.map(card).join('')}</div>` : `<div class="card empty"><b>Nothing under observation</b>Add legs you want to watch without betting. They track live and grade themselves.</div>`}
   </div>`;
 }
-after.tools = () => {
-  const $ = (id) => document.getElementById(id);
-  const n = (id) => Number(String($(id).value).replace(',', '.')) || 0;
-  const parlay = () => {
-    const legs = $('t-legs').value.split(/[\s,;]+/).map((x) => Number(x)).filter((x) => x > 1);
-    const o = legs.reduce((a, b) => a * b, 1) * (1 + n('t-boost') / 100);
-    const st = n('t-stake');
-    const imp = legs.reduce((a, b) => a * (1 / b), 1) * 100;
-    $('t-parlay').innerHTML = `<div class="grid g3">${kpi('Total odds', odds(o))}${kpi('Pays', money(st * o), money(st * o - st, { sign: true }) + ' profit', 'pos')}${kpi('Implied', pct(imp, 1), 'all legs hit')}</div>
-      <p class="dim" style="font-size:12px;margin:8px 0 0">Each leg you add multiplies the bookie margin. ${legs.length} legs ≈ ${pct((1 - Math.pow(0.955, legs.length)) * 100, 0)} vig drag at 4.5%/leg.</p>`;
-  };
-  const cash = () => {
-    const pot = n('c-pot'), off = n('c-off'), p = n('c-p') / 100;
-    const ev = pot * p;
-    const be = pot ? (off / pot) * 100 : 0;
-    $('t-cash').innerHTML = `<div class="grid g2">${kpi('Hold EV', money(ev))}${kpi('Break-even win %', pct(be, 1))}</div>
-      <div class="alert ${ev > off ? 'info' : 'warn'}" style="margin-top:10px">${ev > off ? `Hold. Offer is ${money(ev - off)} below your EV.` : `Cash out. Offer beats your EV by ${money(off - ev)}.`}</div>`;
-  };
-  const kelly = () => {
-    const o = n('k-o'), p = n('k-p') / 100, b = o - 1, f = Number($('k-f').value);
-    const k = b > 0 ? (b * p - (1 - p)) / b : 0;
-    const st = Math.max(0, k * f * n('k-b'));
-    $('t-kelly').innerHTML = k <= 0 ? `<div class="alert bad">No edge at these odds. Implied ${pct(100 / (o || 1))} vs your ${pct(p * 100)}. Pass.</div>`
-      : `<div class="grid g2">${kpi('Stake', money(st), pct(k * f * 100, 2) + ' of bankroll', 'pos')}${kpi('Edge', spct((p * o - 1) * 100), 'expected ROI')}</div>`;
-  };
-  ['t-legs', 't-stake', 't-boost'].forEach((id) => $(id).addEventListener('input', parlay));
-  ['c-pot', 'c-off', 'c-p'].forEach((id) => $(id).addEventListener('input', cash));
-  ['k-o', 'k-p', 'k-b', 'k-f'].forEach((id) => $(id).addEventListener('input', kelly));
-  const conv = (src) => {
-    let d;
-    if (src === 'd') d = n('o-d');
-    if (src === 'a') { const a = n('o-a'); d = a > 0 ? 1 + a / 100 : a < 0 ? 1 + 100 / -a : 0; }
-    if (src === 'i') { const i = n('o-i'); d = i > 0 ? 100 / i : 0; }
-    if (!d || d <= 1) return;
-    if (src !== 'd') $('o-d').value = d.toFixed(3);
-    if (src !== 'a') $('o-a').value = d >= 2 ? '+' + Math.round((d - 1) * 100) : Math.round(-100 / (d - 1));
-    if (src !== 'i') $('o-i').value = (100 / d).toFixed(1);
-  };
-  $('o-d').addEventListener('input', () => conv('d')); $('o-a').addEventListener('input', () => conv('a')); $('o-i').addEventListener('input', () => conv('i'));
-  parlay(); cash(); kelly(); conv('d');
-};
+function labRow(l, e) {
+  const st = e.state;
+  const ic = st === 'hit' ? '✓' : st === 'dead' ? '✕' : st === 'push' ? '–' : st === 'live' ? '●' : '';
+  const isNum = l.market === 'prop' && !STATS[l.stat]?.special;
+  const barCls = st === 'hit' ? 'hit' : st === 'dead' ? 'dead' : st === 'live' ? (e.good ? 'good' : 'bad') : '';
+  const g = games[l.gameId];
+  const when = g?.status.state === 'pre' || !g ? `${esc(l.gameLabel || '')} · ${new Date(g?.date || l.startTime || Date.now()).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}` : '';
+  const ds = [st === 'pending' ? when : e.note, l.note].filter(Boolean).join(' · ');
+  return `<div class="srow st-${st}" style="cursor:default">
+    <span class="ic ${st}">${ic}</span>
+    <span class="sr-main">
+      <span class="sr-nm">${esc(legLabel(l))}</span>
+      ${isNum && e.value != null ? `<span class="bar"><i class="${barCls}" style="width:${e.pct}%"></i></span>` : ''}
+      ${ds ? `<span class="sr-ds wrap">${esc(ds)}</span>` : ''}
+    </span>
+    <span class="sr-rt">
+      ${isNum && e.value != null ? `<span class="num sr-v">${e.value}<span class="mute">/${l.line}</span></span>` : ''}
+      ${l.odds ? `<span class="num sr-m">@${odds(l.odds)}</span>` : ''}
+    </span>
+  </div>`;
+}
+function sheetLab() {
+  const d = sheetState.lab;
+  return `<div class="sheet-h"><h2>🧪 Watch legs</h2><button class="btn ghost sm" data-act="close">✕</button></div>
+  <div class="stack">
+    <p class="mute" style="margin:0;font-size:13px">One leg per line: <span class="kbd">player over/under line stat @odds | note</span>. They're matched to the next slate's rosters and tracked live. Paper only.</p>
+    <div class="grid g2"><label class="f">Name<input class="in" id="lab-name" value="${esc(d.name)}" placeholder="Slip 1 · safest"></label>
+      <label class="f">Paper stake (optional)<input class="in num" id="lab-stake" inputmode="decimal" value="${esc(d.stake)}" placeholder="50"></label></div>
+    <textarea class="in" id="lab-text" placeholder="Lillard under 4.5 threes @1.30 | 10/10 on Sideline\nCedric Coward over 5.5 rebounds @1.33">${esc(d.text)}</textarea>
+    ${d.warn ? `<div class="alert warn">${esc(d.warn)}</div>` : ''}
+    <button class="btn primary" data-act="labsave">${d.busy ? 'Matching…' : 'Start watching'}</button>
+  </div>`;
+}
+async function saveLab() {
+  const d = sheetState.lab;
+  d.name = document.getElementById('lab-name').value.trim();
+  d.stake = document.getElementById('lab-stake').value.trim();
+  d.text = document.getElementById('lab-text').value;
+  const lines = d.text.split('\n').map((x) => x.trim()).filter(Boolean);
+  if (!lines.length) { d.warn = 'Add at least one leg.'; return renderSheet(); }
+  d.busy = true; d.warn = ''; renderSheet();
+  let day = null, ymd = etYMD();
+  for (let i = 0; i < 3; i++) {             // next slate that hasn't finished
+    day = await playersFor(ymd).catch(() => null);
+    if (day && day.events.some((e) => e.status.state !== 'post')) break;
+    ymd = addDays(ymd, 1);
+  }
+  const legs = [], bad = [];
+  for (const line of lines) {
+    const [txt, note] = line.split('|').map((x) => x.trim());
+    const r = parseSlip(txt, day || {});
+    const l = r.legs[0];
+    if (!l || l.market !== 'prop' || !l.playerId) { bad.push(txt); continue; }
+    legs.push({ id: uid(), ...l, note: note || '', result: 'pending', manual: false });
+  }
+  d.busy = false;
+  if (bad.length) { d.warn = `Couldn't match: ${bad.join(' · ')}. Check the name / stat, or that the player is on the next slate.`; return renderSheet(); }
+  const g = { id: uid(), name: d.name || 'Watchlist', stake: Number(d.stake) || 0, status: 'open', createdAt: Date.now(), updatedAt: Date.now(), gameDate: ymd, legs };
+  S.lab.push(g);
+  closeSheet(); commit(g); toast(`Watching ${legs.length} leg${legs.length > 1 ? 's' : ''}`, 'good'); pollLive(true);
+}
 
 /* ---------- settings ---------- */
 let deferredInstall = null;
@@ -1077,6 +1139,7 @@ function renderSheet() {
   if (sheetState.kind === 'detail') inner = sheetDetail();
   if (sheetState.kind === 'txn') inner = sheetTxn();
   if (sheetState.kind === 'settle') inner = sheetSettle();
+  if (sheetState.kind === 'lab') inner = sheetLab();
   const scroll = root.querySelector('.sheet')?.scrollTop || 0;
   root.innerHTML = `<div class="sheet-bg" data-act="bg"><div class="sheet" role="dialog" aria-modal="true"><div class="grab"></div>${inner}</div></div>`;
   root.querySelector('.sheet').scrollTop = scroll;
@@ -1411,6 +1474,9 @@ document.addEventListener('click', async (e) => {
       renderSheet(); break;
     }
     case 'savebet': saveDraft(); break;
+    case 'labadd': openSheet('lab', { lab: { name: '', stake: '', text: '', warn: '' } }); break;
+    case 'labsave': if (!sheetState.lab.busy) saveLab(); break;
+    case 'labdel': { const g = S.lab.find((x) => x.id === id); if (g && confirmInline(t, 'Tap again')) { g.deleted = true; commit(g); } break; }
     case 'txn': openSheet('txn', { txnKind: t.dataset.kind }); break;
     case 'savetxn': {
       const amt = Number(document.getElementById('tx-amt').value);
@@ -1468,7 +1534,7 @@ async function loadHistory() {
         if (i < 0) { arr.push(rec); n++; } else if ((rec.updatedAt || 0) > (arr[i].updatedAt || 0)) { arr[i] = rec; n++; }
       }
     };
-    up(S.bets, h.bets); up(S.txns, h.txns);
+    up(S.bets, h.bets); up(S.txns, h.txns); up(S.lab, h.lab);
     if (n) { save(); render(); if (L.mode) pollLive(true); }
   } catch {}
 }
