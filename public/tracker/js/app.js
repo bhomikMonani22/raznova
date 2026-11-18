@@ -594,7 +594,7 @@ function legRow(l, e, b) {
   const barCls = st === 'hit' ? 'hit' : st === 'dead' ? 'dead' : st === 'live' ? (e.good ? 'good' : 'bad') : '';
   const under = l.side === 'under';
   const k = `${b.id}:${l.id}`;
-  return `<div class="leg st-${st}" data-fx="row" data-k="${k}" data-v="${st}">
+  return `<div class="leg st-${st}" data-fx="row" data-k="${k}" data-v="${st}" data-line="${esc(l.line ?? '')}" data-stat="${esc(l.stat || '')}" data-side="${esc(l.side || '')}" data-market="${esc(l.market)}">
     <span class="ic ${st}" data-fx="ic" data-k="${k}" data-v="${st}">${ic}</span>
     <div style="min-width:0">
       <div class="nm">${esc(legLabel(l))}</div>
@@ -694,7 +694,7 @@ function srow(b, e) {
   const barCls = st === 'hit' ? 'hit' : st === 'dead' ? 'dead' : st === 'live' ? (e.good ? 'good' : 'bad') : '';
   const note = [acct() === 'all' ? b.placedBy : '', st === 'pending' ? '' : e.note].filter(Boolean).join(' · ');
   const k = `${b.id}:${l.id}`;
-  return `<button class="srow st-${st}" data-act="detail" data-id="${b.id}" data-fx="row" data-k="${k}" data-v="${st}">
+  return `<button class="srow st-${st}" data-act="detail" data-id="${b.id}" data-fx="row" data-k="${k}" data-v="${st}" data-line="${esc(l.line ?? '')}" data-stat="${esc(l.stat || '')}" data-side="${esc(l.side || '')}" data-market="${esc(l.market)}">
     <span class="ic ${st}" data-fx="ic" data-k="${k}" data-v="${st}">${ic}</span>
     <span class="sr-main">
       <span class="sr-nm">${esc(legLabel(l))}</span>
@@ -1074,7 +1074,7 @@ function labRow(l, e, grp) {
   const g = games[l.gameId];
   const when = g?.status.state === 'pre' || !g ? `${esc(l.gameLabel || '')} · ${new Date(g?.date || l.startTime || Date.now()).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}` : '';
   const ds = [st === 'pending' ? when : e.note, l.note].filter(Boolean).join(' · ');
-  return `<div class="srow st-${st}" style="cursor:default" data-fx="row" data-k="${k}" data-v="${st}">
+  return `<div class="srow st-${st}" style="cursor:default" data-fx="row" data-k="${k}" data-v="${st}" data-line="${esc(l.line ?? '')}" data-stat="${esc(l.stat || '')}" data-side="${esc(l.side || '')}" data-market="${esc(l.market)}">
     <span class="ic ${st}" data-fx="ic" data-k="${k}" data-v="${st}">${ic}</span>
     <span class="sr-main">
       <span class="sr-nm">${esc(legLabel(l))}</span>
