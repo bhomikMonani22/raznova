@@ -91,11 +91,11 @@ export function heatmap(el, dayMap, { weeks = 18, fmt = (v) => v } = {}) {
   h.scrollLeft = h.scrollWidth;
 }
 
-export function ring(done, total, live = 0) {
+export function ring(done, total, live = 0, key = '') {
   const r = 16, c = 2 * Math.PI * r;
   const f = total ? done / total : 0;
   const l = total ? live / total : 0;
-  return `<svg class="prog-ring" viewBox="0 0 40 40">
+  return `<svg class="prog-ring" viewBox="0 0 40 40"${key ? ` data-fx="ring" data-k="${key}" data-v="${done}" data-total="${total}"` : ''}>
     <circle cx="20" cy="20" r="${r}" fill="none" stroke="var(--panel3)" stroke-width="4"/>
     <circle cx="20" cy="20" r="${r}" fill="none" stroke="var(--amber)" stroke-width="4" stroke-dasharray="${c * (f + l)} ${c}" transform="rotate(-90 20 20)" stroke-linecap="round" opacity=".55"/>
     <circle cx="20" cy="20" r="${r}" fill="none" stroke="var(--green)" stroke-width="4" stroke-dasharray="${c * f} ${c}" transform="rotate(-90 20 20)" stroke-linecap="round"/>

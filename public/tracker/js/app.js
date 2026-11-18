@@ -6,6 +6,10 @@ import { parseSlip } from './parser.js';
 import { equityChart, heatmap, ring, hbar } from './charts.js';
 import { flexCard } from './flex.js';
 import { legHistory, compareOpp, formFromLog, gameAngles, metricFor, FAMILY } from './deep.js';
+import * as EV from './events.js';
+import { afterRender as fxAfterRender } from './fx.js';
+import { initCelebrate } from './celebrate.js';
+import { initNotify, openNotifications } from './notify.js';
 
 /* =========================================================
    State
@@ -37,6 +41,7 @@ function commit(rec) {
   save();
   queuePush();
   render();
+  scanNow();
 }
 
 /* =========================================================
@@ -188,6 +193,7 @@ async function syncNow(action = 'push') {
     save();
     L.lastSync = Date.now(); saveL();
     setSync('ok');
+    scanNow();
     if (j.claimed) toast('🔐 Cloud vault created. Share this PIN with your cousin to sync.', 'good', 6000);
     if (action === 'pull' && (a.localNewer || b.localNewer || (S.settings.updatedAt || 0) > (st.settings?.updatedAt || 0))) queuePush();
     return true;
@@ -207,7 +213,6 @@ let lastLive = 0;
 let liveTimer = null;
 let nextPoll = 0, liveMode = false;
 const LIVE_EVERY = 5 * 60 * 1000;
-const legPrev = {};
 
 const openBets = () => allBets().filter((b) => b.status === 'open');
 function liveBadge() {
@@ -235,6 +240,8 @@ async function pollLive(force = false) {
   lastLive = Date.now();
   const changed = evaluateAll();
   if (changed || route === 'live' || route === 'portfolio') softRender();
+  scanNow();
+  EV.markLive(); // from here on, changes are happening live (not catch-up from while the app was closed)
   // Auto-refresh only while this page is open: every 5 min if any game is in progress,
   // otherwise sleep until the next tip-off (no polling at all when nothing is scheduled).
   const anyLive = [...ids].some((id) => games[id]?.status.state === 'in') || board?.events?.some((e) => e.status.state === 'in');
@@ -244,7 +251,7 @@ async function pollLive(force = false) {
   const delay = anyLive ? LIVE_EVERY : nextTip ? Math.min(Math.max(nextTip - Date.now() + 60000, 60000), 6 * 3600000) : null;
   nextPoll = delay ? Date.now() + delay : 0;
   liveMode = anyLive;
-  if (L.auto && delay) liveTimer = setTimeout(() => { if (document.visibilityState === 'visible') pollLive(); }, delay);
+  if (L.auto && delay) liveTimer = setTimeout(() => { if (document.visibilityState === 'visible' || EV.getPrefs().push) pollLive(); }, delay);
 }
 
 async function linkOrphans() {
@@ -301,12 +308,6 @@ function evaluateAll() {
     const evs = b.legs.map((l) => evalLeg(l, games[l.gameId]));
     evs.forEach((e, i) => {
       const l = b.legs[i];
-      const k = b.id + ':' + l.id;
-      const prev = legPrev[k];
-      if (prev && prev !== e.state && (e.state === 'hit' || e.state === 'dead')) {
-        notify(e.state === 'hit' ? `✅ ${legLabel(l)} — HIT` : `❌ ${legLabel(l)} — busted`, e.note);
-      }
-      legPrev[k] = e.state;
       if (!l.manual) {
         const r = e.state === 'hit' ? 'won' : e.state === 'dead' ? 'lost' : e.state === 'push' && games[l.gameId]?.status.state === 'post' ? 'void' : 'pending';
         if (l.result !== r) { l.result = r; if (e.value != null) l.finalValue = e.value; changed = true; b.updatedAt = Date.now(); }
@@ -322,8 +323,6 @@ function evaluateAll() {
         if (res.review) b.review = true;
         b.updatedAt = Date.now();
         changed = true;
-        const p = betProfit(b);
-        notify(res.status === 'won' ? `💰 Slip cashed: ${money(p, { sign: true })}` : res.status === 'lost' ? `Slip lost: ${money(p)}` : 'Slip voided', betTitle(b));
       }
     }
   }
@@ -331,12 +330,84 @@ function evaluateAll() {
   return changed;
 }
 
-function notify(title, body = '') {
-  toast(`<div><b>${esc(title)}</b>${body ? `<div class="mute" style="font-size:12px">${esc(body)}</div>` : ''}</div>`, title.includes('❌') || title.includes('lost') ? 'bad' : 'good', 5000);
-  if (navigator.vibrate && navigator.userActivation?.hasBeenActive) navigator.vibrate(title.includes('❌') ? [80, 60, 80] : [40]);
-  if (L.notify && 'Notification' in window && Notification.permission === 'granted' && document.visibilityState !== 'visible') {
-    navigator.serviceWorker?.ready.then((r) => r.showNotification(title, { body, icon: '/tracker/icons/icon-192.png', badge: '/tracker/icons/icon-192.png', tag: title })).catch(() => {});
+/* ---------- events: what changed since last look → events.js → pop-ups + notification center ---------- */
+EV.configure({ money: (v, o) => money(v, o) });
+const resState = (r) => (r === 'won' ? 'hit' : r === 'lost' ? 'dead' : r === 'void' ? 'push' : 'pending');
+function gameSlim(id) {
+  const g = games[id];
+  if (!g) return null;
+  const t = (x) => x && { abbr: x.abbr, name: x.name, score: x.score ?? null, logo: x.logo || null };
+  return { label: `${g.away?.abbr} @ ${g.home?.abbr}`, away: t(g.away), home: t(g.home), detail: g.status.detail, state: g.status.state };
+}
+function legStates(legs, isOpen) {
+  let ready = true;
+  const xs = legs.map((l) => {
+    if (l.manual && l.result && l.result !== 'pending') return { l, st: resState(l.result), val: l.finalValue ?? null };
+    if (!isOpen) return { l, st: resState(l.result), val: l.finalValue ?? null };
+    const g = games[l.gameId];
+    if (!g) { ready = false; return { l, st: null, val: null }; }
+    const e = evalLeg(l, g);
+    return { l, st: e.state, val: e.value };
+  });
+  const hit = xs.filter((x) => x.st === 'hit').length;
+  const left = xs.filter((x) => x.st === 'pending' || x.st === 'live').length;
+  return { xs, ready, hit, left, anyDead: xs.some((x) => x.st === 'dead') };
+}
+function legObs(key, x, base) {
+  const l = x.l;
+  if (!x.st) return { key, ready: false };
+  return {
+    key, kind: 'leg', state: x.st, value: x.val, market: l.market, side: l.side, stat: l.stat, statLabel: STATS[l.stat]?.label,
+    line: l.line === '' || l.line == null ? null : Number(l.line), label: legLabel(l), legId: l.id, gameId: l.gameId || null,
+    player: l.market === 'prop' ? { id: l.playerId || null, name: l.player } : null, game: gameSlim(l.gameId), ...base,
+  };
+}
+function observe() {
+  const obs = [];
+  const now = Date.now();
+  const fresh = (t, h = 72) => now - (t || 0) < h * 3600000;
+  for (const b of allBets()) {
+    const isOpen = b.status === 'open';
+    if (!isOpen && !fresh(b.settledAt || b.placedAt)) continue;
+    const s = legStates(b.legs, isOpen);
+    const base = { betId: b.id, acct: b.placedBy || null, lab: false, multi: b.legs.length > 1, legsHit: s.hit, legsTotal: b.legs.length, slipTitle: betTitle(b) };
+    for (const x of s.xs) obs.push(legObs(`L|${b.id}|${x.l.id}`, x, base));
+    const last = s.left === 1 ? s.xs.find((x) => x.st === 'pending' || x.st === 'live') : null;
+    obs.push({
+      key: `S|${b.id}`, kind: 'slip', status: b.status, legsReady: s.ready, legsTotal: b.legs.length, legsHit: s.hit, legsLeft: s.left, anyDead: s.anyDead,
+      stake: Number(b.stake) || 0, odds: Number(b.settledOdds || b.odds) || 0, potential: potential(b), profit: betProfit(b), payout: betReturn(b),
+      title: betTitle(b), acct: b.placedBy || null, betId: b.id, lastLeg: last ? legLabel(last.l) : null,
+      killer: b.status === 'lost' ? s.xs.filter((x) => x.st === 'dead').map((x) => legLabel(x.l)).join(', ') || null : null,
+      killers: s.xs.filter((x) => x.st === 'dead').map((x) => ({ label: legLabel(x.l), value: x.val, line: x.l.line, side: x.l.side })),
+    });
   }
+  for (const g of S.lab.filter((x) => !x.deleted && (x.status === 'open' || fresh(x.settledAt || x.createdAt)))) {
+    const isOpen = g.status === 'open';
+    const s = legStates(g.legs, isOpen);
+    const name = g.name || 'Watchlist';
+    const base = { labId: g.id, betId: null, acct: null, lab: true, multi: g.legs.length > 1, legsHit: s.hit, legsTotal: g.legs.length, slipTitle: name };
+    for (const x of s.xs) obs.push(legObs(`LL|${g.id}|${x.l.id}`, x, base));
+    const o = labOdds(g), st = Number(g.stake) || 0;
+    const last = s.left === 1 ? s.xs.find((x) => x.st === 'pending' || x.st === 'live') : null;
+    obs.push({
+      key: `LS|${g.id}`, kind: 'slip', status: g.status, legsReady: s.ready, legsTotal: g.legs.length, legsHit: s.hit, legsLeft: s.left, anyDead: s.anyDead,
+      stake: st, odds: o, potential: st * o, profit: g.status === 'won' ? st * o - st : g.status === 'lost' ? -st : 0, payout: g.status === 'won' ? st * o : 0,
+      title: name, acct: null, lab: true, labId: g.id, betId: null, lastLeg: last ? legLabel(last.l) : null,
+      killer: g.status === 'lost' ? s.xs.filter((x) => x.st === 'dead').map((x) => legLabel(x.l)).join(', ') || null : null,
+      killers: s.xs.filter((x) => x.st === 'dead').map((x) => ({ label: legLabel(x.l), value: x.val, line: x.l.line, side: x.l.side })),
+    });
+  }
+  const riding = new Map();
+  for (const b of allBets().filter((x) => x.status === 'open' || fresh(x.settledAt, 12))) for (const id of new Set(b.legs.map((l) => l.gameId).filter(Boolean))) riding.set(id, (riding.get(id) || 0) + 1);
+  for (const [id, n] of riding) {
+    const gs = gameSlim(id);
+    if (gs) obs.push({ key: `G|${id}`, kind: 'game', state: gs.state, gameId: id, label: gs.label, away: gs.away, home: gs.home, detail: gs.detail, betCount: n });
+  }
+  return obs;
+}
+function scanNow() {
+  if (!L.mode) return [];
+  try { return EV.scan(observe()); } catch (e) { console.error('[scan]', e); return []; }
 }
 
 document.addEventListener('visibilitychange', () => {
@@ -358,6 +429,7 @@ function render() {
   view().innerHTML = (['portfolio', 'live', 'slips', 'insights'].includes(route) ? profileBar() : '') + fn();
   after[route]?.();
   if (sheetState?.kind === 'detail') renderSheet();
+  try { fxAfterRender(view(), { route, acct: acct(), money: (v, o) => money(v, o) }); } catch (e) { console.error('[fx]', e); }
 }
 function softRender() {
   const a = document.activeElement;
@@ -428,7 +500,7 @@ function vPortfolio() {
     ${installBanner()}
     <div class="hero">
       <div class="row between hero-top"><span class="lbl">Bankroll</span><div class="chips">${periods.map(([k, t]) => `<button class="chip ${L.period === k ? 'on' : ''}" data-period="${k}">${t}</button>`).join('')}</div></div>
-      <div class="big">${money(P.bankroll)}</div>
+      <div class="big" data-fx="money" data-k="bankroll:${esc(acct())}" data-v="${P.bankroll}">${money(P.bankroll)}</div>
       ${L.period === 'all' && P.deposits
         ? (() => {
             const acctPL = P.realizedAll + P.adjust;
@@ -501,7 +573,7 @@ function slipCard(b, { compact = false, open = false } = {}) {
   const showLegs = open || (!compact && (b.status === 'open' || b.legs.length <= 4));
   return `<div class="slip ${isLive ? 'live' : ''} st-${b.status}">
     <div class="slip-head" data-act="detail" data-id="${b.id}">
-      ${b.legs.length > 1 ? ring(hit, b.legs.length, liveN) : ''}
+      ${b.legs.length > 1 ? ring(hit, b.legs.length, liveN, b.id) : ''}
       <div class="grow">
         <div class="row" style="gap:8px"><span class="pill ${stCls}"><span class="dot"></span>${stTxt}</span>${b.review ? '<span class="pill cashout">check payout</span>' : ''}<span class="meta">${b.placedBy ? esc(b.placedBy) + ' · ' : ''}${dateOnly(b.placedAt)}</span></div>
         <div class="ttl" style="margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(betTitle(b))}</div>
@@ -521,14 +593,15 @@ function legRow(l, e, b) {
   const isProp = l.market === 'prop' && !STATS[l.stat]?.special;
   const barCls = st === 'hit' ? 'hit' : st === 'dead' ? 'dead' : st === 'live' ? (e.good ? 'good' : 'bad') : '';
   const under = l.side === 'under';
-  return `<div class="leg">
-    <span class="ic ${st}">${ic}</span>
+  const k = `${b.id}:${l.id}`;
+  return `<div class="leg st-${st}" data-fx="row" data-k="${k}" data-v="${st}">
+    <span class="ic ${st}" data-fx="ic" data-k="${k}" data-v="${st}">${ic}</span>
     <div style="min-width:0">
       <div class="nm">${esc(legLabel(l))}</div>
       <div class="ds">${esc(gl)}${clock}${e.note ? ' · ' + esc(e.note) : ''}</div>
-      ${(isProp || l.market === 'total') && e.value != null ? `<div class="bar"><i class="${barCls}" style="width:${e.pct}%"></i>${under ? '' : ''}</div>` : ''}
+      ${(isProp || l.market === 'total') && e.value != null ? `<div class="bar"><i class="${barCls}" data-fx="bar" data-k="${k}" data-v="${e.pct}" style="width:${e.pct}%"></i></div>` : ''}
     </div>
-    <div class="rt">${e.value != null && (isProp || l.market === 'total') ? `<span class="num">${e.value}</span><span class="mute">/${l.line}</span>` : ''}${l.odds ? `<div class="dim num">@${odds(l.odds)}</div>` : ''}</div>
+    <div class="rt">${e.value != null && (isProp || l.market === 'total') ? `<span class="num"><b data-fx="val" data-k="${k}" data-v="${e.value}">${e.value}</b></span><span class="mute">/${l.line}</span>` : ''}${l.odds ? `<div class="dim num">@${odds(l.odds)}</div>` : ''}</div>
   </div>`;
 }
 
@@ -553,8 +626,8 @@ function vLive() {
     const lead = (e.home.score || 0) > (e.away.score || 0) ? 'h' : (e.away.score || 0) > (e.home.score || 0) ? 'a' : '';
     const st = e.status.state === 'pre' ? new Date(e.date).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : e.status.detail;
     return `<div class="tk tk-${e.status.state} ${myGames.has(e.id) ? 'mine' : ''}">
-      <div class="tr ${lead === 'a' ? 'lead' : ''}"><span>${esc(e.away.abbr)}</span><b>${e.status.state === 'pre' ? '' : e.away.score ?? ''}</b></div>
-      <div class="tr ${lead === 'h' ? 'lead' : ''}"><span>${esc(e.home.abbr)}</span><b>${e.status.state === 'pre' ? '' : e.home.score ?? ''}</b></div>
+      <div class="tr ${lead === 'a' ? 'lead' : ''}"><span>${esc(e.away.abbr)}</span><b data-fx="score" data-k="${e.id}:a" data-v="${e.away.score ?? ''}">${e.status.state === 'pre' ? '' : e.away.score ?? ''}</b></div>
+      <div class="tr ${lead === 'h' ? 'lead' : ''}"><span>${esc(e.home.abbr)}</span><b data-fx="score" data-k="${e.id}:h" data-v="${e.home.score ?? ''}">${e.status.state === 'pre' ? '' : e.home.score ?? ''}</b></div>
       <div class="st"><span>${esc(st)}</span>${myGames.has(e.id) ? '<span style="color:var(--accent)">●</span>' : ''}</div></div>`;
   }).join('');
 
@@ -576,7 +649,7 @@ function vLive() {
       const l0 = arr[0].b.legs[0];
       const st = g?.status.state;
       const score = g && st !== 'pre'
-        ? `<span class="num">${esc(g.away.abbr)} <b>${g.away.score ?? ''}</b> – <b>${g.home.score ?? ''}</b> ${esc(g.home.abbr)}</span>`
+        ? `<span class="num">${esc(g.away.abbr)} <b data-fx="score" data-k="${gid}:a" data-v="${g.away.score ?? ''}">${g.away.score ?? ''}</b> – <b data-fx="score" data-k="${gid}:h" data-v="${g.home.score ?? ''}">${g.home.score ?? ''}</b> ${esc(g.home.abbr)}</span>`
         : `<span>${esc(l0.gameLabel || 'Game')}</span>`;
       const clock = st === 'in' ? `<span class="pill live"><span class="dot"></span>Q${g.status.period > 4 ? 'OT' : g.status.period} ${esc(g.status.clock)}</span>`
         : st === 'post' ? '<span class="pill void">Final</span>'
@@ -594,15 +667,14 @@ function vLive() {
     <div class="row between" style="gap:8px">
       <div style="min-width:0"><h1 class="h1">Sweat board</h1><p class="sub" style="margin:0;font-size:12px">${!L.auto ? 'Auto-refresh off' : liveMode ? `Live · auto-refresh every 5 min${nextPoll ? ' · next ' + new Date(nextPoll).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : ''}` : nextPoll ? `No game live · wakes at tip-off ${new Date(nextPoll - 60000).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}` : 'No games scheduled'}${lastLive ? ' · updated ' + ago(lastLive) : ''}</p></div>
       <div class="row" style="gap:6px;flex:none">
-        <button class="btn sm" data-act="refresh" aria-label="Refresh">↻<span class="hide-sm"> Refresh</span></button>
-        ${'Notification' in window && !L.notify ? '<button class="btn sm" data-act="notify" aria-label="Alerts">🔔<span class="hide-sm"> Alerts</span></button>' : ''}</div>
+        <button class="btn sm" data-act="refresh" aria-label="Refresh">↻<span class="hide-sm"> Refresh</span></button></div>
     </div>
     ${tk ? `<div class="ticker">${tk}</div>` : '<div class="ticker"><div class="tk skeleton" style="height:58px"></div><div class="tk skeleton" style="height:58px"></div><div class="tk skeleton" style="height:58px"></div></div>'}
     <div class="lsum">
       <div><span>Open</span><b>${ob.length}</b><small>${alive.length} alive</small></div>
       <div><span>At risk</span><b>${money(exp)}</b><small>staked</small></div>
       <div><span>Max return</span><b class="pos">${money(mx)}</b><small>if alive hit</small></div>
-      <div><span>Legs hit</span><b>${hitN}/${legsAll.length}</b><small>${liveN} live · ${deadN} dead</small></div>
+      <div><span>Legs hit</span><b><span data-fx="val" data-k="lsum:hit:${esc(acct())}" data-v="${hitN}">${hitN}</span>/${legsAll.length}</b><small>${liveN} live · ${deadN} dead</small></div>
     </div>
     ${!ob.length ? `<div class="card empty"><b>No open slips${acct() !== 'all' ? ' on ' + esc(acct()) + ' acc' : ''}</b>Paste a Stake slip and it'll track here automatically.<div style="margin-top:12px"><button class="btn primary" data-act="add">+ New slip</button></div></div>` : ''}
     ${gameSections ? `<div class="gsecs">${gameSections}</div>` : ''}
@@ -621,15 +693,16 @@ function srow(b, e) {
   const isNum = (l.market === 'prop' && !STATS[l.stat]?.special) || l.market === 'total';
   const barCls = st === 'hit' ? 'hit' : st === 'dead' ? 'dead' : st === 'live' ? (e.good ? 'good' : 'bad') : '';
   const note = [acct() === 'all' ? b.placedBy : '', st === 'pending' ? '' : e.note].filter(Boolean).join(' · ');
-  return `<button class="srow st-${st}" data-act="detail" data-id="${b.id}">
-    <span class="ic ${st}">${ic}</span>
+  const k = `${b.id}:${l.id}`;
+  return `<button class="srow st-${st}" data-act="detail" data-id="${b.id}" data-fx="row" data-k="${k}" data-v="${st}">
+    <span class="ic ${st}" data-fx="ic" data-k="${k}" data-v="${st}">${ic}</span>
     <span class="sr-main">
       <span class="sr-nm">${esc(legLabel(l))}</span>
-      ${isNum && e.value != null ? `<span class="bar"><i class="${barCls}" style="width:${e.pct}%"></i></span>` : ''}
+      ${isNum && e.value != null ? `<span class="bar"><i class="${barCls}" data-fx="bar" data-k="${k}" data-v="${e.pct}" style="width:${e.pct}%"></i></span>` : ''}
       ${note ? `<span class="sr-ds">${esc(note)}</span>` : ''}
     </span>
     <span class="sr-rt">
-      ${isNum && e.value != null ? `<span class="num sr-v">${e.value}<span class="mute">/${l.line}</span></span>` : `<span class="num dim">@${odds(b.odds)}</span>`}
+      ${isNum && e.value != null ? `<span class="num sr-v"><b data-fx="val" data-k="${k}" data-v="${e.value}">${e.value}</b><span class="mute">/${l.line}</span></span>` : `<span class="num dim">@${odds(b.odds)}</span>`}
       <span class="num sr-m ${st === 'dead' ? 'neg' : st === 'hit' ? 'pos' : ''}">${money(b.stake)}→${money(potential(b))}</span>
     </span>
   </button>`;
@@ -975,7 +1048,7 @@ function vLab() {
           <div class="row" style="gap:8px;min-width:0"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(g.name || 'Watchlist')}</span><span class="pill ${st[0]}"><span class="dot"></span>${st[1]}</span></div>
           <span class="dim mono" style="font-size:12px;font-weight:500">${hit}/${g.legs.length} hit · @${odds(o)}${g.stake ? ` · paper ${money(g.stake)}→${money(g.stake * o)}` : ''}</span></div>
         <button class="btn ghost sm" data-act="labdel" data-id="${g.id}" aria-label="Remove">✕</button></header>
-      ${g.legs.map((l, i) => labRow(l, ev[i])).join('')}
+      ${g.legs.map((l, i) => labRow(l, ev[i], g)).join('')}
     </section>`;
   };
   return `<div class="stack">
@@ -992,23 +1065,24 @@ function vLab() {
     ${groups.length ? `<div class="gsecs">${groups.map(card).join('')}</div>` : `<div class="card empty"><b>Nothing under observation</b>Add legs you want to watch without betting. They track live and grade themselves.</div>`}
   </div>`;
 }
-function labRow(l, e) {
+function labRow(l, e, grp) {
   const st = e.state;
+  const k = `lab:${grp.id}:${l.id}`;
   const ic = st === 'hit' ? '✓' : st === 'dead' ? '✕' : st === 'push' ? '–' : st === 'live' ? '●' : '';
   const isNum = l.market === 'prop' && !STATS[l.stat]?.special;
   const barCls = st === 'hit' ? 'hit' : st === 'dead' ? 'dead' : st === 'live' ? (e.good ? 'good' : 'bad') : '';
   const g = games[l.gameId];
   const when = g?.status.state === 'pre' || !g ? `${esc(l.gameLabel || '')} · ${new Date(g?.date || l.startTime || Date.now()).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}` : '';
   const ds = [st === 'pending' ? when : e.note, l.note].filter(Boolean).join(' · ');
-  return `<div class="srow st-${st}" style="cursor:default">
-    <span class="ic ${st}">${ic}</span>
+  return `<div class="srow st-${st}" style="cursor:default" data-fx="row" data-k="${k}" data-v="${st}">
+    <span class="ic ${st}" data-fx="ic" data-k="${k}" data-v="${st}">${ic}</span>
     <span class="sr-main">
       <span class="sr-nm">${esc(legLabel(l))}</span>
-      ${isNum && e.value != null ? `<span class="bar"><i class="${barCls}" style="width:${e.pct}%"></i></span>` : ''}
+      ${isNum && e.value != null ? `<span class="bar"><i class="${barCls}" data-fx="bar" data-k="${k}" data-v="${e.pct}" style="width:${e.pct}%"></i></span>` : ''}
       ${ds ? `<span class="sr-ds wrap">${esc(ds)}</span>` : ''}
     </span>
     <span class="sr-rt">
-      ${isNum && e.value != null ? `<span class="num sr-v">${e.value}<span class="mute">/${l.line}</span></span>` : ''}
+      ${isNum && e.value != null ? `<span class="num sr-v"><b data-fx="val" data-k="${k}" data-v="${e.value}">${e.value}</b><span class="mute">/${l.line}</span></span>` : ''}
       ${l.odds ? `<span class="num sr-m">@${odds(l.odds)}</span>` : ''}
     </span>
   </div>`;
@@ -1085,7 +1159,7 @@ function vSettings() {
         <div class="row wrap">${L.mode === 'cloud' ? '<button class="btn sm" data-act="syncnow">↻ Sync now</button><button class="btn sm" data-act="lock">Lock / switch PIN</button>' : '<button class="btn sm primary" data-act="lock">Turn on cloud sync</button>'}</div>
         <div class="divider"></div>
         <div class="row between"><span>Install</span>${standalone() ? '<span class="pill won">Installed</span>' : deferredInstall ? '<button class="btn sm primary" data-act="install">Install app</button>' : '<span class="mute" style="font-size:12px">Chrome menu ⋮ → Install app</span>'}</div>
-        <div class="row between"><span>Leg alerts</span>${'Notification' in window ? `<button class="btn sm" data-act="notify">${L.notify && Notification.permission === 'granted' ? 'On ✓' : 'Enable'}</button>` : '<span class="mute">Not supported</span>'}</div>
+        <div class="row between"><span>Notifications</span><button class="btn sm" data-act="notify">Manage</button></div>
         <label class="row" style="gap:8px;font-size:13px"><input type="checkbox" data-local="auto" ${L.auto ? 'checked' : ''}> Auto-refresh every 5 min while a game is live</label>
         <div class="divider"></div>
         <h3>Data</h3>
@@ -1416,13 +1490,7 @@ document.addEventListener('click', async (e) => {
     case 'reloadtoday': today.err = null; loadToday(true); render(); break;
     case 'syncnow': await syncNow('push'); toast('Synced', 'good'); render(); break;
     case 'refresh': t.textContent = '↻ …'; await pollLive(true); break;
-    case 'notify': {
-      if (!('Notification' in window)) return;
-      const p = await Notification.requestPermission();
-      L.notify = p === 'granted'; saveL();
-      toast(L.notify ? 'Leg alerts on — you’ll get pinged when legs hit or bust' : 'Notifications blocked in browser settings', L.notify ? 'good' : 'bad');
-      render(); break;
-    }
+    case 'notify': openNotifications('prefs'); break;
     case 'install': if (deferredInstall) { deferredInstall.prompt(); await deferredInstall.userChoice; deferredInstall = null; render(); } break;
     case 'hideinstall': localStorage.setItem('ebl.hideInstall', '1'); render(); break;
     case 'detail': openSheet('detail', { id }); break;
@@ -1535,7 +1603,7 @@ async function loadHistory() {
       }
     };
     up(S.bets, h.bets); up(S.txns, h.txns); up(S.lab, h.lab);
-    if (n) { save(); render(); if (L.mode) pollLive(true); }
+    if (n) { save(); render(); scanNow(); if (L.mode) pollLive(true); }
   } catch {}
 }
 
@@ -1555,6 +1623,17 @@ if ('serviceWorker' in navigator) {
     });
   }).catch(() => {});
 }
+// L.notify (old "leg alerts" switch) → system notifications in the new arrangements
+if (L.notify && !EV.getPrefs().updatedAt) { EV.setPrefs({ push: true }); }
+const moduleApi = {
+  on: EV.on, emit: EV.emit, getPrefs: EV.getPrefs, setPrefs: EV.setPrefs, wants: EV.wants, EVENT_TYPES: EV.EVENT_TYPES,
+  accounts: () => S.settings.people || [], money: (v, o) => money(v, o), esc,
+  openSlip: (id) => { if (S.bets.some((b) => b.id === id)) openSheet('detail', { id }); },
+  go: (r) => { if (sheetState) closeSheet(); go(r); },
+};
+try { initNotify({ ...moduleApi, root: document.getElementById('notif-root') }); } catch (e) { console.error('[notify]', e); }
+try { initCelebrate({ ...moduleApi, root: document.getElementById('fx-root') }); } catch (e) { console.error('[celebrate]', e); }
+window.__ebl = { poll: () => pollLive(true), render, scan: scanNow, state: () => S, events: EV };
 render();
 loadHistory();
 if (L.mode && /add=1/.test(location.hash)) { history.replaceState(null, '', '#/portfolio'); setTimeout(() => document.querySelector('[data-act="add"]')?.click(), 50); }
