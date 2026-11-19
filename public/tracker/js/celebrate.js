@@ -543,7 +543,11 @@ function catchupHTML(evs) {
   const real = evs.filter((e) => !e.lab);
   const cashed = real.filter(isBig).length;
   const busted = real.filter((e) => e.type === 'slip:lost').length;
-  const legs = real.filter((e) => e.type === 'leg:hit').length;
+  // legs hit while away: leg events, plus legs of slips that cashed in the same scan (those slips report their own legs)
+  const legHitsBy = new Map();
+  for (const e of real) if (e.type === 'leg:hit') legHitsBy.set(e.betId || e.id, (legHitsBy.get(e.betId || e.id) || 0) + 1);
+  for (const e of real) if (isBig(e) && e.betId && e.slip?.legsHit) legHitsBy.set(e.betId, Math.max(legHitsBy.get(e.betId) || 0, Number(e.slip.legsHit) || 0));
+  const legs = [...legHitsBy.values()].reduce((a, b) => a + b, 0);
   const settled = real.filter((e) => ['slip:won', 'slip:lost', 'slip:cashout', 'slip:void'].includes(e.type) && e.amount != null && Number.isFinite(Number(e.amount)));
   const net = settled.reduce((s, e) => s + Number(e.amount), 0);
   let body;

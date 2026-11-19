@@ -233,7 +233,7 @@ export const settleTime = (b) => b.settledAt || b.placedAt || b.createdAt || 0;
 // else by its last game. Never later than `now`, never before the slip was placed.
 export const GAME_LEN = 2.5 * 3600e3;
 export function settleStamp(b, now = Date.now()) {
-  const tip = (l) => Number(l.startTime) || 0;
+  const tip = (l) => (typeof l.startTime === 'string' ? Date.parse(l.startTime) : Number(l.startTime)) || 0; // ISO (app-entered) or ms (imports)
   const legs = (b.legs || []).filter((l) => tip(l));
   if (!legs.length) return now;
   const dead = b.status === 'lost' ? legs.filter((l) => l.result === 'lost') : [];
@@ -321,6 +321,84 @@ export const dayKey = (t) => {
   const d = new Date(t);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
+
+// ---------- days: "Today" and day-by-day P&L (Ticket E) ----------
+// One clock for "which day": a settled slip belongs to the local (IST on the phone) calendar date of settleTime(b).
+// Since Ticket F that is when its games ended, so a slip settled 00:30 IST lands on that day, not the evening before,
+// and last night's results never drift into "Today" because the app only noticed them this morning.
+const ms = (t) => (typeof t === 'number' ? t : t ? Date.parse(t) || Number(t) || 0 : 0); // leg startTime: epoch ms or ISO
+const keyDate = (k) => { const [y, m, d] = k.split('-').map(Number); return new Date(y, m - 1, d); };
+// earliest tip-off of the slip's games; placedAt when no leg has a start time
+export function slateTime(b) {
+  const tips = (b.legs || []).map((l) => ms(l.startTime)).filter((t) => t > 0);
+  return tips.length ? Math.min(...tips) : Number(b.placedAt) || Number(b.createdAt) || 0;
+}
+export const slateDay = (b) => dayKey(slateTime(b));
+export const settledOn = (b, key) => isSettled(b) && dayKey(settleTime(b)) === key;
+
+// "Today" = every still-open slip + slips whose slate day is today + slips settled today.
+export function isTodaySlip(b, now = Date.now()) {
+  if (!b || b.deleted) return false;
+  if (b.status === 'open') return true;
+  const k = dayKey(now);
+  return slateDay(b) === k || settledOn(b, k);
+}
+
+// W-L/staked/net for a set of settled slips, counted exactly like portfolio(): staked skips voids, a win is profit > 0.
+function dayStats(list) {
+  const r = { n: 0, net: 0, staked: 0, wins: 0, losses: 0, voids: 0, best: null };
+  for (const b of list) {
+    const p = betProfit(b);
+    r.n++; r.net += p;
+    if (b.status === 'void') { r.voids++; continue; }
+    r.staked += Number(b.stake) || 0;
+    if (p > 0) { r.wins++; if (!r.best || p > betProfit(r.best)) r.best = b; } else r.losses++;
+  }
+  return r;
+}
+
+// Settled slips bucketed by settle day, oldest first: { key, t (local midnight), n, net, staked, wins, losses, voids,
+// best, running (cumulative P&L to the end of that day), bets }. Sum of rows with t >= periodStart(p) = portfolio(p).profit.
+export function dayBook(bets) {
+  const m = new Map();
+  for (const b of bets) {
+    if (b.deleted || !isSettled(b)) continue;
+    const key = dayKey(settleTime(b));
+    if (!m.has(key)) m.set(key, []);
+    m.get(key).push(b);
+  }
+  let run = 0;
+  return [...m.keys()].sort().map((key) => {
+    const list = m.get(key).sort((a, b) => settleTime(b) - settleTime(a));
+    const s = dayStats(list);
+    run += s.net;
+    return { key, t: keyDate(key).getTime(), ...s, running: run, bets: list };
+  });
+}
+
+// Today's slips in display order (open first — live ones on top, then by tip-off — then settled newest first) plus the
+// summary strip. net/staked/W-L come from slips settled today, so net = the "Today" period's Slip P&L.
+export function todayBook(bets, now = Date.now(), isLive = () => false) {
+  const list = bets.filter((b) => isTodaySlip(b, now));
+  const open = list.filter((b) => b.status === 'open')
+    .map((b) => ({ b, live: isLive(b) ? 1 : 0, t: slateTime(b) }))
+    .sort((x, y) => y.live - x.live || x.t - y.t).map((x) => x.b);
+  const done = list.filter((b) => b.status !== 'open').sort((a, b) => settleTime(b) - settleTime(a));
+  const k = dayKey(now);
+  const s = dayStats(bets.filter((b) => !b.deleted && settledOn(b, k)));
+  return { ...s, slips: [...open, ...done], open: open.length, openStake: open.reduce((t, b) => t + (Number(b.stake) || 0), 0) };
+}
+
+const WD = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const MO = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+// 'Today' / 'Yesterday' / 'Mon 17 Nov' for a dayKey
+export function dayLabel(key, now = Date.now()) {
+  if (key === dayKey(now)) return 'Today';
+  const n = new Date(now);
+  if (key === dayKey(new Date(n.getFullYear(), n.getMonth(), n.getDate() - 1))) return 'Yesterday';
+  const d = keyDate(key);
+  return `${WD[d.getDay()]} ${d.getDate()} ${MO[d.getMonth()]}`;
+}
 
 // ---------- insights ----------
 function group(items, keyFn) {

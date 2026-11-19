@@ -92,6 +92,42 @@ export function heatmap(el, dayMap, { weeks = 18, fmt = (v) => v } = {}) {
   h.scrollLeft = h.scrollWidth;
 }
 
+// Day-by-day net P&L: one bar per day (oldest → newest, newest at the right edge), zero line, today's column marked.
+// days: [{ key, net, label, title }]. Each column is a click target (data-act="pfday" data-key) for mouse users;
+// the list under the chart is the accessible / touch path, so the columns stay out of the tab order.
+export function dayBars(el, days, { today = '', slots = 14, height = 128 } = {}) {
+  if (!days.length) { el.innerHTML = ''; return; }
+  const w = Math.max(240, el.clientWidth || 320);
+  const h = height;
+  const pad = { l: 2, r: 2, t: 8, b: 22 };
+  const n = Math.max(slots, days.length);
+  const sw = (w - pad.l - pad.r) / n;
+  const bw = Math.max(4, Math.min(22, sw * 0.62));
+  let max = Math.max(0, ...days.map((d) => d.net));
+  let min = Math.min(0, ...days.map((d) => d.net));
+  if (max === min) max = 1;
+  const Y = (v) => pad.t + ((max - v) / (max - min)) * (h - pad.t - pad.b);
+  const z = Y(0);
+  const bar = (x, tip) => {
+    const up = tip < z, r = Math.min(3, Math.abs(z - tip), bw / 2), e = up ? tip + r : tip - r;
+    return `M${x.toFixed(1)},${z.toFixed(1)}V${e.toFixed(1)}Q${x.toFixed(1)},${tip.toFixed(1)} ${(x + r).toFixed(1)},${tip.toFixed(1)}H${(x + bw - r).toFixed(1)}Q${(x + bw).toFixed(1)},${tip.toFixed(1)} ${(x + bw).toFixed(1)},${e.toFixed(1)}V${z.toFixed(1)}Z`;
+  };
+  const cols = days.map((d, i) => {
+    const x0 = pad.l + (n - days.length + i) * sw;
+    const x = x0 + (sw - bw) / 2;
+    const isT = d.key === today;
+    const tip = Y(d.net);
+    const mark = d.net === 0
+      ? `<rect x="${x.toFixed(1)}" y="${(z - 1).toFixed(1)}" width="${bw.toFixed(1)}" height="2" rx="1" fill="var(--dim)"/>`
+      : `<path d="${bar(x, Math.abs(tip - z) < 2 ? z + (d.net > 0 ? -2 : 2) : tip)}" fill="${d.net > 0 ? 'var(--hit)' : 'var(--bust)'}"/>`;
+    return `<g class="pf-bar${isT ? ' is-today' : ''}" data-act="pfday" data-key="${d.key}"><title>${d.title || d.key}</title>
+      <rect class="pf-col" x="${(x0 + 1).toFixed(1)}" y="1" width="${(sw - 2).toFixed(1)}" height="${h - 2}" rx="6"/>${mark}
+      <text x="${(x0 + sw / 2).toFixed(1)}" y="${h - 6}" text-anchor="middle">${d.label}</text></g>`;
+  }).join('');
+  el.innerHTML = `<svg viewBox="0 0 ${w} ${h}" width="100%" height="${h}" preserveAspectRatio="none" role="img" aria-label="Net P&amp;L per day, last ${days.length} days with results">
+    <line x1="${pad.l}" x2="${w - pad.r}" y1="${z.toFixed(1)}" y2="${z.toFixed(1)}" stroke="var(--line2)" stroke-width="1"/>${cols}</svg>`;
+}
+
 export function ring(done, total, live = 0, key = '') {
   const r = 16, c = 2 * Math.PI * r;
   const f = total ? done / total : 0;

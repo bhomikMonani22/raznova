@@ -504,10 +504,12 @@ function open(view = 'list', opener = null) {
   ui.panel.focus({ preventScroll: true });
   clearInterval(ui.tick);
   ui.tick = setInterval(tickTimes, 30000);
+  api.pushBack?.('notif', () => close({ fromBack: true })); // Android back / browser back closes the panel
 }
 
-function close({ restore = true } = {}) {
+function close({ restore = true, fromBack = false } = {}) {
   if (!ui.open) return;
+  if (!fromBack) api.popBack?.('notif');
   ui.open = false;
   ui.confirm = false;
   ui.drag = null;
