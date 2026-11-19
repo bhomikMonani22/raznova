@@ -300,10 +300,16 @@ async function pollLive(force = false) {
   lastLive = Date.now();
   const changed = evaluateAll();
   if (changed || route === 'live' || route === 'portfolio') softRender();
-  scanNow();
-  // from here on, changes are happening live (not catch-up from while the app was closed) — but only if this poll
-  // actually got data; a failed first poll must not turn the next one's backlog into a burst of live pop-ups
-  if (!need.length || fetched) { EV.markLive(); liveReady = true; }
+  // a complete look = the shared ledger is merged, this poll reached the data (or had nothing to fetch), and every open
+  // leg's game is either loaded or was just tried — an earlier, overlapping poll that started before the ledger
+  // arrived must not take the baseline for slips whose games it never fetched
+  const tried = new Set(need);
+  const covered = [...openBets(), ...labOpen()].every((x) => x.legs.every((l) => !l.gameId || games[l.gameId] || tried.has(l.gameId)));
+  const complete = historyLoaded && covered && (!need.length || fetched > 0);
+  scanNow({ complete });
+  // from here on, changes are happening live (not catch-up from while the app was closed) — never before a complete
+  // look: a failed or too-early first poll must not turn the backlog into a burst of live pop-ups
+  if (complete) { EV.markLive(); liveReady = true; }
   // Auto-refresh only while this page is open: every 5 min if any game is in progress,
   // otherwise sleep until the next tip-off (no polling at all when nothing is scheduled).
   const anyLive = [...ids].some((id) => games[id]?.status.state === 'in') || board?.events?.some((e) => e.status.state === 'in');
@@ -478,8 +484,11 @@ function observe() {
   }
   return obs;
 }
-function scanNow() {
+function scanNow({ complete = false } = {}) {
   if (!L.mode) return [];
+  // A device's very first scan records a silent baseline. Take it only from a complete picture (ledger merged AND
+  // live data polled), so slips that settled before this device ever looked don't replay as pop-ups.
+  if (!EV.hasSnapshot() && !complete) return [];
   try { return EV.scan(observe()); } catch (e) { console.error('[scan]', e); return []; }
 }
 
@@ -1779,10 +1788,11 @@ function toCSV() {
    Built-in slip history (public/tracker/data/history.json)
    Records keep fixed ids, so loading twice never duplicates; a local edit (newer updatedAt) wins over the file.
    ========================================================= */
+let historyLoaded = false; // the shared ledger has been merged (or failed to load) — only then is the first look complete
 async function loadHistory() {
   try {
     const r = await fetch('/tracker/data/history.json', { cache: 'no-store' });
-    if (!r.ok) return;
+    if (!r.ok) { historyLoaded = true; return; }
     const h = await r.json();
     let n = 0;
     const up = (arr, list) => {
@@ -1792,8 +1802,9 @@ async function loadHistory() {
       }
     };
     up(S.bets, h.bets); up(S.txns, h.txns); up(S.lab, h.lab);
+    historyLoaded = true;
     if (n) { save(); render(); scanNow(); if (L.mode) pollLive(true); }
-  } catch {}
+  } catch { historyLoaded = true; }
 }
 
 /* =========================================================

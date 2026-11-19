@@ -210,5 +210,7 @@ export function scan(observations) {
     .map((e) => emit({ ...e, catchup }));
 }
 
+export const hasSnapshot = () => !!snap;
+
 // Test hook: forget the snapshot so the next scan re-baselines.
 export function resetSnapshot() { snap = null; try { localStorage.removeItem(SNAP_KEY); } catch {} }
