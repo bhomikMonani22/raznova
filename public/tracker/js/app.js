@@ -1,5 +1,5 @@
 import {
-  STATS, MARKETS, evalLeg, autoSettle, betProfit, betReturn, isSettled, potential, settleTime,
+  STATS, MARKETS, evalLeg, autoSettle, betProfit, betReturn, isSettled, potential, settleTime, settleStamp,
   portfolio, dailyPnL, insights, discipline, betTitle, legLabel, findPlayer, norm,
 } from './engine.js';
 import { parseSlip } from './parser.js';
@@ -293,7 +293,7 @@ function evaluateLab() {
     const done = g.legs.every((l) => games[l.gameId]?.status.state === 'post') || res.includes('lost');
     if (done && !res.includes('pending')) {
       g.status = res.includes('lost') ? 'lost' : res.every((r) => r === 'void') ? 'void' : 'won';
-      g.settledAt = Date.now(); changed = true;
+      g.settledAt = settleStamp(g); changed = true;
     }
     if (changed) g.updatedAt = Date.now();
   }
@@ -317,7 +317,7 @@ function evaluateAll() {
       const res = autoSettle(b, evs);
       if (res) {
         b.status = res.status;
-        b.settledAt = Date.now();
+        b.settledAt = settleStamp(b); // dated to when its games ended, not when the app noticed (Ticket F)
         b.autoSettled = true;
         if (res.odds && res.odds !== Number(b.odds)) b.settledOdds = res.odds;
         if (res.review) b.review = true;
@@ -459,32 +459,32 @@ function profileBar() {
     const list = mine(p);
     const live = list.filter(isLiveSlip).length;
     return live
-      ? `<span class="pill live" style="margin-left:4px"><span class="dot"></span>${live} live</span>`
-      : `<span class="dim">${list.length}</span>`;
+      ? `<span class="pill live"><span class="dot"></span>${live} live</span>`
+      : `<span class="acct-n"><b>${list.length}</b> slip${list.length === 1 ? '' : 's'}</span>`;
   };
   return `<div class="row between wrap" style="margin-bottom:14px"><div class="seg" role="tablist" aria-label="Account">${opts
-    .map((p) => `<button data-profile="${esc(p)}" class="${acct() === p ? 'on' : ''}">${p === 'all' ? 'Combined' : esc(p) + ' acc'} ${badge(p)}</button>`)
+    .map((p) => `<button data-profile="${esc(p)}" class="${acct() === p ? 'on' : ''}" role="tab" aria-selected="${acct() === p}"><span class="acct-nm">${p === 'all' ? 'Combined' : esc(p) + ' acc'}</span>${badge(p)}</button>`)
     .join('')}</div></div>`;
 }
 
 /* ---------- lock / onboarding ---------- */
 function lockView() {
   return `<div class="lock"><div class="card stack">
-    <div class="brand"><img src="/tracker/icons/icon-192.png" width="44" height="44" alt=""><div><b style="font-size:20px">EasyBuckets Ledger</b><small>NBA bet portfolio</small></div></div>
-    <p class="mute" style="margin:0">Track every Stake slip, sweat legs live, see your real P&L.</p>
-    <label class="f">Cloud PIN (4–8 digits) — same PIN on every device syncs your ledger
+    <div class="brand"><img src="/tracker/icons/icon-192.png" width="46" height="46" alt=""><div><b>EasyBuckets Ledger</b><small>NBA bet portfolio</small></div></div>
+    <p class="mute" style="margin:0">Track every Stake slip, sweat legs live, see your real P&amp;L.</p>
+    <label class="f">Cloud PIN, 4–8 digits. The same PIN on every device syncs your ledger.
       <input class="in pin-in" id="pin" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="off" placeholder="••••">
     </label>
-    <button class="btn primary wide" data-act="unlock">Unlock & sync</button>
+    <button class="btn primary wide" data-act="unlock">Unlock &amp; sync</button>
     <button class="btn ghost wide" data-act="localmode">Use on this device only</button>
-    <p class="dim" style="font-size:12px;margin:0">First PIN ever entered creates the vault. Keep it private.</p>
+    <p class="dim" style="font-size:12px;margin:0">The first PIN ever entered creates the vault. Keep it private.</p>
   </div></div>`;
 }
 
 /* ---------- discipline banner ---------- */
 function alertsHTML() {
   const d = discipline(bets(), S.settings);
-  return d.flags.map((f) => `<div class="alert ${f.lvl}">⚠️ <span>${esc(f.msg)}</span></div>`).join('');
+  return d.flags.map((f) => `<div class="alert ${f.lvl}" role="note"><span>${esc(f.msg)}</span></div>`).join('');
 }
 
 /* ---------- portfolio ---------- */
@@ -498,32 +498,32 @@ function vPortfolio() {
   <div class="stack">
     ${alertsHTML()}
     ${installBanner()}
-    <div class="hero">
-      <div class="row between hero-top"><span class="lbl">Bankroll</span><div class="chips">${periods.map(([k, t]) => `<button class="chip ${L.period === k ? 'on' : ''}" data-period="${k}">${t}</button>`).join('')}</div></div>
+    <section class="hero" aria-label="Bankroll">
+      <div class="row between hero-top"><span class="lbl">Bankroll</span><div class="chips" role="group" aria-label="Period">${periods.map(([k, t]) => `<button class="chip ${L.period === k ? 'on' : ''}" data-period="${k}" aria-pressed="${L.period === k}">${t}</button>`).join('')}</div></div>
       <div class="big" data-fx="money" data-k="bankroll:${esc(acct())}" data-v="${P.bankroll}">${money(P.bankroll)}</div>
       ${L.period === 'all' && P.deposits
         ? (() => {
             const acctPL = P.realizedAll + P.adjust;
             const net = P.deposits - P.withdrawals;
-            return `<div class="chg ${cls(acctPL)}">${money(acctPL, { sign: true })} <span style="opacity:.8">(${spct(net ? (acctPL / net) * 100 : 0)} on deposits)</span> <span class="mute" style="font-weight:500">· account</span></div>`;
+            return `<div class="chg ${cls(acctPL)}"><span class="num">${money(acctPL, { sign: true })}</span><span class="chg-sub">${spct(net ? (acctPL / net) * 100 : 0)} on deposits, all time</span></div>`;
           })()
-        : `<div class="chg ${cls(P.profit)}">${money(P.profit, { sign: true })} <span style="opacity:.8">(${spct(P.roi)} ROI)</span> <span class="mute" style="font-weight:500">· ${periods.find((p) => p[0] === L.period)[1]}</span></div>`}
+        : `<div class="chg ${cls(P.profit)}"><span class="num">${money(P.profit, { sign: true })}</span><span class="chg-sub">${spct(P.roi)} ROI, ${periods.find((p) => p[0] === L.period)[1]}</span></div>`}
       <div class="meta">
-        <div>In play<b>${money(P.openStake)} · ${P.openCount}</b></div>
-        <div>Max return<b>${money(P.openPotential)}</b></div>
-        <div>Hit rate<b>${pct(P.hitRate, 0)}</b></div>
-        <div>Typical odds<b>${odds(P.avgOdds)}</b></div>
+        <div>In play<b>${money(P.openStake)}</b><small>${P.openCount} open</small></div>
+        <div>Max return<b>${money(P.openPotential)}</b><small>if all cash</small></div>
+        <div>Hit rate<b>${pct(P.hitRate, 0)}</b><small>slips won</small></div>
+        <div>Odds<b>${odds(P.avgOdds)}</b><small>median</small></div>
       </div>
-      ${noCash ? `<div class="alert info" style="margin-top:14px">Add your starting Stake balance so bankroll is real. <button class="btn sm" data-act="txn" data-kind="deposit" style="margin-left:auto">+ Deposit</button></div>` : ''}
-    </div>
+      ${noCash ? `<div class="alert info">Add your starting Stake balance so bankroll is real. <button class="btn sm" data-act="txn" data-kind="deposit" style="margin-left:auto">+ Deposit</button></div>` : ''}
+    </section>
 
     <div class="grid g4">
       ${kpi('Slip P&L', money(P.profit, { sign: true }), `${P.count} settled slips`, cls(P.profit))}
       ${kpi('Slip ROI', spct(P.roi), `${money(P.staked)} staked`, cls(P.roi))}
       ${kpi('Edge vs odds', spct(edge), `hit ${pct(P.hitRate, 0)} vs implied ${pct(P.implied, 0)}`, cls(edge))}
       ${kpi('Max drawdown', money(-P.maxDD), 'peak to trough', P.maxDD ? 'neg' : '')}
-      ${kpi('Streak', P.streak ? `${P.streak}${P.streakType}` : '—', P.streakType === 'W' ? 'heater 🔥' : P.streakType === 'L' ? 'cold — size down' : '', P.streakType === 'W' ? 'pos' : P.streakType === 'L' ? 'neg' : '')}
-      ${kpi('Best hit', P.best ? money(betProfit(P.best), { sign: true }) : '—', P.best ? `@${odds(P.best.odds)} · ${esc(betTitle(P.best))}` : '', 'pos')}
+      ${kpi('Streak', P.streak ? `${P.streak}${P.streakType}` : '—', P.streakType === 'W' ? 'On a heater' : P.streakType === 'L' ? 'Cold. Size down.' : '', P.streakType === 'W' ? 'pos' : P.streakType === 'L' ? 'neg' : '')}
+      ${kpi('Best hit', P.best ? money(betProfit(P.best), { sign: true }) : '—', P.best ? `@${odds(P.best.odds)} · ${esc(betTitle(P.best))}` : '', P.best ? cls(betProfit(P.best)) : '')}
       ${kpi('Deposited', money(P.deposits - P.withdrawals), `${money(P.withdrawals)} withdrawn${P.adjust ? ` · ${money(P.adjust, { sign: true })} unmatched` : ''}`)}
       ${kpi('Lifetime P&L', money(P.realizedAll, { sign: true }), 'all settled slips', cls(P.realizedAll))}
     </div>
@@ -532,13 +532,13 @@ function vPortfolio() {
       <div class="card"><h3>Equity curve <span class="r">cumulative profit</span></h3><div id="eq"></div></div>
       <div class="card"><h3>Daily P&L <span class="r">last 18 weeks</span></h3><div id="heat"></div>
         <div class="divider"></div>
-        <h3 style="margin-bottom:8px">Cash <span class="r"><button class="btn sm" data-act="txn" data-kind="deposit">+ Deposit</button> <button class="btn sm" data-act="txn" data-kind="withdraw">− Withdraw</button></span></h3>
-        ${txns().sort((a, b) => b.at - a.at).slice(0, 4).map((t) => `<div class="row between" style="padding:6px 0;font-size:13px"><span class="mute">${dateOnly(t.at)} · ${acct() === 'all' && t.account ? esc(t.account) + ' · ' : ''}${t.kind === 'deposit' ? 'Deposit' : t.kind === 'adjust' ? 'Adjustment' : 'Withdrawal'}${t.note ? ' · ' + esc(t.note) : ''}</span><span class="row"><b class="num ${t.kind === 'withdraw' ? 'neg' : t.kind === 'adjust' ? 'amber' : 'pos'}">${t.kind === 'adjust' ? money(t.amount, { sign: true }) : (t.kind === 'deposit' ? '+' : '−') + money(t.amount)}</b><button class="btn ghost sm" data-act="deltxn" data-id="${t.id}" aria-label="Delete">✕</button></span></div>`).join('') || '<div class="dim" style="font-size:12.5px">No deposits logged.</div>'}
+        <h3 style="margin-bottom:6px">Cash <span class="r cash-acts"><button class="btn sm" data-act="txn" data-kind="deposit">+ Deposit</button><button class="btn sm" data-act="txn" data-kind="withdraw">− Withdraw</button></span></h3>
+        ${txns().sort((a, b) => b.at - a.at).slice(0, 4).map((t) => `<div class="cash-row"><span class="grow"><b>${t.kind === 'deposit' ? 'Deposit' : t.kind === 'adjust' ? 'Adjustment' : 'Withdrawal'}</b> · ${dateOnly(t.at)}${acct() === 'all' && t.account ? ' · ' + esc(t.account) : ''}${t.note ? ' · ' + esc(t.note) : ''}</span><span class="row" style="gap:4px"><b class="num ${t.kind === 'withdraw' ? 'neg' : t.kind === 'adjust' ? 'amber' : 'pos'}">${t.kind === 'adjust' ? money(t.amount, { sign: true }) : (t.kind === 'deposit' ? '+' : '−') + money(t.amount)}</b><button class="btn ghost sm icon" data-act="deltxn" data-id="${t.id}" aria-label="Delete entry">✕</button></span></div>`).join('') || '<div class="dim" style="font-size:12.5px;padding:6px 0">No deposits logged yet.</div>'}
       </div>
     </div>
 
-    <div class="card"><h3>Recently settled <span class="r"><button class="btn sm ghost" data-go="slips">All slips →</button></span></h3>
-      <div class="stack">${recent.map((b) => slipCard(b, { compact: true })).join('') || '<div class="empty"><b>No results yet</b>Add a slip with the + button.</div>'}</div>
+    <div class="card"><h3>Recently settled <span class="r"><button class="btn sm ghost" data-go="slips">All slips</button></span></h3>
+      <div class="stack">${recent.map((b) => slipCard(b, { compact: true })).join('') || '<div class="empty"><b>No results yet</b>Settled slips land here. Add one with the + button.</div>'}</div>
     </div>
   </div>`;
 }
@@ -568,15 +568,15 @@ function slipCard(b, { compact = false, open = false } = {}) {
   const stCls = b.status === 'open' ? (isLive ? 'live' : 'open') : b.status;
   const p = betProfit(b);
   const amt = isSettled(b)
-    ? `<span class="num ${cls(p)}">${money(p, { sign: true })}</span><small>${money(b.stake)} @ ${odds(b.odds)}</small>`
-    : `<span class="num">${money(potential(b))}</span><small>${money(b.stake)} @ ${odds(b.odds)}</small>`;
+    ? `<span class="num ${cls(p)}">${money(p, { sign: true })}</span><small><span class="num">${money(b.stake)}</span> @ <span class="num">${odds(b.odds)}</span></small>`
+    : `<span class="num">${money(potential(b))}</span><small><span class="num">${money(b.stake)}</span> @ <span class="num">${odds(b.odds)}</span></small>`;
   const showLegs = open || (!compact && (b.status === 'open' || b.legs.length <= 4));
   return `<div class="slip ${isLive ? 'live' : ''} st-${b.status}">
     <div class="slip-head" data-act="detail" data-id="${b.id}">
       ${b.legs.length > 1 ? ring(hit, b.legs.length, liveN, b.id) : ''}
       <div class="grow">
-        <div class="row" style="gap:8px"><span class="pill ${stCls}"><span class="dot"></span>${stTxt}</span>${b.review ? '<span class="pill cashout">check payout</span>' : ''}<span class="meta">${b.placedBy ? esc(b.placedBy) + ' · ' : ''}${dateOnly(b.placedAt)}</span></div>
-        <div class="ttl" style="margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(betTitle(b))}</div>
+        <div class="slip-meta"><span class="pill ${stCls}"><span class="dot"></span>${stTxt}</span>${b.review ? '<span class="pill cashout">Check payout</span>' : ''}<span class="meta">${b.placedBy ? `<b>${esc(b.placedBy)}</b> · ` : ''}${dateOnly(b.placedAt)}</span></div>
+        <div class="ttl">${esc(betTitle(b))}</div>
       </div>
       <div class="slip-amt">${amt}</div>
     </div>
@@ -601,7 +601,7 @@ function legRow(l, e, b) {
       <div class="ds">${esc(gl)}${clock}${e.note ? ' · ' + esc(e.note) : ''}</div>
       ${(isProp || l.market === 'total') && e.value != null ? `<div class="bar"><i class="${barCls}" data-fx="bar" data-k="${k}" data-v="${e.pct}" style="width:${e.pct}%"></i></div>` : ''}
     </div>
-    <div class="rt">${e.value != null && (isProp || l.market === 'total') ? `<span class="num"><b data-fx="val" data-k="${k}" data-v="${e.value}">${e.value}</b></span><span class="mute">/${l.line}</span>` : ''}${l.odds ? `<div class="dim num">@${odds(l.odds)}</div>` : ''}</div>
+    <div class="rt">${e.value != null && (isProp || l.market === 'total') ? `<span class="num"><b data-fx="val" data-k="${k}" data-v="${e.value}">${e.value}</b></span><span class="mute ln">/${l.line}</span>` : ''}${l.odds ? `<div class="dim num">@${odds(l.odds)}</div>` : ''}</div>
   </div>`;
 }
 
@@ -625,10 +625,10 @@ function vLive() {
   const tk = tkEvents.map((e) => {
     const lead = (e.home.score || 0) > (e.away.score || 0) ? 'h' : (e.away.score || 0) > (e.home.score || 0) ? 'a' : '';
     const st = e.status.state === 'pre' ? new Date(e.date).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : e.status.detail;
-    return `<div class="tk tk-${e.status.state} ${myGames.has(e.id) ? 'mine' : ''}">
-      <div class="tr ${lead === 'a' ? 'lead' : ''}"><span>${esc(e.away.abbr)}</span><b data-fx="score" data-k="${e.id}:a" data-v="${e.away.score ?? ''}">${e.status.state === 'pre' ? '' : e.away.score ?? ''}</b></div>
-      <div class="tr ${lead === 'h' ? 'lead' : ''}"><span>${esc(e.home.abbr)}</span><b data-fx="score" data-k="${e.id}:h" data-v="${e.home.score ?? ''}">${e.status.state === 'pre' ? '' : e.home.score ?? ''}</b></div>
-      <div class="st"><span>${esc(st)}</span>${myGames.has(e.id) ? '<span style="color:var(--accent)">●</span>' : ''}</div></div>`;
+    return `<div class="tk tk-${e.status.state} ${myGames.has(e.id) ? 'mine' : ''}"${myGames.has(e.id) ? ' title="You have a slip on this game"' : ''}>
+      <div class="tr ${lead === 'a' ? 'lead' : ''}">${e.away.logo ? `<span class="tlogo" style="background-image:url('${esc(e.away.logo)}')" aria-hidden="true"></span>` : ''}<span>${esc(e.away.abbr)}</span><b data-fx="score" data-k="${e.id}:a" data-v="${e.away.score ?? ''}">${e.status.state === 'pre' ? '' : e.away.score ?? ''}</b></div>
+      <div class="tr ${lead === 'h' ? 'lead' : ''}">${e.home.logo ? `<span class="tlogo" style="background-image:url('${esc(e.home.logo)}')" aria-hidden="true"></span>` : ''}<span>${esc(e.home.abbr)}</span><b data-fx="score" data-k="${e.id}:h" data-v="${e.home.score ?? ''}">${e.status.state === 'pre' ? '' : e.home.score ?? ''}</b></div>
+      <div class="st"><span>${esc(st)}</span></div></div>`;
   }).join('');
 
   // singles grouped under their game; multis stay as full cards
@@ -649,34 +649,35 @@ function vLive() {
       const l0 = arr[0].b.legs[0];
       const st = g?.status.state;
       const score = g && st !== 'pre'
-        ? `<span class="num">${esc(g.away.abbr)} <b data-fx="score" data-k="${gid}:a" data-v="${g.away.score ?? ''}">${g.away.score ?? ''}</b> – <b data-fx="score" data-k="${gid}:h" data-v="${g.home.score ?? ''}">${g.home.score ?? ''}</b> ${esc(g.home.abbr)}</span>`
-        : `<span>${esc(l0.gameLabel || 'Game')}</span>`;
+        ? `<span class="gs-t">${g.away.logo ? `<span class="tlogo" style="background-image:url('${esc(g.away.logo)}')" aria-hidden="true"></span>` : ''}${esc(g.away.abbr)}</span> <b data-fx="score" data-k="${gid}:a" data-v="${g.away.score ?? ''}">${g.away.score ?? ''}</b><span class="gs-sep">–</span><b data-fx="score" data-k="${gid}:h" data-v="${g.home.score ?? ''}">${g.home.score ?? ''}</b> <span class="gs-t">${esc(g.home.abbr)}${g.home.logo ? `<span class="tlogo" style="background-image:url('${esc(g.home.logo)}')" aria-hidden="true"></span>` : ''}</span>`
+        : g ? `<span class="gs-t">${g.away.logo ? `<span class="tlogo" style="background-image:url('${esc(g.away.logo)}')" aria-hidden="true"></span>` : ''}${esc(g.away.abbr)}</span><span class="gs-at">@</span><span class="gs-t">${esc(g.home.abbr)}${g.home.logo ? `<span class="tlogo" style="background-image:url('${esc(g.home.logo)}')" aria-hidden="true"></span>` : ''}</span>`
+        : `<span class="gs-t">${esc(l0.gameLabel || 'Game')}</span>`;
       const clock = st === 'in' ? `<span class="pill live"><span class="dot"></span>Q${g.status.period > 4 ? 'OT' : g.status.period} ${esc(g.status.clock)}</span>`
         : st === 'post' ? '<span class="pill void">Final</span>'
-        : `<span class="dim">${new Date(g?.date || l0.startTime || Date.now()).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>`;
+        : `<span class="gs-time">${new Date(g?.date || l0.startTime || Date.now()).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>`;
       const stake = arr.reduce((s, x) => s + Number(x.b.stake || 0), 0);
       const h = arr.filter((x) => x.ev[0].state === 'hit').length;
       return `<section class="gsec ${st === 'in' ? 'live' : ''}">
-        <header class="gsec-h"><div class="row" style="gap:8px;min-width:0">${score}${clock}</div>
-          <span class="dim mono" style="font-size:12px">${h}/${arr.length} · ${money(stake)}</span></header>
+        <header class="gsec-h gm-h"><div class="gs-score">${score}</div>${clock}
+          <span class="gs-sum"><span class="num">${h}/${arr.length}</span> hit · <span class="num">${money(stake)}</span> staked</span></header>
         ${arr.map(({ b, ev }) => srow(b, ev[0])).join('')}
       </section>`;
     }).join('');
 
   return `<div class="stack live-page">
-    <div class="row between" style="gap:8px">
-      <div style="min-width:0"><h1 class="h1">Sweat board</h1><p class="sub" style="margin:0;font-size:12px">${!L.auto ? 'Auto-refresh off' : liveMode ? `Live · auto-refresh every 5 min${nextPoll ? ' · next ' + new Date(nextPoll).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : ''}` : nextPoll ? `No game live · wakes at tip-off ${new Date(nextPoll - 60000).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}` : 'No games scheduled'}${lastLive ? ' · updated ' + ago(lastLive) : ''}</p></div>
+    <div class="row between live-head" style="gap:10px">
+      <div style="min-width:0"><h1 class="h1">Sweat board</h1><p class="sub">${!L.auto ? 'Auto-refresh off' : liveMode ? `Live · auto-refresh every 5 min${nextPoll ? ' · next ' + new Date(nextPoll).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : ''}` : nextPoll ? `No game live · wakes at tip-off ${new Date(nextPoll - 60000).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}` : 'No games scheduled'}${lastLive ? ' · updated ' + ago(lastLive) : ''}</p></div>
       <div class="row" style="gap:6px;flex:none">
-        <button class="btn sm" data-act="refresh" aria-label="Refresh">↻<span class="hide-sm"> Refresh</span></button></div>
+        <button class="btn sm" data-act="refresh" aria-label="Refresh"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg><span class="hide-sm">Refresh</span></button></div>
     </div>
-    ${tk ? `<div class="ticker">${tk}</div>` : '<div class="ticker"><div class="tk skeleton" style="height:58px"></div><div class="tk skeleton" style="height:58px"></div><div class="tk skeleton" style="height:58px"></div></div>'}
+    ${tk ? `<div class="ticker" aria-label="Tonight's games">${tk}</div>` : '<div class="ticker" aria-hidden="true"><div class="tk skeleton"></div><div class="tk skeleton"></div><div class="tk skeleton"></div></div>'}
     <div class="lsum">
       <div><span>Open</span><b>${ob.length}</b><small>${alive.length} alive</small></div>
       <div><span>At risk</span><b>${money(exp)}</b><small>staked</small></div>
       <div><span>Max return</span><b class="pos">${money(mx)}</b><small>if alive hit</small></div>
       <div><span>Legs hit</span><b><span data-fx="val" data-k="lsum:hit:${esc(acct())}" data-v="${hitN}">${hitN}</span>/${legsAll.length}</b><small>${liveN} live · ${deadN} dead</small></div>
     </div>
-    ${!ob.length ? `<div class="card empty"><b>No open slips${acct() !== 'all' ? ' on ' + esc(acct()) + ' acc' : ''}</b>Paste a Stake slip and it'll track here automatically.<div style="margin-top:12px"><button class="btn primary" data-act="add">+ New slip</button></div></div>` : ''}
+    ${!ob.length ? `<div class="card empty"><b>No open slips${acct() !== 'all' ? ' on ' + esc(acct()) + ' acc' : ''}</b>Paste a Stake slip and it tracks here live, leg by leg.<div><button class="btn primary" data-act="add">+ New slip</button></div></div>` : ''}
     ${gameSections ? `<div class="gsecs">${gameSections}</div>` : ''}
     ${multis.length ? `<h3 class="sec-t">Multis <span class="dim">${multis.length}</span></h3>
       <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(min(100%,420px),1fr))">${multis
@@ -703,7 +704,7 @@ function srow(b, e) {
     </span>
     <span class="sr-rt">
       ${isNum && e.value != null ? `<span class="num sr-v"><b data-fx="val" data-k="${k}" data-v="${e.value}">${e.value}</b><span class="mute">/${l.line}</span></span>` : `<span class="num dim">@${odds(b.odds)}</span>`}
-      <span class="num sr-m ${st === 'dead' ? 'neg' : st === 'hit' ? 'pos' : ''}">${money(b.stake)}→${money(potential(b))}</span>
+      <span class="num sr-m ${st === 'dead' ? 'neg' : st === 'hit' ? 'pos' : ''}">${money(b.stake)}<span class="to">→</span>${money(potential(b))}</span>
     </span>
   </button>`;
 }
@@ -723,14 +724,14 @@ function vSlips() {
   const counts = { all: bets().length };
   for (const b of bets()) counts[b.status] = (counts[b.status] || 0) + 1;
   return `<div class="stack">
-    <div class="row between wrap"><div><h1 class="h1">Slips</h1><p class="sub" style="margin:0">${bets().length} total</p></div>
-      <div class="row"><button class="btn sm" data-act="csv">⬇ CSV</button><button class="btn primary sm" data-act="add">+ New slip</button></div></div>
-    <input class="in" id="slip-search" placeholder="Search player, team, stat, notes…" value="${esc(slipSearch)}">
-    <div class="chips">${['all', 'open', 'won', 'lost', 'void', 'cashout'].map((k) => `<button class="chip ${f === k ? 'on' : ''}" data-filter="${k}">${k[0].toUpperCase() + k.slice(1)} ${counts[k] ? `<span style="opacity:.6">${counts[k]}</span>` : ''}</button>`).join('')}</div>
+    <div class="page-h"><div><h1 class="h1">Slips</h1><p class="sub">${bets().length} total</p></div>
+      <div class="page-acts"><button class="btn sm" data-act="csv"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>CSV</button><button class="btn primary sm" data-act="add">+ New slip</button></div></div>
+    <div class="search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg><input class="in" id="slip-search" type="search" aria-label="Search slips" placeholder="Search player, team, stat, notes…" value="${esc(slipSearch)}"></div>
+    <div class="chips" role="group" aria-label="Filter by status">${['all', 'open', 'won', 'lost', 'void', 'cashout'].map((k) => `<button class="chip ${f === k ? 'on' : ''}" data-filter="${k}" aria-pressed="${f === k}">${k === 'cashout' ? 'Cashed out' : k[0].toUpperCase() + k.slice(1)}${counts[k] ? ` <span class="n">${counts[k]}</span>` : ''}</button>`).join('')}</div>
     ${[...groups].map(([k, arr]) => {
       const pl = arr.reduce((s, b) => s + betProfit(b), 0);
-      return `<div class="row between" style="margin-top:6px"><b>${k}</b><span class="num ${cls(pl)}">${money(pl, { sign: true })}</span></div>
-      <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(min(100%,400px),1fr))">${arr.map((b) => slipCard(b, { compact: true })).join('')}</div>`;
+      return `<div class="month-h"><b>${k}</b><span class="num ${cls(pl)}">${money(pl, { sign: true })}</span></div>
+      <div class="grid slip-grid">${arr.map((b) => slipCard(b, { compact: true })).join('')}</div>`;
     }).join('') || '<div class="card empty"><b>Nothing here</b>Change the filter or add a slip.</div>'}
   </div>`;
 }
@@ -768,7 +769,7 @@ function vSlipInsights() {
   })();
   return `<div class="stack">
     <h2 class="sec-h">Slips &amp; formats <span class="dim">${X.all.n} settled slips</span></h2>
-    ${verdict.length ? `<div class="card" style="border-color:rgba(255,122,26,.35)"><h3>Desk read</h3>${verdict.map((v) => `<p style="margin:6px 0">${v}</p>`).join('')}</div>` : ''}
+    ${verdict.length ? `<div class="card desk-read"><h3>Desk read</h3>${verdict.map((v) => `<p>${v}</p>`).join('')}</div>` : ''}
     <div class="cols t2">
       <div class="card"><h3>By number of legs <span class="r">is the parlay tax real?</span></h3>${tbl(X.byLegs, betCols)}</div>
       <div class="card"><h3>By odds bucket <span class="r">hit vs implied = edge</span></h3>${tbl(X.byOdds, betCols)}</div>
@@ -779,7 +780,7 @@ function vSlipInsights() {
         ${X.byMarket.length > 1 ? '<div class="divider"></div>' + X.byMarket.map((s) => hbar(esc(s.k), s.hit, 100, `${pct(s.hit, 0)} <span class="dim">${s.w}/${s.n}</span>`)).join('') : ''}
       </div>
       <div class="card"><h3>Leg killers <span class="r">sole loser in a multi</span></h3>
-        ${X.killerList.length ? X.killerList.map((k) => `<div class="row between" style="padding:7px 0;border-bottom:1px solid var(--line)"><span>${esc(k.k)}</span><b class="num neg">${k.n}×</b></div>`).join('') : '<div class="dim">No one-leg busts yet. Keep it that way.</div>'}
+        ${X.killerList.length ? X.killerList.map((k) => `<div class="list-row"><span>${esc(k.k)}</span><b class="num neg">${k.n}×</b></div>`).join('') : '<div class="dim">No one-leg busts yet. Keep it that way.</div>'}
         <div class="grid g2" style="margin-top:12px">${kpi('Bad beats', X.beats, 'lost by 1 leg', X.beats ? 'neg' : '')}${kpi('Missed payout', money(X.beatsMissed), money(X.beatsStake) + ' staked', X.beats ? 'neg' : '')}</div>
       </div>
     </div>
@@ -806,8 +807,8 @@ const sideTxt = (sd) => (sd === 'under' ? 'U' : 'O');
 function vInsights() {
   const tab = L.insTab || 'today';
   return `<div class="stack">
-    <div class="row between wrap" style="gap:10px"><h1 class="h1" style="margin:0">Insights</h1>
-      <div class="seg" role="tablist" aria-label="Insights view"><button data-instab="today" class="${tab === 'today' ? 'on' : ''}">Today</button><button data-instab="history" class="${tab === 'history' ? 'on' : ''}">History</button></div></div>
+    <div class="page-h"><h1 class="h1" style="margin:0">Insights</h1>
+      <div class="seg" role="tablist" aria-label="Insights view"><button data-instab="today" class="${tab === 'today' ? 'on' : ''}" role="tab" aria-selected="${tab === 'today'}">Today</button><button data-instab="history" class="${tab === 'history' ? 'on' : ''}" role="tab" aria-selected="${tab === 'history'}">History</button></div></div>
     ${tab === 'today' ? vToday() : vHistory()}
   </div>`;
 }
@@ -847,9 +848,9 @@ function vHistory() {
         { h: 'Near', f: (r) => r.near || '—', r: 1, c: (r) => (r.near ? 'amber' : '') },
       ])}</div>
       <div class="card"><h3>Line sweet spots <span class="r">hit rate by line size</span></h3>
-        ${fams.map((f) => `<div class="dim" style="font-size:11.5px;margin:6px 0 2px">${famName[f]}</div>${H.buckets.filter((b) => b.fam === f).map((b) => hbar(esc(b.b), b.hit, 100, `${pct(b.hit, 0)} <span class="dim">${b.w}/${b.n}</span>`)).join('')}`).join('')}
+        ${fams.map((f) => `<div class="fam-l">${famName[f]}</div>${H.buckets.filter((b) => b.fam === f).map((b) => hbar(esc(b.b), b.hit, 100, `${pct(b.hit, 0)} <span class="dim">${b.w}/${b.n}</span>`)).join('')}`).join('')}
         <div class="divider"></div>
-        <div class="dim" style="font-size:11.5px;margin-bottom:2px">Overs vs unders</div>
+        <div class="fam-l">Overs vs unders</div>
         ${H.bySide.sort((a, b) => a.fam.localeCompare(b.fam)).map((r) => hbar(`${r.fam} ${sideTxt(r.side)}`, r.hit, 100, `${pct(r.hit, 0)} <span class="dim">${r.w}/${r.n}</span>`)).join('')}
       </div>
     </div>
@@ -857,7 +858,7 @@ function vHistory() {
       <div class="card"><h3>Legs that burn you <span class="r">2+ picks, ≤40% hit</span></h3>
         ${H.worst.length ? tblH(H.worst, comboCols.slice(0, 5)) : '<div class="dim">No repeat offenders yet.</div>'}</div>
       <div class="card"><h3>Closest calls <span class="r">lost by a hair</span></h3>
-        ${H.near.slice(0, 8).map((l) => `<div class="row between" style="padding:7px 0;border-bottom:1px solid var(--line);font-size:13px"><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(l.player)} <span class="dim">${sideTxt(l.side)} ${l.line} ${esc(l.stat)}${l.opp ? ' v ' + esc(l.opp) : ''}</span></span><b class="num amber">${l.finalValue} <span class="dim">(${sgn(Math.round(l.m * 10) / 10)})</span></b></div>`).join('') || '<div class="dim">None. Clean misses only.</div>'}
+        ${H.near.slice(0, 8).map((l) => `<div class="list-row"><span>${esc(l.player)} <span class="dim">${sideTxt(l.side)} ${l.line} ${esc(l.stat)}${l.opp ? ' v ' + esc(l.opp) : ''}</span></span><b class="num amber">${l.finalValue} <span class="dim">(${sgn(Math.round(l.m * 10) / 10)})</span></b></div>`).join('') || '<div class="dim">None. Clean misses only.</div>'}
       </div>
     </div>
     ${H.byOpp.length ? (() => {
@@ -911,7 +912,7 @@ function vToday() {
   if (!today.slate || !today.league) {
     loadToday();
     return today.err ? `<div class="card empty"><b>Couldn't load today's slate</b>${esc(today.err)}<div style="margin-top:10px"><button class="btn sm" data-act="reloadtoday">Retry</button></div></div>`
-      : `<div class="stack"><div class="skeleton" style="height:70px"></div><div class="skeleton" style="height:160px"></div><div class="skeleton" style="height:160px"></div></div>`;
+      : `<div class="stack" aria-busy="true" aria-label="Loading tonight's slate"><div class="skeleton" style="height:70px"></div><div class="skeleton" style="height:160px"></div><div class="skeleton" style="height:160px"></div></div>`;
   }
   const { slate, league } = today;
   const H = legHistory(bets());
@@ -969,7 +970,7 @@ function vToday() {
     const spark = form ? `<span class="spark">${form.vals.map((v, i) => { const ok = main.side === 'under' ? v < main.avgLine : v > main.avgLine; const h = Math.max(8, Math.min(100, (v / Math.max(main.avgLine * 1.6, 1)) * 100)); return `<i class="${ok ? 'ok' : 'no'}" style="height:${h}%" title="${v} v ${esc(form.opps[i] || '')}"></i>`; }).join('')}</span>` : '';
     const others = x.combos.slice(1, 3).map((c) => `${sideTxt(c.side)} ${esc(c.stat)} ${c.w}/${c.n}`).join(' · ');
     return `<div class="pcard">
-      <div class="row between" style="gap:8px"><div style="min-width:0"><b class="pc-nm">${esc(p.name)}</b> <span class="dim">${esc(p.team)} v ${esc(p.opp || '')} · ${tip}</span></div><span class="pill ${sig[0] === 'pos' ? 'won' : sig[0] === 'neg' ? 'lost' : 'live'}">${sig[1]}</span></div>
+      <div class="pc-top"><div><b class="pc-nm">${esc(p.name)}</b><span class="pc-meta">${esc(p.team)} v ${esc(p.opp || '')} · ${tip}</span></div><span class="pill ${sig[0] === 'pos' ? 'won' : sig[0] === 'neg' ? 'lost' : 'live'}">${sig[1]}</span></div>
       <div class="pc-grid">
         <div><span>Your record</span><b>${sideTxt(main.side)} ${esc(main.stat)} <span class="${main.hit >= 60 ? 'pos' : main.hit <= 40 ? 'neg' : ''}">${main.w}/${main.n}</span></b><small>usual line ${main.avgLine} · avg ${main.avgFinal ?? '—'} (${sgn(main.avgMargin)})</small></div>
         <div><span>Last 5 games</span><b>${form ? `${form.avg} avg <span class="${form.hits >= 3 ? 'pos' : 'neg'}">${form.hits}/${form.n}</span>` : log === null || !log ? '<span class="dim">loading…</span>' : '<span class="dim">no games</span>'}</b><small>${form ? `${spark} ${form.mins} min` : `vs line ${main.avgLine}`}</small></div>
@@ -989,7 +990,7 @@ function vToday() {
     const mineN = list.filter((x) => x.p.gameId === e.id).length;
     const st = e.status.state === 'in' ? `<span class="pill live"><span class="dot"></span>${esc(e.status.detail)}</span>` : e.status.state === 'post' ? '<span class="pill void">Final</span>' : `<span class="dim">${new Date(e.date).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>`;
     return `<div class="gcard">
-      <div class="gsec-h"><div class="row" style="gap:8px"><span>${esc(e.away.abbr)} <span class="dim">${esc(e.away.record || '')}</span> @ ${esc(e.home.abbr)} <span class="dim">${esc(e.home.record || '')}</span></span>${st}</div>${mineN ? `<span class="pill cashout">${mineN} of yours</span>` : ''}</div>
+      <div class="gsec-h"><div class="gs-score"><span class="gs-t">${e.away.logo ? `<span class="tlogo" style="background-image:url('${esc(e.away.logo)}')" aria-hidden="true"></span>` : ''}${esc(e.away.abbr)}</span>${e.away.record ? `<span class="gs-rec">${esc(e.away.record)}</span>` : ''}<span class="gs-at">@</span><span class="gs-t">${e.home.logo ? `<span class="tlogo" style="background-image:url('${esc(e.home.logo)}')" aria-hidden="true"></span>` : ''}${esc(e.home.abbr)}</span>${e.home.record ? `<span class="gs-rec">${esc(e.home.record)}</span>` : ''}${st}</div>${mineN ? `<span class="pill cashout">${mineN} of yours</span>` : ''}</div>
       <table class="t mt"><thead><tr><th></th><th class="r">${esc(e.away.abbr)}</th><th class="r">${esc(e.home.abbr)}</th></tr></thead><tbody>
         ${rows.map(([lbl, k, allowed]) => `<tr><td class="mute">${lbl}</td><td class="r">${rankCell(A, k, allowed)}</td><td class="r">${rankCell(Hm, k, allowed)}</td></tr>`).join('')}
       </tbody></table>
@@ -1008,23 +1009,23 @@ function vToday() {
     const sig = score >= 1.5 ? ['won', '▲ Lines up'] : score <= -1 ? ['lost', '▼ Caution'] : ['live', '• Mixed'];
     const spark = form ? `<span class="spark">${form.vals.map((v, i) => { const ok = l.side === 'under' ? v < l.line : v > l.line; const h = Math.max(8, Math.min(100, (v / Math.max(l.line * 1.6, 1)) * 100)); return `<i class="${ok ? 'ok' : 'no'}" style="height:${h}%" title="${v} v ${esc(form.opps[i] || '')}"></i>`; }).join('')}</span>` : '';
     const tip = ev ? new Date(ev.date).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '';
-    return `<div class="pcard" data-act="detail" data-id="${bt.id}" style="cursor:pointer">
-      <div class="row between" style="gap:8px"><div style="min-width:0"><b class="pc-nm">${esc(legLabel(l))}</b> <span class="dim">${esc(p.team)} v ${esc(p.opp || '')} · ${tip}${acct() === 'all' && bt.placedBy ? ' · ' + esc(bt.placedBy) : ''}</span></div><span class="pill ${sig[0]}">${sig[1]}</span></div>
+    return `<div class="pcard" data-act="detail" data-id="${bt.id}">
+      <div class="pc-top"><div><b class="pc-nm">${esc(legLabel(l))}</b><span class="pc-meta">${esc(p.team)} v ${esc(p.opp || '')} · ${tip}${acct() === 'all' && bt.placedBy ? ' · ' + esc(bt.placedBy) : ''}</span></div><span class="pill ${sig[0]}">${sig[1]}</span></div>
       <div class="pc-grid">
         <div><span>Last 5 v this line</span><b>${form ? `${form.avg} avg <span class="${form.hits >= 3 ? 'pos' : 'neg'}">${form.hits}/${form.n}</span>` : log ? '<span class="dim">no games</span>' : '<span class="dim">loading…</span>'}</b><small>${form ? `${spark} ${form.mins} min` : `line ${l.line}`}</small></div>
         <div><span>${esc(p.opp || 'Opp')} ${esc(cmp.metric.label)}</span><b>${cmp.cur ? `<span class="${cmp.cur.cls}">${cmp.cur.v}</span> <span class="dim">#${cmp.cur.rank}</span>` : '—'}</b><small>${cmp.cur ? `${cmp.cur.tag} · ${esc(cmp.metric.unit)}` : ''}</small></div>
       </div>
-      <div class="dim" style="font-size:12px">${hist ? `Your history on this leg: <b class="${hist.hit >= 60 ? 'pos' : hist.hit <= 40 ? 'neg' : ''}">${hist.w}/${hist.n}</b> · usual line ${hist.avgLine} · avg ${hist.avgFinal ?? '—'}` : 'First time on this leg'} · ${money(bt.stake)}→${money(potential(bt))}</div>
+      <div class="pc-foot">${hist ? `Your history on this leg: <b class="${hist.hit >= 60 ? 'pos' : hist.hit <= 40 ? 'neg' : ''}">${hist.w}/${hist.n}</b> · usual line ${hist.avgLine} · avg ${hist.avgFinal ?? '—'}` : 'First time on this leg'} · <span class="num">${money(bt.stake)}<span class="to">→</span>${money(potential(bt))}</span></div>
     </div>`;
   }).join('');
 
-  return `<p class="sub" style="margin:0">Slate: <b>${day}</b> (US date) · ${slate.events.length} games · season stats from ${league.games} games · ranks: #1 = most per game; green = generous for overs</p>
+  return `<p class="ins-sub">Slate <b>${day}</b> (US date) · ${slate.events.length} games · season stats from ${league.games} games. Ranks: #1 = most per game; green = generous for overs.</p>
     ${openLegs.length ? `<h2 class="sec-h">Your open picks tonight <span class="dim">${openLegs.length}</span></h2><div class="pgrid">${openCards}</div>` : ''}
     <h2 class="sec-h">Your players on this slate <span class="dim">${list.length} · most-picked first</span></h2>
     ${list.length ? `<div class="pgrid">${cards}</div>${list.length > shown.length ? `<button class="btn wide" data-act="todayall">${today.showAll ? 'Show top 10' : `Show all ${list.length} players`}</button>` : ''}` : `<div class="card empty"><b>No settled history with players on this slate yet</b>Once your slips settle, past picks on these players show up here.</div>`}
     <h2 class="sec-h">Matchups</h2>
     <div class="ggrid">${games}</div>
-    <p class="dim" style="font-size:11.5px;margin:0">Signals combine your hit rate on the leg, last-5 form vs your usual line, and how much tonight's opponent allows for that stat. They're context, not picks — check the injury report before you lock anything.</p>`;
+    <p class="foot-note">Signals combine your hit rate on the leg, last-5 form vs your usual line, and how much tonight's opponent allows for that stat. They're context, not picks. Check the injury report before you lock anything.</p>`;
 }
 
 /* ---------- lab (paper legs, research only) ---------- */
@@ -1044,17 +1045,17 @@ function vLab() {
       : g.status === 'won' ? ['won', 'Would have won'] : g.status === 'lost' ? ['lost', 'Would have lost'] : ['void', 'Void'];
     const o = labOdds(g);
     return `<section class="gsec ${st[0] === 'live' ? 'live' : ''}">
-      <header class="gsec-h lab-h"><div style="min-width:0;display:flex;flex-direction:column;gap:3px">
-          <div class="row" style="gap:8px;min-width:0"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(g.name || 'Watchlist')}</span><span class="pill ${st[0]}"><span class="dot"></span>${st[1]}</span></div>
-          <span class="dim mono" style="font-size:12px;font-weight:500">${hit}/${g.legs.length} hit · @${odds(o)}${g.stake ? ` · paper ${money(g.stake)}→${money(g.stake * o)}` : ''}</span></div>
-        <button class="btn ghost sm" data-act="labdel" data-id="${g.id}" aria-label="Remove">✕</button></header>
+      <header class="gsec-h lab-h"><div style="min-width:0;display:flex;flex-direction:column;gap:4px">
+          <div class="lab-ttl"><span>${esc(g.name || 'Watchlist')}</span><span class="pill ${st[0]}"><span class="dot"></span>${st[1]}</span></div>
+          <span class="lab-sub"><span class="num">${hit}/${g.legs.length}</span> hit · <span class="num">@${odds(o)}</span>${g.stake ? ` · paper <span class="num">${money(g.stake)}<span class="to">→</span>${money(g.stake * o)}</span>` : ''}</span></div>
+        <button class="btn ghost sm" data-act="labdel" data-id="${g.id}" aria-label="Stop watching">✕</button></header>
       ${g.legs.map((l, i) => labRow(l, ev[i], g)).join('')}
     </section>`;
   };
   return `<div class="stack">
-    <div class="row between wrap" style="gap:8px">
-      <div style="min-width:0"><h1 class="h1">🧪 Lab</h1><p class="sub" style="margin:0">Paper legs you're observing. Not bets: nothing here touches bankroll, P&amp;L or insights.</p></div>
-      <button class="btn primary sm" data-act="labadd">+ Watch legs</button>
+    <div class="page-h">
+      <div><h1 class="h1">Lab</h1><p class="sub">Paper legs you're watching. Not bets: nothing here touches bankroll, P&amp;L or insights.</p></div>
+      <div class="page-acts"><button class="btn primary sm" data-act="labadd">+ Watch legs</button></div>
     </div>
     <div class="lsum">
       <div><span>Watching</span><b>${legs.filter((l) => l.result === 'pending').length}</b><small>${liveN} live now</small></div>
@@ -1062,7 +1063,7 @@ function vLab() {
       <div><span>Paper slips</span><b>${settled.filter((g) => g.status === 'won').length}/${settled.length}</b><small>would have won</small></div>
       <div><span>Paper P&amp;L</span><b class="${cls(paper)}">${settled.length ? money(paper, { sign: true }) : '—'}</b><small>if you'd staked them</small></div>
     </div>
-    ${groups.length ? `<div class="gsecs">${groups.map(card).join('')}</div>` : `<div class="card empty"><b>Nothing under observation</b>Add legs you want to watch without betting. They track live and grade themselves.</div>`}
+    ${groups.length ? `<div class="gsecs">${groups.map(card).join('')}</div>` : `<div class="card empty"><b>Nothing on the watchlist</b>Add legs you want to sweat without betting. They track live and grade themselves.<div><button class="btn sm" data-act="labadd">+ Watch legs</button></div></div>`}
   </div>`;
 }
 function labRow(l, e, grp) {
@@ -1089,7 +1090,7 @@ function labRow(l, e, grp) {
 }
 function sheetLab() {
   const d = sheetState.lab;
-  return `<div class="sheet-h"><h2>🧪 Watch legs</h2><button class="btn ghost sm" data-act="close">✕</button></div>
+  return `<div class="sheet-h"><h2>Watch legs</h2><button class="btn ghost sm icon" data-act="close" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
   <div class="stack">
     <p class="mute" style="margin:0;font-size:13px">One leg per line: <span class="kbd">player over/under line stat @odds | note</span>. They're matched to the next slate's rosters and tracked live. Paper only.</p>
     <div class="grid g2"><label class="f">Name<input class="in" id="lab-name" value="${esc(d.name)}" placeholder="Slip 1 · safest"></label>
@@ -1136,13 +1137,13 @@ const standalone = () => matchMedia('(display-mode: standalone)').matches || nav
 function installBanner() {
   if (standalone() || localStorage.getItem('ebl.hideInstall')) return '';
   if (!deferredInstall && !/iphone|ipad/i.test(navigator.userAgent)) return '';
-  return `<div class="card tight install-cta"><img src="/tracker/icons/icon-192.png" width="40" height="40" style="border-radius:10px" alt=""><div class="grow"><b>Install the app</b><div class="mute" style="font-size:12px">${deferredInstall ? 'Home-screen icon, full screen, live alerts.' : 'Safari: Share → Add to Home Screen.'}</div></div>${deferredInstall ? '<button class="btn primary sm" data-act="install">Install</button>' : ''}<button class="btn ghost sm" data-act="hideinstall" aria-label="Dismiss">✕</button></div>`;
+  return `<div class="card tight install-cta"><img src="/tracker/icons/icon-192.png" width="40" height="40" style="border-radius:10px" alt=""><div class="grow"><b>Install the app</b><div class="mute" style="font-size:12px">${deferredInstall ? 'Home-screen icon, full screen, live alerts.' : 'Safari: Share → Add to Home Screen.'}</div></div>${deferredInstall ? '<button class="btn primary sm" data-act="install">Install</button>' : ''}<button class="btn ghost sm icon" data-act="hideinstall" aria-label="Dismiss"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>`;
 }
 
 function vSettings() {
   const s = S.settings;
   return `<div class="stack">
-    <div><h1 class="h1">Settings</h1><p class="sub">Shared settings sync to every device on your PIN.</p></div>
+    <div><h1 class="h1">Settings</h1><p class="sub" style="margin:0">Shared settings sync to every device on your PIN.</p></div>
     <div class="cols t2">
       <div class="card stack"><h3>Bankroll rules</h3>
         <div class="grid g2">
@@ -1152,22 +1153,22 @@ function vSettings() {
           <label class="f">Flex-card handle<input class="in" data-set="handle" placeholder="@easybuckets" value="${esc(s.handle)}"></label>
         </div>
         <label class="f">Stake accounts (comma separated)<input class="in" data-set="people" value="${esc((s.people || []).join(', '))}"></label>
-        <label class="row" style="gap:8px;font-size:13px"><input type="checkbox" data-set="autoSettle" ${s.autoSettle !== false ? 'checked' : ''}> Auto-settle slips from live boxscores</label>
+        <label class="check"><input type="checkbox" data-set="autoSettle" ${s.autoSettle !== false ? 'checked' : ''}> Auto-settle slips from live boxscores</label>
       </div>
       <div class="card stack"><h3>App</h3>
-        <div class="row between"><span>Sync</span><span class="mute">${L.mode === 'cloud' ? `Cloud · PIN ••••${L.pin.slice(-2)} · ${L.lastSync ? ago(L.lastSync) : 'never'}` : 'This device only'}</span></div>
-        <div class="row wrap">${L.mode === 'cloud' ? '<button class="btn sm" data-act="syncnow">↻ Sync now</button><button class="btn sm" data-act="lock">Lock / switch PIN</button>' : '<button class="btn sm primary" data-act="lock">Turn on cloud sync</button>'}</div>
-        <div class="divider"></div>
-        <div class="row between"><span>Install</span>${standalone() ? '<span class="pill won">Installed</span>' : deferredInstall ? '<button class="btn sm primary" data-act="install">Install app</button>' : '<span class="mute" style="font-size:12px">Chrome menu ⋮ → Install app</span>'}</div>
-        <div class="row between"><span>Notifications</span><button class="btn sm" data-act="notify">Manage</button></div>
-        <label class="row" style="gap:8px;font-size:13px"><input type="checkbox" data-local="auto" ${L.auto ? 'checked' : ''}> Auto-refresh every 5 min while a game is live</label>
-        <div class="divider"></div>
-        <h3>Data</h3>
-        <div class="row wrap"><button class="btn sm" data-act="export">⬇ Backup JSON</button><button class="btn sm" data-act="import">⬆ Restore JSON</button><button class="btn sm" data-act="csv">⬇ CSV</button><button class="btn sm danger" data-act="wipe">Wipe this device</button></div>
+        <div class="set-row"><span>Sync</span><span class="mute">${L.mode === 'cloud' ? `Cloud · PIN ••••${L.pin.slice(-2)} · ${L.lastSync ? ago(L.lastSync) : 'never'}` : 'This device only'}</span></div>
+        <div class="row wrap">${L.mode === 'cloud' ? '<button class="btn sm" data-act="syncnow">Sync now</button><button class="btn sm" data-act="lock">Lock / switch PIN</button>' : '<button class="btn sm primary" data-act="lock">Turn on cloud sync</button>'}</div>
+        <div class="divider" style="margin:4px 0"></div>
+        <div class="set-row"><span>Install</span>${standalone() ? '<span class="pill won">Installed</span>' : deferredInstall ? '<button class="btn sm primary" data-act="install">Install app</button>' : '<span class="mute">Chrome menu ⋮ → Install app</span>'}</div>
+        <div class="set-row"><span>Notifications</span><button class="btn sm" data-act="notify">Manage</button></div>
+        <label class="check"><input type="checkbox" data-local="auto" ${L.auto ? 'checked' : ''}> Auto-refresh every 5 min while a game is live</label>
+        <div class="divider" style="margin:4px 0"></div>
+        <h3 class="h3-gap">Data</h3>
+        <div class="row wrap" style="gap:8px"><button class="btn sm" data-act="export">Back up JSON</button><button class="btn sm" data-act="import">Restore JSON</button><button class="btn sm" data-act="csv">Export CSV</button><button class="btn sm danger" data-act="wipe">Wipe this device</button></div>
         <input type="file" id="import-file" accept="application/json" class="hidden">
       </div>
     </div>
-    <p class="dim" style="font-size:12px">Live data: ESPN public scoreboard & boxscores, proxied and cached. Stake has no public API, so slips are pasted or built here. EasyBuckets Ledger is a personal tracker, not affiliated with Stake or the NBA.</p>
+    <p class="foot-note">Live data: ESPN public scoreboard &amp; boxscores, proxied and cached. Stake has no public API, so slips are pasted or built here. EasyBuckets Ledger is a personal tracker, not affiliated with Stake or the NBA.</p>
   </div>`;
 }
 after.settings = () => {
@@ -1242,7 +1243,7 @@ function sheetEdit() {
     const g = day?.events?.find((e) => e.id === l.gameId);
     const teamOpts = g ? [g.away, g.home].map((t) => `<option value="${esc(t.name)}" ${l.team === t.name ? 'selected' : ''}>${esc(t.name)}</option>`).join('') : '';
     return `<div class="leg-edit stack" data-leg="${i}">
-      <div class="row between"><b style="font-size:13px">Leg ${i + 1}</b>${d.legs.length > 1 ? `<button class="btn ghost sm" data-act="rmleg" data-i="${i}" aria-label="Remove leg">✕</button>` : ''}</div>
+      <div class="leg-edit-h"><b>Leg ${i + 1}</b>${d.legs.length > 1 ? `<button class="btn ghost sm icon" data-act="rmleg" data-i="${i}" aria-label="Remove leg ${i + 1}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>` : ''}</div>
       <div class="grid g2">
         <label class="f">Market<select class="in" data-l="market">${Object.entries(MARKETS).map(([k, v]) => `<option value="${k}" ${l.market === k ? 'selected' : ''}>${v}</option>`).join('')}</select></label>
         ${l.market === 'prop'
@@ -1250,7 +1251,7 @@ function sheetEdit() {
           : l.market === 'other' ? `<label class="f">Leg odds<input class="in num" data-l="odds" inputmode="decimal" value="${esc(l.odds)}"></label>`
           : `<label class="f">Game<select class="in" data-l="gameId">${evOpts(l.gameId)}</select></label>`}
       </div>
-      ${l.market === 'prop' ? `<div class="ac"><label class="f">Player ${l.playerId ? `<span class="pos" style="font-size:11px">✓ ${esc(l.teamAbbr)} · ${esc(l.gameLabel)}</span>` : l.player ? '<span class="amber" style="font-size:11px">not matched to a roster</span>' : ''}<input class="in" data-l="player" autocomplete="off" placeholder="${day ? 'Start typing a name…' : 'Loading rosters…'}" value="${esc(l.player)}"></label><div class="ac-list hidden"></div></div>` : ''}
+      ${l.market === 'prop' ? `<div class="ac"><label class="f">Player ${l.playerId ? `<span class="pos pmatch">✓ ${esc(l.teamAbbr)} · ${esc(l.gameLabel)}</span>` : l.player ? '<span class="amber pmatch">Not matched to a roster</span>' : ''}<input class="in" data-l="player" autocomplete="off" placeholder="${day ? 'Start typing a name…' : 'Loading rosters…'}" value="${esc(l.player)}"></label><div class="ac-list hidden"></div></div>` : ''}
       ${l.market === 'other' ? `<label class="f">Description<input class="in" data-l="desc" value="${esc(l.desc || '')}" placeholder="e.g. 1st quarter winner"></label>` : ''}
       ${l.market === 'ml' || l.market === 'spread' ? `<label class="f">Team<select class="in" data-l="team"><option value="">Pick team…</option>${teamOpts}</select></label>` : ''}
       ${l.market !== 'other' && l.market !== 'ml' ? `<div class="lrow">
@@ -1261,20 +1262,20 @@ function sheetEdit() {
       ${sheetState.editing ? `<label class="f">Result<select class="in" data-l="result">${['pending', 'won', 'lost', 'void'].map((r) => `<option ${l.result === r ? 'selected' : ''}>${r}</option>`).join('')}</select></label>` : ''}
     </div>`;
   }).join('');
-  return `<div class="sheet-h"><h2>${sheetState.editing ? 'Edit slip' : 'New slip'}</h2><button class="btn ghost sm" data-act="close">✕</button></div>
+  return `<div class="sheet-h"><h2>${sheetState.editing ? 'Edit slip' : 'New slip'}</h2><button class="btn ghost sm icon" data-act="close" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
   <div class="stack">
-    ${flags.map((f) => `<div class="alert ${f.lvl}">⚠️ ${esc(f.msg)}</div>`).join('')}
-    <div class="row wrap between">
+    ${flags.map((f) => `<div class="alert ${f.lvl}" role="note">${esc(f.msg)}</div>`).join('')}
+    <div class="row wrap between" style="gap:10px">
       <div class="seg"><button data-mode="paste" class="${sheetState.mode === 'paste' ? 'on' : ''}">Paste Stake slip</button><button data-mode="build" class="${sheetState.mode !== 'paste' ? 'on' : ''}">Build</button></div>
-      <div class="row wrap" style="gap:6px"><span class="dim" style="font-size:12px">Game day (US)</span>
+      <div class="day-pick"><span>Game day (US)</span>
         <div class="chips"><button class="chip ${d.gameDate === addDays(today, -1) ? 'on' : ''}" data-day="${addDays(today, -1)}">Yest</button><button class="chip ${d.gameDate === today ? 'on' : ''}" data-day="${today}">Today</button><button class="chip ${d.gameDate === addDays(today, 1) ? 'on' : ''}" data-day="${addDays(today, 1)}">Tmrw</button></div>
-        <input type="date" class="in" style="width:auto;padding:6px 8px" id="gday" value="${d.gameDate}"></div>
+        <input type="date" class="in" id="gday" aria-label="Game day" value="${d.gameDate}"></div>
     </div>
-    <div class="dim" style="font-size:12px">${day ? `${day.events.length} games · ${day.players.length} players loaded for ${dateOnly(d.gameDate + 'T12:00:00')}` : sheetState.dayErr ? `<span class="neg">Couldn't load games: ${esc(sheetState.dayErr)}</span>` : 'Loading games & rosters…'}</div>
+    <div class="sheet-note">${day ? `${day.events.length} games · ${day.players.length} players loaded for ${dateOnly(d.gameDate + 'T12:00:00')}` : sheetState.dayErr ? `<span class="neg">Couldn't load games: ${esc(sheetState.dayErr)}</span>` : 'Loading games &amp; rosters…'}</div>
     ${sheetState.mode === 'paste' ? `<div class="stack">
-      <textarea class="in" id="paste" placeholder="Paste from Stake bet slip / My Bets, or type:\nJokic over 11.5 rebounds @1.8\nCurry 4+ threes 2.1\nBet amount 500  Total odds 3.78">${esc(sheetState.pasteText || '')}</textarea>
-      <div class="row"><button class="btn primary" data-act="parse" ${day ? '' : 'disabled'}>Parse slip</button>
-      <button class="btn ghost sm" data-act="clipboard">📋 From clipboard</button></div>
+      <textarea class="in" id="paste" aria-label="Stake slip text" placeholder="Paste from Stake bet slip / My Bets, or type:\nJokic over 11.5 rebounds @1.8\nCurry 4+ threes 2.1\nBet amount 500  Total odds 3.78">${esc(sheetState.pasteText || '')}</textarea>
+      <div class="row" style="gap:8px"><button class="btn primary" data-act="parse" ${day ? '' : 'disabled'}>Parse slip</button>
+      <button class="btn ghost" data-act="clipboard"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="3" width="8" height="4" rx="1"/><path d="M8 5H6a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1h-2"/></svg>Paste from clipboard</button></div>
       ${sheetState.warn?.length ? sheetState.warn.map((w) => `<div class="alert warn">${esc(w)}</div>`).join('') : ''}
     </div>` : ''}
     ${legsHTML}
@@ -1295,7 +1296,7 @@ function sheetEdit() {
     </div>
     <label class="f">Notes<input class="in" data-d="notes" value="${esc(d.notes)}" placeholder="Why you liked it"></label>
   </div>
-  <div class="sumbar"><div class="grow"><div class="dim" style="font-size:11.5px">${d.legs.length} leg${d.legs.length > 1 ? 's' : ''} · ${{ single: 'Single', multi: 'Multi', sgm: 'SGM' }[deriveType(d)]} · @${odds(totalOdds)}${units ? ` · ${units.toFixed(1)}u` : ''}</div><div class="num" style="font-size:18px;font-weight:700">To win ${money(pot)}</div></div>
+  <div class="sumbar"><div class="grow"><div class="dim">${d.legs.length} leg${d.legs.length > 1 ? 's' : ''} · ${{ single: 'Single', multi: 'Multi', sgm: 'SGM' }[deriveType(d)]} · @${odds(totalOdds)}${units ? ` · ${units.toFixed(1)}u` : ''}</div><div class="num">To win ${money(pot)}</div></div>
     <button class="btn primary" data-act="savebet">${sheetState.editing ? 'Save' : 'Track slip'}</button></div>`;
 }
 
@@ -1399,7 +1400,7 @@ function saveDraft() {
   const bet = { ...d, legs, odds: o, stake: Number(d.stake), boost: Number(d.boost) || 0, type: deriveType({ legs }) };
   bet.payout = bet.payout === '' ? null : Number(bet.payout);
   bet.cashout = bet.cashout === '' ? null : Number(bet.cashout);
-  if (isSettled(bet) && !bet.settledAt) bet.settledAt = bet.placedAt;
+  if (isSettled(bet) && !bet.settledAt) bet.settledAt = settleStamp(bet);
   if (bet.status === 'open') { bet.settledAt = null; bet.autoSettled = false; }
   if (isSettled(bet)) for (const l of bet.legs) if (l.result === 'pending' && bet.status === 'won') l.result = 'won';
   const i = S.bets.findIndex((b) => b.id === bet.id);
@@ -1416,28 +1417,28 @@ function sheetDetail() {
   const b = S.bets.find((x) => x.id === sheetState.id);
   if (!b) { setTimeout(closeSheet); return ''; }
   const p = betProfit(b);
-  return `<div class="sheet-h"><h2 style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(betTitle(b))}</h2><button class="btn ghost sm" data-act="close">✕</button></div>
+  return `<div class="sheet-h"><h2>${esc(betTitle(b))}</h2><button class="btn ghost sm icon" data-act="close" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
   <div class="stack">
-    ${b.review ? '<div class="alert warn">A leg was voided and its odds weren\'t logged — enter Stake\'s actual payout via Edit.</div>' : ''}
+    ${b.review ? '<div class="alert warn" role="note">A leg was voided and its odds weren\'t logged. Enter Stake\'s actual payout via Edit.</div>' : ''}
     ${slipCard(b, { open: true })}
     <div class="grid g3">${kpi('Stake', money(b.stake))}${kpi('Odds', odds(b.settledOdds || b.odds), b.boost ? `+${b.boost}% boost` : '')}${isSettled(b) ? kpi('Result', money(p, { sign: true }), money(betReturn(b)) + ' back', cls(p)) : kpi('To win', money(potential(b)), '', 'pos')}</div>
-    <div class="dim" style="font-size:12px">Placed ${when(b.placedAt)}${b.placedBy ? ' by ' + esc(b.placedBy) : ''}${b.settledAt ? ' · settled ' + when(b.settledAt) + (b.autoSettled ? ' (auto)' : '') : ''}${b.notes ? '<br>“' + esc(b.notes) + '”' : ''}</div>
-    ${b.status === 'open' ? `<div class="row wrap"><button class="btn good sm" data-act="settle" data-id="${b.id}" data-s="won">Mark won</button><button class="btn danger sm" data-act="settle" data-id="${b.id}" data-s="lost">Mark lost</button><button class="btn sm" data-act="settle" data-id="${b.id}" data-s="void">Void</button><button class="btn sm" data-act="cashoutsheet" data-id="${b.id}">Cashed out…</button></div>` : `<div class="row wrap"><button class="btn sm" data-act="reopen" data-id="${b.id}">Reopen</button></div>`}
-    <div class="row wrap"><button class="btn sm" data-act="share" data-id="${b.id}">📸 Flex card</button><button class="btn sm" data-act="edit" data-id="${b.id}">✎ Edit</button><button class="btn sm" data-act="dup" data-id="${b.id}">⧉ Duplicate</button><button class="btn sm danger" data-act="del" data-id="${b.id}">Delete</button></div>
+    <div class="sheet-note">Placed ${when(b.placedAt)}${b.placedBy ? ' by ' + esc(b.placedBy) : ''}${b.settledAt ? ' · settled ' + when(b.settledAt) + (b.autoSettled ? ' (auto)' : '') : ''}${b.notes ? '<br>“' + esc(b.notes) + '”' : ''}</div>
+    ${b.status === 'open' ? `<div class="row wrap" style="gap:8px"><button class="btn good sm" data-act="settle" data-id="${b.id}" data-s="won">Mark won</button><button class="btn danger sm" data-act="settle" data-id="${b.id}" data-s="lost">Mark lost</button><button class="btn sm" data-act="settle" data-id="${b.id}" data-s="void">Void</button><button class="btn sm" data-act="cashoutsheet" data-id="${b.id}">Cashed out…</button></div>` : `<div class="row wrap"><button class="btn sm" data-act="reopen" data-id="${b.id}">Reopen</button></div>`}
+    <div class="row wrap" style="gap:8px"><button class="btn sm" data-act="share" data-id="${b.id}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4M8 8l4-4 4 4M5 13v6a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-6"/></svg>Flex card</button><button class="btn sm" data-act="edit" data-id="${b.id}">Edit</button><button class="btn sm" data-act="dup" data-id="${b.id}">Duplicate</button><button class="btn sm danger" data-act="del" data-id="${b.id}">Delete</button></div>
   </div>`;
 }
 
 function sheetSettle() {
   const b = S.bets.find((x) => x.id === sheetState.id);
-  return `<div class="sheet-h"><h2>Cash out</h2><button class="btn ghost sm" data-act="close">✕</button></div>
-  <div class="stack"><p class="mute" style="margin:0">${esc(betTitle(b))} · stake ${money(b.stake)} · potential ${money(potential(b))}</p>
+  return `<div class="sheet-h"><h2>Cash out</h2><button class="btn ghost sm icon" data-act="close" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+  <div class="stack"><p class="mute" style="margin:0">${esc(betTitle(b))} · stake <span class="num">${money(b.stake)}</span> · potential <span class="num">${money(potential(b))}</span></p>
   <label class="f">Amount Stake paid you<input class="in num" id="co-amt" inputmode="decimal" autofocus></label>
   <button class="btn primary" data-act="docashout" data-id="${b.id}">Save cash-out</button></div>`;
 }
 
 function sheetTxn() {
   const k = sheetState.txnKind;
-  return `<div class="sheet-h"><h2>${k === 'deposit' ? 'Deposit' : 'Withdrawal'}</h2><button class="btn ghost sm" data-act="close">✕</button></div>
+  return `<div class="sheet-h"><h2>${k === 'deposit' ? 'Deposit' : 'Withdrawal'}</h2><button class="btn ghost sm icon" data-act="close" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
   <div class="stack">
     <label class="f">Amount (${esc(cur().trim())})<input class="in num" id="tx-amt" inputmode="decimal" autofocus></label>
     <label class="f">Stake account<select class="in" id="tx-acct">${(S.settings.people || []).map((p) => `<option ${acct() === p ? 'selected' : ''}>${esc(p)}</option>`).join('')}</select></label>
@@ -1502,7 +1503,7 @@ document.addEventListener('click', async (e) => {
     }
     case 'del': if (confirmInline(t, 'Tap again to delete')) { bet.deleted = true; closeSheet(); commit(bet); toast('Slip deleted'); } break;
     case 'settle': {
-      bet.status = t.dataset.s; bet.settledAt = Date.now(); bet.autoSettled = false;
+      bet.status = t.dataset.s; bet.settledAt = settleStamp(bet); bet.autoSettled = false;
       bet.legs.forEach((l) => { if (l.result === 'pending') { l.result = t.dataset.s === 'won' ? 'won' : t.dataset.s === 'void' ? 'void' : 'pending'; } });
       commit(bet); renderSheet(); break;
     }
@@ -1625,6 +1626,18 @@ if ('serviceWorker' in navigator) {
 }
 // L.notify (old "leg alerts" switch) → system notifications in the new arrangements
 if (L.notify && !EV.getPrefs().updatedAt) { EV.setPrefs({ push: true }); }
+// Ticket F one-time repair: slips the app auto-settled used to be dated to when it noticed (e.g. next morning), which
+// put last night's results under "Today". Re-date them to when their games ended; idempotent, syncs via updatedAt.
+(() => {
+  let n = 0;
+  for (const r of [...S.bets, ...S.lab]) {
+    if (r.deleted || !r.settledAt || r.status === 'open' || r.status === 'cashout') continue;
+    if (!(r.autoSettled || r.legs?.some((l) => !l.manual))) continue;
+    const at = settleStamp(r, r.settledAt);
+    if (r.settledAt - at > 3600e3) { r.settledAt = at; r.updatedAt = Date.now(); n++; }
+  }
+  if (n) { save(); queuePush(); }
+})();
 const moduleApi = {
   on: EV.on, emit: EV.emit, getPrefs: EV.getPrefs, setPrefs: EV.setPrefs, wants: EV.wants, EVENT_TYPES: EV.EVENT_TYPES,
   accounts: () => S.settings.people || [], money: (v, o) => money(v, o), esc,

@@ -228,6 +228,19 @@ export const isSettled = (b) => ['won', 'lost', 'void', 'cashout'].includes(b.st
 export const potential = (b) => (Number(b.stake) || 0) * (Number(b.odds) || 0) * (1 + (Number(b.boost) || 0) / 100);
 export const settleTime = (b) => b.settledAt || b.placedAt || b.createdAt || 0;
 
+// When a slip actually finished, so date filters ("Today") put it on the day its games ended, not the day the app
+// happened to notice. NBA games run ~2h15–2h40 from tip. A lost slip is decided by its first busted leg's game; anything
+// else by its last game. Never later than `now`, never before the slip was placed.
+export const GAME_LEN = 2.5 * 3600e3;
+export function settleStamp(b, now = Date.now()) {
+  const tip = (l) => Number(l.startTime) || 0;
+  const legs = (b.legs || []).filter((l) => tip(l));
+  if (!legs.length) return now;
+  const dead = b.status === 'lost' ? legs.filter((l) => l.result === 'lost') : [];
+  const end = dead.length ? Math.min(...dead.map(tip)) + GAME_LEN : Math.max(...legs.map(tip)) + GAME_LEN;
+  return Math.max(Number(b.placedAt) || 0, Math.min(now, end));
+}
+
 export function periodStart(key) {
   const now = new Date();
   const d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
