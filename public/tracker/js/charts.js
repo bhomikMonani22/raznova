@@ -97,6 +97,22 @@ export function heatmap(el, dayMap, { weeks = 18, fmt = (v) => v } = {}) {
 // the list under the chart is the accessible / touch path, so the columns stay out of the tab order.
 export function dayBars(el, days, { today = '', slots = 14, height = 128 } = {}) {
   if (!days.length) { el.innerHTML = ''; return; }
+  // Few results so far (a new account, a quiet week): show the calendar days around them, empty days as flat ticks,
+  // instead of one bar pinned to the right edge of an empty chart.
+  const toD = (k) => { const [y, m, d] = k.split('-').map(Number); return new Date(y, m - 1, d); };
+  const keyOf = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const lastKey = [today, days[days.length - 1].key].filter(Boolean).sort().pop();
+  const firstD = toD(days[0].key), lastD = toD(lastKey);
+  if (Math.round((lastD - firstD) / 864e5) < slots - 1) {
+    const byKey = new Map(days.map((d) => [d.key, d]));
+    const cal = [];
+    for (let i = slots - 1; i >= 0; i--) {
+      const d = new Date(lastD.getFullYear(), lastD.getMonth(), lastD.getDate() - i);
+      const k = keyOf(d);
+      cal.push(byKey.get(k) || { key: k, net: 0, label: String(d.getDate()), empty: true, title: d.toDateString() });
+    }
+    days = cal;
+  }
   const w = Math.max(240, el.clientWidth || 320);
   const h = height;
   const pad = { l: 2, r: 2, t: 8, b: 22 };
@@ -120,11 +136,12 @@ export function dayBars(el, days, { today = '', slots = 14, height = 128 } = {})
     const mark = d.net === 0
       ? `<rect x="${x.toFixed(1)}" y="${(z - 1).toFixed(1)}" width="${bw.toFixed(1)}" height="2" rx="1" fill="var(--dim)"/>`
       : `<path d="${bar(x, Math.abs(tip - z) < 2 ? z + (d.net > 0 ? -2 : 2) : tip)}" fill="${d.net > 0 ? 'var(--hit)' : 'var(--bust)'}"/>`;
+    if (d.empty) return `<g class="pf-bar pf-empty${isT ? ' is-today' : ''}" aria-hidden="true"><rect x="${x.toFixed(1)}" y="${(z - 1).toFixed(1)}" width="${bw.toFixed(1)}" height="2" rx="1" fill="var(--line2)"/><text x="${(x0 + sw / 2).toFixed(1)}" y="${h - 6}" text-anchor="middle">${d.label}</text></g>`;
     return `<g class="pf-bar${isT ? ' is-today' : ''}" data-act="pfday" data-key="${d.key}"><title>${d.title || d.key}</title>
       <rect class="pf-col" x="${(x0 + 1).toFixed(1)}" y="1" width="${(sw - 2).toFixed(1)}" height="${h - 2}" rx="6"/>${mark}
       <text x="${(x0 + sw / 2).toFixed(1)}" y="${h - 6}" text-anchor="middle">${d.label}</text></g>`;
   }).join('');
-  el.innerHTML = `<svg viewBox="0 0 ${w} ${h}" width="100%" height="${h}" preserveAspectRatio="none" role="img" aria-label="Net P&amp;L per day, last ${days.length} days with results">
+  el.innerHTML = `<svg viewBox="0 0 ${w} ${h}" width="100%" height="${h}" preserveAspectRatio="none" role="img" aria-label="Net P&amp;L per day, last ${days.length} days">
     <line x1="${pad.l}" x2="${w - pad.r}" y1="${z.toFixed(1)}" y2="${z.toFixed(1)}" stroke="var(--line2)" stroke-width="1"/>${cols}</svg>`;
 }
 

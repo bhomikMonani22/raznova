@@ -106,8 +106,9 @@ function navHTML() {
 
 function go(r) {
   if (!ROUTES[r]) return;
+  if (r !== 'slips' && slipDay && backStack.some((x) => x.id === 'daydrill')) { slipDay = null; popBack('daydrill'); }
   route = r;
-  history.replaceState(null, '', '#/' + r);
+  history.replaceState(history.state, '', '#/' + r);
   render();
   window.scrollTo({ top: 0 });
   if (r === 'live') pollLive(true);
@@ -125,27 +126,53 @@ function toast(msg, kind = '', ms = 3200) {
   setTimeout(() => el.remove(), ms);
 }
 
-/* Android back gesture / browser back closes the top overlay (sheet, alerts panel) instead of leaving the app.
-   Each open overlay owns one history entry; closing it from the UI walks that entry back. Routes use replaceState,
-   so after any back step we re-pin the current route's hash. */
+/* Android back gesture / browser back closes the top overlay (sheet, alerts panel, cashed card, a day drill-down)
+   instead of leaving the app. While ANY overlay is open there is exactly one extra history entry ({ebl:'overlay'});
+   opening/closing overlays only edits backStack, and reconcile() — run after the current task, so "close the alert,
+   open its slip" in one click nets out — adds or walks back that single entry. A back press closes the top overlay
+   and re-adds the entry if more overlays remain. Routes use replaceState; real navigations (notification click,
+   manifest shortcut, typed hash) are let through to the hashchange router. */
 const backStack = [];
 let skipPop = 0;
+let reconcileQueued = false;
+let lastLen = history.length; // a popstate that grew history is a navigation, not a back press
+const hashRoute = () => location.hash.replace('#/', '').split('?')[0];
+const atOverlay = () => history.state?.ebl === 'overlay';
+const pushOverlayEntry = () => { try { history.pushState({ ebl: 'overlay' }, '', '#/' + route); } catch {} lastLen = history.length; };
+const pinRoute = () => { if (location.hash !== '#/' + route) history.replaceState(history.state, '', '#/' + route); };
+function reconcileBack() {
+  reconcileQueued = false;
+  if (backStack.length && !atOverlay()) pushOverlayEntry();
+  else if (!backStack.length && atOverlay()) { skipPop++; history.back(); }
+}
+function queueReconcile() { if (!reconcileQueued) { reconcileQueued = true; setTimeout(reconcileBack, 0); } }
 function pushBack(id, close) {
-  if (backStack.some((x) => x.id === id)) return;
-  backStack.push({ id, close });
-  try { history.pushState({ ebl: id }, '', location.href); } catch {}
+  if (!backStack.some((x) => x.id === id)) backStack.push({ id, close });
+  queueReconcile();
 }
 function popBack(id) {
   const i = backStack.findIndex((x) => x.id === id);
-  if (i < 0) return;
-  backStack.splice(i, 1);
-  skipPop++;
-  history.back();
+  if (i >= 0) backStack.splice(i, 1);
+  queueReconcile();
 }
+function closeAllOverlays() { while (backStack.length) backStack.pop().close(true); }
 window.addEventListener('popstate', () => {
-  if (skipPop) skipPop--;
-  else backStack.pop()?.close(true);
-  if (location.hash !== '#/' + route) history.replaceState(history.state, '', '#/' + route);
+  const grew = history.length > lastLen;
+  lastLen = history.length;
+  const r = hashRoute();
+  if (grew && ROUTES[r] && r !== route) { skipPop = 0; closeAllOverlays(); return; } // outside navigation → hashchange routes it
+  if (skipPop) { skipPop--; pinRoute(); return; } // our own walk-back after closing overlays from the UI
+  if (!backStack.length) return; // nothing of ours open: let the router handle it
+  backStack.pop().close(true); // back press: close the top overlay
+  pinRoute();
+  if (backStack.length) pushOverlayEntry(); // more overlays open: keep one entry for the next back press
+});
+// notification click from the service worker: navigate in-app (no fragment navigation to fight with)
+navigator.serviceWorker?.addEventListener('message', (e) => {
+  if (e.data?.type !== 'ebl:navigate') return;
+  const r = String(e.data.url || '').split('#/')[1]?.split('?')[0];
+  closeAllOverlays();
+  if (ROUTES[r]) go(r);
 });
 
 let sheetState = null;
@@ -262,8 +289,9 @@ async function pollLive(force = false) {
   for (const b of openBets()) for (const l of b.legs) if (l.gameId) ids.add(l.gameId);
   for (const g of labOpen()) for (const l of g.legs) if (l.gameId) ids.add(l.gameId);
   const need = [...ids].filter((id) => force || !games[id] || games[id].status.state !== 'post');
+  let fetched = 0;
   const tasks = need.map((id) =>
-    api(`/api/tracker/nba?fn=game&id=${id}`).then((g) => { games[id] = g; }).catch(() => {})
+    api(`/api/tracker/nba?fn=game&id=${id}`).then((g) => { games[id] = g; fetched++; }).catch(() => {})
   );
   if (route === 'live' || !board || Date.now() - (board.fetchedAt || 0) > 60000) {
     tasks.push(api('/api/tracker/nba?fn=scoreboard').then((sb) => { board = sb; }).catch(() => {}));
@@ -273,8 +301,9 @@ async function pollLive(force = false) {
   const changed = evaluateAll();
   if (changed || route === 'live' || route === 'portfolio') softRender();
   scanNow();
-  EV.markLive(); // from here on, changes are happening live (not catch-up from while the app was closed)
-  liveReady = true;
+  // from here on, changes are happening live (not catch-up from while the app was closed) — but only if this poll
+  // actually got data; a failed first poll must not turn the next one's backlog into a burst of live pop-ups
+  if (!need.length || fetched) { EV.markLive(); liveReady = true; }
   // Auto-refresh only while this page is open: every 5 min if any game is in progress,
   // otherwise sleep until the next tip-off (no polling at all when nothing is scheduled).
   const anyLive = [...ids].some((id) => games[id]?.status.state === 'in') || board?.events?.some((e) => e.status.state === 'in');
@@ -435,11 +464,17 @@ function observe() {
       killers: s.xs.filter((x) => x.st === 'dead').map((x) => ({ label: legLabel(x.l), value: x.val, line: x.l.line, side: x.l.side })),
     });
   }
-  const riding = new Map();
-  for (const b of allBets().filter((x) => x.status === 'open' || fresh(x.settledAt, 12))) for (const id of new Set(b.legs.map((l) => l.gameId).filter(Boolean))) riding.set(id, (riding.get(id) || 0) + 1);
-  for (const [id, n] of riding) {
+  const riding = new Map(); // gameId → { n, accts } (which accounts have action on it, for "accounts to follow")
+  for (const b of allBets().filter((x) => x.status === 'open' || fresh(x.settledAt, 12))) {
+    for (const id of new Set(b.legs.map((l) => l.gameId).filter(Boolean))) {
+      const r = riding.get(id) || { n: 0, accts: new Set() };
+      r.n++; if (b.placedBy) r.accts.add(b.placedBy);
+      riding.set(id, r);
+    }
+  }
+  for (const [id, r] of riding) {
     const gs = gameSlim(id);
-    if (gs) obs.push({ key: `G|${id}`, kind: 'game', state: gs.state, gameId: id, label: gs.label, away: gs.away, home: gs.home, detail: gs.detail, betCount: n });
+    if (gs) obs.push({ key: `G|${id}`, kind: 'game', state: gs.state, gameId: id, label: gs.label, away: gs.away, home: gs.home, detail: gs.detail, betCount: r.n, accts: [...r.accts] });
   }
   return obs;
 }
@@ -448,8 +483,12 @@ function scanNow() {
   try { return EV.scan(observe()); } catch (e) { console.error('[scan]', e); return []; }
 }
 
+let hiddenAt = 0;
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible') { pollLive(); if (L.mode === 'cloud') syncNow('pull'); }
+  if (document.visibilityState === 'hidden') { hiddenAt = Date.now(); return; }
+  if (hiddenAt && Date.now() - hiddenAt > 30000) EV.markAway(); // away > 30s: summarise what happened, don't replay it live
+  hiddenAt = 0;
+  pollLive(); if (L.mode === 'cloud') syncNow('pull');
 });
 setInterval(() => { if (document.visibilityState === 'visible' && L.mode === 'cloud') syncNow('pull'); }, 60000);
 window.addEventListener('online', () => { if (L.mode === 'cloud') syncNow('push'); });
@@ -645,7 +684,7 @@ function pfSlips() {
   return `${head}
     <div class="pf-sum" role="group" aria-label="Today so far">
       <div><span>Net today</span><b class="num ${cls(T.net)}">${money(T.net, { sign: true })}</b><small>${T.n} settled</small></div>
-      <div><span>Staked</span><b class="num">${money(T.staked + T.openStake)}</b><small>${T.openStake ? `${money(T.openStake)} riding` : 'all settled'}</small></div>
+      <div><span>Staked</span><b class="num">${money(T.staked + T.openStake)}</b><small>${!T.openStake ? 'all settled' : !T.staked ? 'all still riding' : `${money(T.openStake)} riding`}</small></div>
       <div><span>W-L-Open</span><b class="num">${T.wins}-${T.losses}-${T.open}</b><small>${T.voids ? `${T.voids} void` : graded ? `${Math.round((T.wins / graded) * 100)}% hit` : 'none graded yet'}</small></div>
       <div><span>Best hit</span><b class="num ${T.best ? 'pos' : ''}">${T.best ? money(betProfit(T.best), { sign: true }) : '—'}</b><small>${T.best ? esc(betTitle(T.best)) : 'nothing cashed yet'}</small></div>
     </div>
@@ -700,8 +739,8 @@ function legRow(l, e, b) {
   return `<div class="leg st-${st}" data-fx="row" data-k="${k}" data-v="${st}" data-line="${esc(l.line ?? '')}" data-stat="${esc(l.stat || '')}" data-side="${esc(l.side || '')}" data-market="${esc(l.market)}">
     <span class="ic ${st}" data-fx="ic" data-k="${k}" data-v="${st}">${ic}</span>
     <div style="min-width:0">
-      <div class="nm" data-fx="name">${esc(legLabel(l))}</div>
-      <div class="ds">${esc(gl)}${clock}${e.note ? ' · ' + esc(e.note) : ''}</div>
+      <div class="nm" data-fx="name" title="${esc(legLabel(l))}">${esc(rowLabel(l))}</div>
+      <div class="ds">${(l.market === 'ml' || l.market === 'spread') && e.note && g && g.status.state !== 'pre' ? `${clock.replace(/^ · /, '')} · ${esc(e.note)}` : `${esc(gl)}${clock}${e.note ? ' · ' + esc(e.note) : ''}`}</div>
       ${(isProp || l.market === 'total') && e.value != null ? `<div class="bar"><i class="${barCls}" data-fx="bar" data-k="${k}" data-v="${e.pct}" style="width:${e.pct}%"></i></div>` : ''}
     </div>
     <div class="rt">${e.value != null && (isProp || l.market === 'total') ? `<span class="num"><b data-fx="val" data-k="${k}" data-v="${e.value}">${e.value}</b></span><span class="mute ln">/${l.line}</span>` : ''}${l.odds ? `<div class="dim num">@${odds(l.odds)}</div>` : ''}</div>
@@ -773,7 +812,7 @@ function vLive() {
   const jsNet = justSettled.reduce((s, b) => s + betProfit(b), 0);
   const justHTML = justSettled.length ? `<section class="just-settled" aria-label="Just settled">
       <h3 class="sec-t">Just settled <span class="dim">${justSettled.length}</span><span class="r num ${cls(jsNet)}">${money(jsNet, { sign: true })}</span></h3>
-      <div class="gsecs">${justSettled.filter((b) => b.legs.length === 1).length ? `<section class="gsec">${justSettled.filter((b) => b.legs.length === 1).map((b) => srow(b, legsEval(b)[0])).join('')}</section>` : ''}</div>
+      ${justSettled.filter((b) => b.legs.length === 1).length ? `<section class="gsec">${justSettled.filter((b) => b.legs.length === 1).map((b) => srow(b, legsEval(b)[0])).join('')}</section>` : ''}
       ${justSettled.some((b) => b.legs.length > 1) ? `<div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(min(100%,420px),1fr))">${justSettled.filter((b) => b.legs.length > 1).map((b) => slipCard(b)).join('')}</div>` : ''}
     </section>` : '';
   return `<div class="stack live-page">
@@ -787,7 +826,7 @@ function vLive() {
       <div><span>Open</span><b>${ob.length}</b><small>${alive.length} alive</small></div>
       <div><span>At risk</span><b>${money(exp)}</b><small>staked</small></div>
       <div><span>Max return</span><b class="pos">${money(mx)}</b><small>if alive hit</small></div>
-      <div><span>Legs hit</span><b><span data-fx="val" data-k="lsum:hit:${esc(acct())}" data-v="${hitN}">${hitN}</span>/${legsAll.length}</b><small>${liveN} live · ${deadN} dead</small></div>
+      <div><span>Legs hit</span><b><span data-fx="val" data-k="lsum:hit:${esc(acct())}" data-v="${hitN}">${hitN}</span>/${legsAll.length}</b><small>${liveN} live${deadN ? ` · ${deadN} dead` : ''}</small></div>
     </div>
     ${justHTML}
     ${!ob.length ? `<div class="card empty"><b>No open slips${acct() !== 'all' ? ' on ' + esc(acct()) + ' acc' : ''}</b>Paste a Stake slip and it tracks here live, leg by leg.<div><button class="btn primary" data-act="add">+ New slip</button></div></div>` : ''}
@@ -797,6 +836,13 @@ function vLive() {
         .sort((a, b) => (a.ev.some((e) => e.state === 'live') ? 0 : 1) - (b.ev.some((e) => e.state === 'live') ? 0 : 1))
         .map(({ b }) => slipCard(b, { open: true })).join('')}</div>` : ''}
   </div>`;
+}
+
+// Long names would push the line and market off a 360px row ("Giannis Antetokounmpo O 28.5 …"): initial the first name.
+const shortName = (n) => { const p = String(n || '').trim().split(/\s+/); return p.length > 1 ? `${p[0][0]}. ${p.slice(1).join(' ')}` : String(n || ''); };
+function rowLabel(l) {
+  const full = legLabel(l);
+  return l.market === 'prop' && l.player && full.length > (innerWidth < 700 ? 24 : 44) ? full.replace(l.player, shortName(l.player)) : full;
 }
 
 // One tight row per single: status · player line + progress · stat/line · stake → payout
@@ -811,7 +857,7 @@ function srow(b, e) {
   return `<button class="srow st-${st}" data-act="detail" data-id="${b.id}" data-fx="row" data-k="${k}" data-v="${st}" data-line="${esc(l.line ?? '')}" data-stat="${esc(l.stat || '')}" data-side="${esc(l.side || '')}" data-market="${esc(l.market)}">
     <span class="ic ${st}" data-fx="ic" data-k="${k}" data-v="${st}">${ic}</span>
     <span class="sr-main">
-      <span class="sr-nm" data-fx="name">${esc(legLabel(l))}</span>
+      <span class="sr-nm" data-fx="name" title="${esc(legLabel(l))}">${esc(rowLabel(l))}</span>
       ${isNum && e.value != null ? `<span class="bar"><i class="${barCls}" data-fx="bar" data-k="${k}" data-v="${e.pct}" style="width:${e.pct}%"></i></span>` : ''}
       ${note ? `<span class="sr-ds">${esc(note)}</span>` : ''}
     </span>
@@ -827,32 +873,33 @@ function srow(b, e) {
 /* ---------- slips ---------- */
 let slipSearch = '';
 let slipDay = null; // dayKey picked from a Day-by-day row (settled that day); this session only, cleared with its chip
+const dayDate = (k) => { const [y, m, d] = String(k).split('-').map(Number); return new Date(y, m - 1, d).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' }); };
 const SLIP_FILTERS = ['all', 'today', 'open', 'won', 'lost', 'void', 'cashout'];
 function vSlips() {
   const f = SLIP_FILTERS.includes(L.slipFilter) ? L.slipFilter : 'all';
   const now = Date.now();
   // Today: same definition and order as the Portfolio card (open first, live on top, then settled newest first)
-  let list = f === 'today' ? todayBook(bets(), now, isLiveSlip).slips : bets().sort((a, b) => (b.placedAt || 0) - (a.placedAt || 0));
-  if (f !== 'all' && f !== 'today') list = list.filter((b) => b.status === f);
+  let list = f === 'today' && !slipDay ? todayBook(bets(), now, isLiveSlip).slips : bets().sort((a, b) => (b.placedAt || 0) - (a.placedAt || 0));
+  if (f !== 'all' && f !== 'today' && !slipDay) list = list.filter((b) => b.status === f);
   if (slipDay) list = list.filter((b) => settledOn(b, slipDay)).sort((a, b) => settleTime(b) - settleTime(a));
   if (slipSearch) {
     const q = norm(slipSearch);
     list = list.filter((b) => norm(b.legs.map((l) => `${l.player} ${l.team} ${l.stat} ${l.gameLabel}`).join(' ') + ' ' + (b.notes || '') + ' ' + (b.placedBy || '')).includes(q));
   }
   const groups = new Map();
-  if (slipDay) { if (list.length) groups.set(`Settled ${dayLabel(slipDay, now)}`, list); }
+  if (slipDay) { if (list.length) groups.set(`Settled ${dayDate(slipDay)}`, list); }
   else if (f === 'today') { if (list.length) groups.set('Today', list); }
   else for (const b of list) { const k = new Date(b.placedAt).toLocaleDateString([], { month: 'long', year: 'numeric' }); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(b); }
   const counts = { all: bets().length, today: bets().filter((b) => isTodaySlip(b, now)).length };
   for (const b of bets()) counts[b.status] = (counts[b.status] || 0) + 1;
   const dayChip = slipDay
-    ? `<button type="button" class="chip pf-daychip" data-act="slipday" aria-label="Clear day filter, ${esc(dayLabel(slipDay, now))}">${esc(dayLabel(slipDay, now))}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"/></svg></button>`
+    ? `<button type="button" class="chip pf-daychip" data-act="slipday" aria-label="Clear day filter, settled ${esc(dayDate(slipDay))}">Settled ${esc(dayDate(slipDay))}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"/></svg></button>`
     : '';
   return `<div class="stack">
     <div class="page-h"><div><h1 class="h1">Slips</h1><p class="sub">${bets().length} total</p></div>
       <div class="page-acts"><button class="btn sm" data-act="csv"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>CSV</button><button class="btn primary sm" data-act="add">+ New slip</button></div></div>
     <div class="search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg><input class="in" id="slip-search" type="search" aria-label="Search slips" placeholder="Search player, team, stat, notes…" value="${esc(slipSearch)}"></div>
-    <div class="chips" role="group" aria-label="Filter slips">${dayChip}${SLIP_FILTERS.map((k) => `<button class="chip ${f === k ? 'on' : ''}" data-filter="${k}" aria-pressed="${f === k}">${k === 'cashout' ? 'Cashed out' : k[0].toUpperCase() + k.slice(1)}${counts[k] ? ` <span class="n">${counts[k]}</span>` : ''}</button>`).join('')}</div>
+    <div class="chips" role="group" aria-label="Filter slips">${dayChip}${SLIP_FILTERS.map((k) => `<button class="chip ${f === k && !slipDay ? 'on' : ''}" data-filter="${k}" aria-pressed="${f === k && !slipDay}">${k === 'cashout' ? 'Cashed out' : k[0].toUpperCase() + k.slice(1)}${counts[k] ? ` <span class="n">${counts[k]}</span>` : ''}</button>`).join('')}</div>
     ${[...groups].map(([k, arr]) => {
       const pl = arr.reduce((s, b) => s + betProfit(b), 0);
       return `<div class="month-h"><b>${k}</b><span class="num ${cls(pl)}">${money(pl, { sign: true })}</span></div>
@@ -1203,7 +1250,7 @@ function labRow(l, e, grp) {
   return `<div class="srow st-${st}" style="cursor:default" data-fx="row" data-k="${k}" data-v="${st}" data-line="${esc(l.line ?? '')}" data-stat="${esc(l.stat || '')}" data-side="${esc(l.side || '')}" data-market="${esc(l.market)}">
     <span class="ic ${st}" data-fx="ic" data-k="${k}" data-v="${st}">${ic}</span>
     <span class="sr-main">
-      <span class="sr-nm" data-fx="name">${esc(legLabel(l))}</span>
+      <span class="sr-nm" data-fx="name" title="${esc(legLabel(l))}">${esc(rowLabel(l))}</span>
       ${isNum && e.value != null ? `<span class="bar"><i class="${barCls}" data-fx="bar" data-k="${k}" data-v="${e.pct}" style="width:${e.pct}%"></i></span>` : ''}
       ${ds ? `<span class="sr-ds wrap">${esc(ds)}</span>` : ''}
     </span>
@@ -1583,7 +1630,7 @@ document.addEventListener('click', async (e) => {
   if (t.dataset.instab) { L.insTab = t.dataset.instab; saveL(); return render(); }
   if (t.dataset.go) { if (sheetState) closeSheet(); return go(t.dataset.go); }
   if (t.dataset.period) { L.period = t.dataset.period; saveL(); return render(); }
-  if (t.dataset.filter) { L.slipFilter = t.dataset.filter; if (L.slipFilter === 'today') slipDay = null; saveL(); return render(); }
+  if (t.dataset.filter) { L.slipFilter = t.dataset.filter; if (slipDay) { slipDay = null; popBack('daydrill'); } saveL(); return render(); }
   if (t.dataset.mode) { sheetState.mode = t.dataset.mode; return renderSheet(); }
   if (t.dataset.day) { sheetState.draft.gameDate = t.dataset.day; return loadDay(t.dataset.day); }
   const a = t.dataset.act;
@@ -1621,9 +1668,13 @@ document.addEventListener('click', async (e) => {
       break;
     }
     case 'pfdaysmore': pfDaysMore = !pfDaysMore; render(); if (!e.detail) view().querySelector('[data-act="pfdaysmore"]')?.focus({ preventScroll: true }); break;
-    case 'pfday': slipDay = t.dataset.key; L.slipFilter = 'all'; slipSearch = ''; saveL(); go('slips'); break;
+    case 'pfday': {
+      slipDay = t.dataset.key; slipSearch = ''; go('slips');
+      pushBack('daydrill', () => { slipDay = null; go('portfolio'); }); // Android back: back to the Daily P&L card
+      break;
+    }
     case 'pftoday': slipDay = null; L.slipFilter = 'today'; slipSearch = ''; saveL(); go('slips'); break;
-    case 'slipday': slipDay = null; render(); if (!e.detail) view().querySelector('[data-filter="all"]')?.focus({ preventScroll: true }); break;
+    case 'slipday': slipDay = null; popBack('daydrill'); render(); if (!e.detail) view().querySelector('[data-filter="all"]')?.focus({ preventScroll: true }); break;
     case 'reloadtoday': today.err = null; loadToday(true); render(); break;
     case 'syncnow': await syncNow('push'); toast('Synced', 'good'); render(); break;
     case 'refresh': t.textContent = '↻ …'; await pollLive(true); break;

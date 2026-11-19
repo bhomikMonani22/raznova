@@ -1,4 +1,4 @@
-const V = 'rz-tracker-v2.3.6';
+const V = 'rz-tracker-v3.0.0';
 const B = '/tracker';
 const SHELL = [B, B + '/index.html', B + '/styles.css', B + '/js/app.js', B + '/js/engine.js', B + '/js/parser.js', B + '/js/charts.js', B + '/js/flex.js', B + '/js/deep.js', B + '/js/events.js', B + '/js/fx.js', B + '/js/celebrate.js', B + '/js/notify.js', B + '/fx.css', B + '/celebrate.css', B + '/notify.css', B + '/fonts/anybody-latin-standard-normal.woff2', B + '/fonts/anybody-rupee.woff2', B + '/fonts/schibsted-grotesk-latin-wght-normal.woff2', B + '/fonts/schibsted-grotesk-rupee.woff2', B + '/manifest.webmanifest', B + '/icons/icon-192.png', B + '/icons/icon-512.png'];
 
@@ -38,5 +38,6 @@ self.addEventListener('fetch', (e) => {
 self.addEventListener('notificationclick', (e) => {
   e.notification.close();
   const url = e.notification.data?.url || B + '#/live';
-  e.waitUntil(self.clients.matchAll({ type: 'window' }).then((cs) => { const c = cs[0]; if (c) { c.focus(); c.navigate(url); } else self.clients.openWindow(url); }));
+  // a running app navigates itself (in-app routing, overlays closed cleanly); otherwise open it at the url
+  e.waitUntil(self.clients.matchAll({ type: 'window' }).then((cs) => { const c = cs[0]; if (c) { c.focus(); c.postMessage({ type: 'ebl:navigate', url }); } else self.clients.openWindow(url); }));
 });

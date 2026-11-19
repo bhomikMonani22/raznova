@@ -183,7 +183,7 @@ export function evalLeg(leg, g) {
     out.pct = Math.max(0, Math.min(100, 50 + margin * 3));
     if (final) out.state = margin > 0 ? 'hit' : margin === 0 ? 'push' : 'dead';
     else { out.state = 'live'; out.good = margin > 0; }
-    out.note = `${mine.abbr} ${ms} – ${os} ${opp.abbr}${adj ? ` (${adj > 0 ? '+' : ''}${adj})` : ''}`;
+    out.note = `${mine.abbr} ${ms}–${os} ${opp.abbr}${adj ? ` (${adj > 0 ? '+' : ''}${adj})` : ''}`;
     return out;
   }
   out.note = 'Settle manually';

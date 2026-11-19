@@ -122,7 +122,7 @@
 
 /* ---------- text ---------- */
 .cel-tx { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
-.cel-ttl { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 14px; font-weight: 650; line-height: 1.25; color: var(--text); }
+.cel-ttl { overflow: hidden; font-size: 14px; font-weight: 650; line-height: 1.25; color: var(--text); display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow-wrap: anywhere; }
 .cel-bd {
   overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow-wrap: break-word;
   font-size: 12.5px; line-height: 1.32; color: var(--mute);
@@ -318,3 +318,11 @@
   .cel-win, .cel-stamp { animation: cel-fade var(--dur-2) linear both; }
   .cel-win.cel-win-out { animation: cel-fade-out var(--dur-2) linear both; }
 }
+
+/* several slips cashed in one refresh: one card, a short list */
+.cel-combo { display: grid; gap: 6px; margin-top: 2px; }
+.cel-combo-r { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; font-size: 14px; }
+.cel-combo-r > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
+.cel-combo-r small { color: var(--mute); font-size: 12px; margin-left: 4px; }
+.cel-combo-r > b { flex: none; color: var(--hit); font-family: var(--font-display); font-variant-numeric: tabular-nums; font-size: 16px; }
+.cel-combo-more { font-size: 12.5px; color: var(--mute); }

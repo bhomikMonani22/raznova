@@ -16,6 +16,8 @@ const PREF_KEY = 'ebl.notif.prefs.v1';
 // ("catch-up"): log it, summarise it, don't fire a pop-up per item. app.js calls markLive() after that poll.
 let live = false;
 export function markLive() { live = true; }
+// Back after being away (app backgrounded): until the next successful poll, changes are catch-up again.
+export function markAway() { live = false; }
 
 export const EVENT_TYPES = {
   'leg:hit': { group: 'legs', label: 'Leg hit', tone: 'good' },
@@ -79,6 +81,7 @@ export function wants(ev, prefs = getPrefs()) {
   if (prefs.types[ev.type] === false) return false;
   if (ev.lab && !prefs.lab) return false;
   if (ev.acct && prefs.accounts.length && !prefs.accounts.includes(ev.acct)) return false;
+  if (!ev.acct && ev.accts?.length && prefs.accounts.length && !ev.accts.some((a) => prefs.accounts.includes(a))) return false; // games: only if a followed account has action
   return true;
 }
 
@@ -150,7 +153,7 @@ function slipEvent(type, o) {
 function gameEvent(type, o) {
   const sc = o.away && o.home ? `${o.away.abbr} ${o.away.score ?? 0} – ${o.home.score ?? 0} ${o.home.abbr}` : o.label;
   return {
-    type, id: `${type}|${o.key}`, acct: null, lab: false, betId: null, legId: null, labId: null, gameId: o.gameId,
+    type, id: `${type}|${o.key}`, acct: null, accts: o.accts || [], lab: false, betId: null, legId: null, labId: null, gameId: o.gameId,
     title: type === 'game:start' ? `Tip-off · ${o.label}` : `Final · ${sc}`,
     body: `${o.betCount} slip${o.betCount === 1 ? '' : 's'} riding on it`,
     amount: null, amountText: null, player: null, stat: null, slip: null,

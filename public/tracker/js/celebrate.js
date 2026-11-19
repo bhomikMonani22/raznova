@@ -123,7 +123,10 @@ function flush() {
     // the big moment goes first and holds the lanes, so everything else waits behind it instead of flashing
     if (bigs.length) {
       bigs.sort((a, b) => (+!!a.lab) - (+!!b.lab) || (Number(b.amount) || 0) - (Number(a.amount) || 0));
-      big.queue.push(...bigs);
+      // a game going final can cash several slips at once: one card for all of them, not a minute of cards
+      const realWins = bigs.filter((e) => !e.lab);
+      const show = realWins.length >= 2 ? [combineWins(realWins), ...bigs.filter((e) => e.lab)] : bigs;
+      big.queue.push(...show);
       if (!big.cur && !big.next) nextBig(); else updateNextPill();
     }
     if (losts.length) addLost(losts);
@@ -651,6 +654,17 @@ function openTarget(r) {
   return A.go('live');
 }
 
+function combineWins(evs) {
+  const sum = evs.reduce((t, e) => t + (Number(e.amount) || 0), 0);
+  const stake = evs.reduce((t, e) => t + (Number(e.slip?.stake) || 0), 0);
+  return {
+    type: 'slip:won', id: `combo|${evs.map((e) => e.id).join(',')}`, combo: evs, at: Date.now(),
+    amount: sum, amountText: money(sum, { sign: true }), acct: [...new Set(evs.map((e) => e.acct).filter(Boolean))].join(' + '),
+    title: `${evs.length} slips cashed`, betId: null, lab: false, demo: false,
+    slip: { title: `${evs.length} slips cashed`, stake, legsTotal: 0 },
+  };
+}
+
 function openBell() {
   const bells = [...document.querySelectorAll('[data-notif="toggle"]')];
   const bell = bells.find((b) => b.getClientRects().length) || bells[0];
@@ -718,6 +732,7 @@ function showWin(ev) {
   }, reduced() ? 0 : IMPACT_MS);
   startBig(big.queue.length ? BIG_QUEUED_MS : BIG_MS);
   if (document.visibilityState === 'hidden') pauseBig('hidden');
+  A.pushBack?.('cashed', () => closeBig({ fromBack: true })); // Android back closes the card, not the app
   const s = ev.slip || {};
   announce(`${paper ? 'Paper win' : ev.type === 'slip:cashout' ? 'Cashed out' : 'Cashed'}${ev.amountText ? ` ${ev.amountText}` : ''} on ${s.title || ev.title || 'a slip'}. Press Escape to close.`);
 }
@@ -751,6 +766,19 @@ function winHTML(ev, id) {
   const pips = lt > 1 ? `<span class="cel-pips" aria-hidden="true" style="--n:${Math.min(lt, 12)}">${Array.from({ length: Math.min(lt, 12) }, (_, i) => `<i class="${i < lh ? 'cel-on' : ''}" style="--i:${i}"></i>`).join('')}</span>` : '';
   // no real slip behind it (Notifications' test alert has demo:true and no betId): no View slip, no Flex card — just Done
   const real = !paper && !!ev.betId && !ev.demo;
+  if (ev.combo) {
+    const rows = ev.combo.slice(0, 3).map((e) => `<div class="cel-combo-r"><span>${esc(e.slip?.title || e.title || 'Slip')}${e.acct ? ` <small>${esc(e.acct)}</small>` : ''}</span><b>${esc(e.amountText || '')}</b></div>`).join('');
+    const more = ev.combo.length > 3 ? `<div class="cel-combo-more">+${ev.combo.length - 3} more in alerts</div>` : '';
+    return `<div class="cel-win-a">
+      <div class="cel-win-top"><span class="cel-who">${esc(who)}</span><span class="cel-win-tools"><span class="cel-next-slot">${nextPillHTML()}</span><button type="button" class="cel-x" data-cel="x" aria-label="Close">${I.x}</button></span></div>
+      <div class="cel-stamp" id="${id}-h">${esc(`Cashed ×${ev.combo.length}`)}</div>
+      <div class="cel-amt"><span class="cel-amt-ghost" aria-hidden="true">${esc(hero)}</span><span class="cel-amt-n">${esc(hero)}</span></div>
+    </div>
+    <div class="cel-win-b" id="${id}-d">
+      <div class="cel-combo">${rows}${more}</div>
+      <div class="cel-win-acts"><button type="button" class="cel-btn cel-btn-p" data-cel="bell">See alerts</button><button type="button" class="cel-btn" data-cel="x">Done</button></div>
+    </div>`;
+  }
   const primary = paper
     ? '<button type="button" class="cel-btn cel-btn-p" data-cel="view">Open Lab</button>'
     : real ? '<button type="button" class="cel-btn cel-btn-p" data-cel="view">View slip</button>' : '<button type="button" class="cel-btn cel-btn-p" data-cel="x">Done</button>';
@@ -775,7 +803,7 @@ function winHTML(ev, id) {
 
 function nextPillHTML() {
   const n = big.queue.length;
-  return n ? `<button type="button" class="cel-next" data-cel="next" aria-label="Next: ${n} more">${n} more</button>` : '';
+  return n ? `<button type="button" class="cel-next" data-cel="next" aria-label="Next card, ${n} waiting">Next · ${n}</button>` : '';
 }
 function updateNextPill() {
   const slot = big.cur?.card.querySelector('.cel-next-slot');
@@ -789,6 +817,7 @@ function onStageClick(e) {
   if (!t || !c) return;
   const a = t.dataset.cel;
   if (a === 'dim' || a === 'x' || a === 'next') closeBig();
+  else if (a === 'bell') { closeBig({ restore: false }); openBell(); }
   else if (a === 'view') {
     const ev = c.ev;
     closeBig({ restore: false });
@@ -796,10 +825,11 @@ function onStageClick(e) {
   }
 }
 
-function closeBig({ restore = true } = {}) {
+function closeBig({ restore = true, fromBack = false } = {}) {
   const c = big.cur;
   if (!c) return;
   big.cur = null;
+  if (!fromBack) A.popBack?.('cashed');
   clearTimeout(c.timer);
   clearTimeout(c.impact);
   cancelAnimationFrame(c.raf);

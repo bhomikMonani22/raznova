@@ -801,7 +801,7 @@ async function showSystem(list) {
     } catch {}
     try { // no active service worker (first visit, desktop without install): page notification, same click target
       const n = new Notification(title, opts);
-      n.onclick = () => { try { window.focus(); location.hash = opts.data.url.split('#')[1] || '/live'; n.close(); } catch {} };
+      n.onclick = () => { try { window.focus(); close({ restore: false }); api.go((opts.data.url.split('#/')[1] || 'live').split('?')[0]); n.close(); } catch {} };
     } catch {} // Android Chrome only allows the service worker path; nothing else to do
   }
 }
