@@ -8,23 +8,25 @@ export async function flexCard(bet, { cur = '₹', handle = '' } = {}) {
   const x = c.getContext('2d');
   const won = bet.status === 'won' || bet.status === 'cashout';
   const lost = bet.status === 'lost';
-  const accent = won ? '#22c55e' : lost ? '#f43f5e' : '#ff7a1a';
+  const accent = won ? '#b7f23e' : lost ? '#ff5a63' : '#ff6b1a';
 
   const g = x.createLinearGradient(0, 0, W, H);
-  g.addColorStop(0, '#120c06'); g.addColorStop(0.45, '#07090d'); g.addColorStop(1, '#07090d');
+  g.addColorStop(0, '#1d130b'); g.addColorStop(0.45, '#0e0b09'); g.addColorStop(1, '#0e0b09');
   x.fillStyle = g; x.fillRect(0, 0, W, H);
   const rg = x.createRadialGradient(W * 0.85, 120, 10, W * 0.85, 120, 520);
   rg.addColorStop(0, accent + '55'); rg.addColorStop(1, 'transparent');
   x.fillStyle = rg; x.fillRect(0, 0, W, H);
 
-  const mono = 'ui-monospace, "JetBrains Mono", Consolas, monospace';
-  const sans = 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
-  x.fillStyle = '#8b98a5'; x.font = `600 30px ${sans}`;
+  const mono = '"Courtside Display", ui-monospace, Consolas, monospace';
+  const sans = '"Courtside Text", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+  const disp = '"Courtside Display", "Courtside Text", system-ui, sans-serif';
+  try { await Promise.all([document.fonts.load(`800 92px ${disp}`), document.fonts.load(`600 34px ${sans}`), document.fonts.load(`700 50px ${mono}`)]); } catch {}
+  x.fillStyle = '#ada193'; x.font = `600 30px ${sans}`;
   x.fillText('EASYBUCKETS LEDGER', 80, 120);
-  x.fillStyle = accent; x.font = `800 92px ${sans}`;
+  x.fillStyle = accent; x.font = `800 112px ${disp}`;
   const head = won ? 'CASHED' : lost ? 'BUSTED' : 'LIVE SWEAT';
   x.fillText(head, 80, 225);
-  x.fillStyle = '#e6edf3'; x.font = `600 34px ${sans}`;
+  x.fillStyle = '#f5efe6'; x.font = `600 34px ${sans}`;
   const n = bet.legs.length;
   x.fillText(`${n === 1 ? 'Single' : n + '-leg ' + (bet.type === 'sgm' ? 'SGM' : 'multi')}  ·  @${Number(bet.odds).toFixed(2)}`, 80, 285);
 
@@ -34,27 +36,27 @@ export async function flexCard(bet, { cur = '₹', handle = '' } = {}) {
   for (let i = 0; i < maxLegs; i++) {
     const l = bet.legs[i];
     const r = l.result;
-    const col = r === 'won' ? '#22c55e' : r === 'lost' ? '#f43f5e' : r === 'void' ? '#5b6876' : '#38bdf8';
-    x.fillStyle = '#0d1218'; roundRect(x, 80, y, W - 160, rowH - 14, 20); x.fill();
+    const col = r === 'won' ? '#b7f23e' : r === 'lost' ? '#ff5a63' : r === 'void' ? '#8c7f71' : '#55d3ea';
+    x.fillStyle = '#171310'; roundRect(x, 80, y, W - 160, rowH - 14, 20); x.fill();
     x.fillStyle = col; x.beginPath(); x.arc(122, y + (rowH - 14) / 2, 16, 0, Math.PI * 2); x.fill();
-    x.fillStyle = '#07090d'; x.font = `900 20px ${sans}`; x.textAlign = 'center';
+    x.fillStyle = '#0e0b09'; x.font = `900 20px ${sans}`; x.textAlign = 'center';
     x.fillText(r === 'won' ? '✓' : r === 'lost' ? '✕' : r === 'void' ? '–' : '•', 122, y + (rowH - 14) / 2 + 7);
-    x.textAlign = 'left'; x.fillStyle = '#e6edf3'; x.font = `600 ${rowH > 80 ? 32 : 26}px ${sans}`;
+    x.textAlign = 'left'; x.fillStyle = '#f5efe6'; x.font = `600 ${rowH > 80 ? 32 : 26}px ${sans}`;
     x.fillText(trim(x, legLabel(l), W - 420), 160, y + (rowH - 14) / 2 + 11);
-    if (l.odds) { x.textAlign = 'right'; x.fillStyle = '#8b98a5'; x.font = `500 28px ${mono}`; x.fillText(Number(l.odds).toFixed(2), W - 110, y + (rowH - 14) / 2 + 10); x.textAlign = 'left'; }
+    if (l.odds) { x.textAlign = 'right'; x.fillStyle = '#ada193'; x.font = `500 28px ${mono}`; x.fillText(Number(l.odds).toFixed(2), W - 110, y + (rowH - 14) / 2 + 10); x.textAlign = 'left'; }
     y += rowH;
   }
-  if (n > maxLegs) { x.fillStyle = '#8b98a5'; x.font = `500 28px ${sans}`; x.fillText(`+${n - maxLegs} more legs`, 80, y + 20); y += 50; }
+  if (n > maxLegs) { x.fillStyle = '#ada193'; x.font = `500 28px ${sans}`; x.fillText(`+${n - maxLegs} more legs`, 80, y + 20); y += 50; }
 
   const by = H - 300;
-  x.fillStyle = '#121a23'; roundRect(x, 80, by, W - 160, 190, 28); x.fill();
+  x.fillStyle = '#1f1a15'; roundRect(x, 80, by, W - 160, 190, 28); x.fill();
   const stake = Number(bet.stake) || 0;
   const ret = won ? stake + betProfit(bet) : potential(bet);
-  col3(x, 120, by + 70, 'STAKE', `${cur}${fmt(stake)}`, '#e6edf3', sans, mono);
-  col3(x, 430, by + 70, won ? 'RETURNED' : 'TO WIN', `${cur}${fmt(ret)}`, won ? '#22c55e' : '#e6edf3', sans, mono);
+  col3(x, 120, by + 70, 'STAKE', `${cur}${fmt(stake)}`, '#f5efe6', sans, mono);
+  col3(x, 430, by + 70, won ? 'RETURNED' : 'TO WIN', `${cur}${fmt(ret)}`, won ? '#b7f23e' : '#f5efe6', sans, mono);
   col3(x, 760, by + 70, 'ODDS', `${Number(bet.odds).toFixed(2)}x`, accent, sans, mono);
 
-  x.fillStyle = '#5b6876'; x.font = `500 26px ${sans}`;
+  x.fillStyle = '#8c7f71'; x.font = `500 26px ${sans}`;
   const dt = new Date(bet.placedAt || Date.now()).toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' });
   x.fillText(`${dt}${handle ? '  ·  ' + handle : ''}`, 80, H - 60);
   x.textAlign = 'right'; x.fillText('NBA', W - 80, H - 60); x.textAlign = 'left';
@@ -64,7 +66,7 @@ export async function flexCard(bet, { cur = '₹', handle = '' } = {}) {
 }
 
 function col3(x, X, Y, lbl, val, color, sans, mono) {
-  x.fillStyle = '#8b98a5'; x.font = `600 24px ${sans}`; x.fillText(lbl, X, Y);
+  x.fillStyle = '#ada193'; x.font = `600 24px ${sans}`; x.fillText(lbl, X, Y);
   x.fillStyle = color; x.font = `700 50px ${mono}`; x.fillText(val, X, Y + 66);
 }
 function fmt(n) { return Math.round(n).toLocaleString('en-IN'); }

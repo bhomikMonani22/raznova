@@ -142,7 +142,7 @@ function slipEvent(type, o) {
   return {
     type, id: `${type}|${o.key}`, acct: o.acct || null, lab, betId: o.betId || null, labId: o.labId || null, legId: null, gameId: null,
     title: t.title, body: t.body, amount: t.amount ?? null, amountText: t.amount != null ? money(t.amount, { sign: t.sign }) : null,
-    player: null, stat: null, game: null,
+    player: o.player?.id || o.player?.name ? o.player : null, stat: o.stat || null, game: null,
     slip: { title: o.title, stake: o.stake, odds: o.odds, legsHit: o.legsHit, legsTotal: o.legsTotal, potential: o.potential, potentialText: money(o.potential) },
   };
 }
