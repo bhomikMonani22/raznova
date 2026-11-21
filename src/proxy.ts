@@ -23,7 +23,9 @@ export function proxy(request: NextRequest) {
   const isFantasy = pathname === "/fantasy" || pathname.startsWith("/fantasy/");
   // /tracker is the owner's private Stake bet tracker (static PWA in public/tracker + /api/tracker/*).
   const isTracker = pathname === "/tracker" || pathname.startsWith("/tracker/");
-  if (hasLocale || LANDING_PATHS.has(pathname) || pathname === "/insights" || isBasketball || isFantasy || isTracker) {
+  // /live is EasyBuckets Live, proxied to its own Vercel project (see next.config.ts rewrites).
+  const isLive = pathname === "/live" || pathname.startsWith("/live/");
+  if (hasLocale || LANDING_PATHS.has(pathname) || pathname === "/insights" || isBasketball || isFantasy || isTracker || isLive) {
     return NextResponse.next();
   }
 

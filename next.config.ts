@@ -1,5 +1,8 @@
 import type { NextConfig } from "next";
 
+// /live: EasyBuckets Live, a separate Vercel project (its own repo) served under raznova.in. Override with LIVE_ORIGIN.
+const LIVE_ORIGIN = (process.env.LIVE_ORIGIN || "https://easybuckets-live.vercel.app").replace(/\/$/, "");
+
 const nextConfig: NextConfig = {
   // Note: experimental.inlineCss was measured and rejected — Next duplicates
   // the stylesheet into the flight data, so gzipped HTML went 34KB -> 62KB
@@ -15,11 +18,19 @@ const nextConfig: NextConfig = {
   // bet tracker (installable PWA), static files in public/tracker talking to /api/tracker/{nba,sync}. Serve each index file at
   // the folder URL, never cache their data, and keep every page of them out of search engines.
   async rewrites() {
-    return [
-      { source: "/basketball", destination: "/basketball/index.html" },
-      { source: "/fantasy", destination: "/fantasy/index.html" },
-      { source: "/tracker", destination: "/tracker/index.html" },
-    ];
+    return {
+      // before the app's own routes, so /[locale] never sees /live
+      beforeFiles: [
+        { source: "/live", destination: `${LIVE_ORIGIN}/live` },
+        { source: "/live/:path*", destination: `${LIVE_ORIGIN}/live/:path*` },
+      ],
+      afterFiles: [
+        { source: "/basketball", destination: "/basketball/index.html" },
+        { source: "/fantasy", destination: "/fantasy/index.html" },
+        { source: "/tracker", destination: "/tracker/index.html" },
+      ],
+      fallback: [],
+    };
   },
   async headers() {
     const noindex = [{ key: "X-Robots-Tag", value: "noindex, nofollow" }];
