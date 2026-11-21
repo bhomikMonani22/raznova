@@ -1,8 +1,5 @@
 import type { NextConfig } from "next";
 
-// /live: EasyBuckets Live, a separate Vercel project (its own repo) served under raznova.in. Override with LIVE_ORIGIN.
-const LIVE_ORIGIN = (process.env.LIVE_ORIGIN || "https://easybuckets-live.vercel.app").replace(/\/$/, "");
-
 const nextConfig: NextConfig = {
   // Note: experimental.inlineCss was measured and rejected — Next duplicates
   // the stylesheet into the flight data, so gzipped HTML went 34KB -> 62KB
@@ -13,24 +10,19 @@ const nextConfig: NextConfig = {
     formats: ["image/avif", "image/webp"],
     qualities: [65, 68, 75],
   },
+  // /live: EasyBuckets Live (NBA props signals from the owner's PC app), static files in public/live talking to
+  // /api/live/*; its source of truth is easybuckets-live/web in the private lab repo.
   // /basketball: the owner's private NBA research board, plain static files in public/basketball. /fantasy: his
   // friends' NBA + IPL league, a static page in public/fantasy talking to /api/fantasy. /tracker: his private Stake
   // bet tracker (installable PWA), static files in public/tracker talking to /api/tracker/{nba,sync}. Serve each index file at
   // the folder URL, never cache their data, and keep every page of them out of search engines.
   async rewrites() {
-    return {
-      // before the app's own routes, so /[locale] never sees /live
-      beforeFiles: [
-        { source: "/live", destination: `${LIVE_ORIGIN}/live` },
-        { source: "/live/:path*", destination: `${LIVE_ORIGIN}/live/:path*` },
-      ],
-      afterFiles: [
-        { source: "/basketball", destination: "/basketball/index.html" },
-        { source: "/fantasy", destination: "/fantasy/index.html" },
-        { source: "/tracker", destination: "/tracker/index.html" },
-      ],
-      fallback: [],
-    };
+    return [
+      { source: "/basketball", destination: "/basketball/index.html" },
+      { source: "/fantasy", destination: "/fantasy/index.html" },
+      { source: "/tracker", destination: "/tracker/index.html" },
+      { source: "/live", destination: "/live/index.html" },
+    ];
   },
   async headers() {
     const noindex = [{ key: "X-Robots-Tag", value: "noindex, nofollow" }];
@@ -44,6 +36,16 @@ const nextConfig: NextConfig = {
       { source: "/tracker", headers: noindex },
       { source: "/tracker/:path*", headers: noindex },
       { source: "/tracker/data/:path*", headers: [{ key: "Cache-Control", value: "no-store, max-age=0" }] },
+      { source: "/live", headers: noindex },
+      { source: "/live/:path*", headers: noindex },
+      { source: "/api/live/:path*", headers: noindex },
+      {
+        source: "/live/sw.js",
+        headers: [
+          { key: "Service-Worker-Allowed", value: "/live" },
+          { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
+        ],
+      },
       {
         source: "/tracker/sw.js",
         headers: [
