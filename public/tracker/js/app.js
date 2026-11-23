@@ -19,14 +19,21 @@ const KEY = 'ebl.v1';
 const LKEY = 'ebl.local.v1';
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
 
-const DEFAULT_SETTINGS = { currency: '₹', unit: 500, lossLimit: 0, people: ['Bhoomik', 'Tanay'], autoSettle: true, handle: '', updatedAt: 0 };
+const DEFAULT_SETTINGS = { currency: '₹', unit: 500, lossLimit: 0, people: ['Bhoomik'], autoSettle: true, handle: '', updatedAt: 0 };
 
 let S = load(KEY, { bets: [], txns: [], lab: [], settings: { ...DEFAULT_SETTINGS } });
 S.settings = { ...DEFAULT_SETTINGS, ...S.settings };
 S.lab = S.lab || [];
-if (JSON.stringify(S.settings.people) === '["Bhoomik","Cousin"]') S.settings.people = ['Bhoomik', 'Tanay'];
+if (JSON.stringify(S.settings.people) === '["Bhoomik","Cousin"]') S.settings.people = ['Bhoomik'];
+// Tanay's account was retired (empty): drop it everywhere, and his slips/txns locally
+S.settings.people = (S.settings.people || []).filter((n) => n !== 'Tanay' && n !== 'Cousin');
+if (!S.settings.people.length) S.settings.people = ['Bhoomik'];
+S.bets = S.bets.filter((b) => b.placedBy !== 'Tanay');
+S.txns = (S.txns || []).filter((t) => t.account !== 'Tanay');
+if (L0().profile === 'Tanay') { const l = L0(); l.profile = 'all'; localStorage.setItem(LKEY, JSON.stringify(l)); }
 let L = load(LKEY, { mode: null, pin: '', notify: false, auto: true, lastSync: 0, period: 'all', slipFilter: 'all', profile: 'all' });
 
+function L0() { try { return JSON.parse(localStorage.getItem(LKEY)) || {}; } catch { return {}; } }
 function load(k, d) { try { return JSON.parse(localStorage.getItem(k)) || d; } catch { return d; } }
 function save() { localStorage.setItem(KEY, JSON.stringify(S)); }
 function saveL() { localStorage.setItem(LKEY, JSON.stringify(L)); }
