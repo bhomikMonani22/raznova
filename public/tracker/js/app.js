@@ -733,7 +733,7 @@ function slipCard(b, { compact = false, open = false } = {}) {
     <div class="slip-head" data-act="detail" data-id="${b.id}">
       ${b.legs.length > 1 ? ring(hit, b.legs.length, liveN, b.id) : ''}
       <div class="grow">
-        <div class="slip-meta"><span class="pill ${stCls}"><span class="dot"></span>${stTxt}</span>${b.review ? '<span class="pill cashout">Check payout</span>' : ''}<span class="meta">${b.placedBy ? `<b>${esc(b.placedBy)}</b> · ` : ''}${dateOnly(b.placedAt)}</span></div>
+        <div class="slip-meta"><span class="pill ${stCls}"><span class="dot"></span>${stTxt}</span>${b.review ? '<span class="pill cashout">Check payout</span>' : ''}${b.ai ? '<span class="pill ai" title="Claude AI slip">✦ Claude</span>' : ''}<span class="meta">${b.placedBy ? `<b>${esc(b.placedBy)}</b> · ` : ''}${dateOnly(b.placedAt)}</span></div>
         <div class="ttl">${esc(betTitle(b))}</div>
       </div>
       <div class="slip-amt">${amt}</div>
@@ -1242,7 +1242,7 @@ function vLab() {
   };
   return `<div class="stack">
     <div class="page-h">
-      <div><h1 class="h1">Lab</h1><p class="sub">Paper legs you're watching. Not bets: nothing here touches bankroll, P&amp;L or insights.</p></div>
+      <div><h1 class="h1">Lab</h1><p class="sub">How Claude's tagged slips are doing, plus paper legs you're watching. Paper legs never touch bankroll, P&amp;L or insights.</p></div>
       <div class="page-acts"><button class="btn primary sm" data-act="labadd">+ Watch legs</button></div>
     </div>
     <div class="lsum">
@@ -1251,8 +1251,39 @@ function vLab() {
       <div><span>Paper slips</span><b>${settled.filter((g) => g.status === 'won').length}/${settled.length}</b><small>would have won</small></div>
       <div><span>Paper P&amp;L</span><b class="${cls(paper)}">${settled.length ? money(paper, { sign: true }) : '—'}</b><small>if you'd staked them</small></div>
     </div>
-    ${groups.length ? `<div class="gsecs">${groups.map(card).join('')}</div>` : `<div class="card empty"><b>Nothing on the watchlist</b>Add legs you want to sweat without betting. They track live and grade themselves.<div><button class="btn sm" data-act="labadd">+ Watch legs</button></div></div>`}
+    ${aiSection()}
+    ${groups.length ? `<h2 class="sec-h">Paper watchlist</h2><div class="gsecs">${groups.map(card).join('')}</div>` : `<div class="card empty"><b>Nothing on the watchlist</b>Add legs you want to sweat without betting. They track live and grade themselves.<div><button class="btn sm" data-act="labadd">+ Watch legs</button></div></div>`}
   </div>`;
+}
+/* Claude AI slips: real bets tagged in the slip sheet, graded against the rest of the book */
+function aiStats(list) {
+  const set = list.filter((b) => isSettled(b) && b.status !== 'void');
+  const won = set.filter((b) => b.status === 'won' || (b.status === 'cashout' && betProfit(b) > 0)).length;
+  const staked = set.reduce((s, b) => s + b.stake, 0);
+  const profit = set.reduce((s, b) => s + betProfit(b), 0);
+  const legs = set.flatMap((b) => b.legs).filter((l) => l.result === 'won' || l.result === 'lost');
+  const lh = legs.filter((l) => l.result === 'won').length;
+  const open = list.filter((b) => b.status === 'open');
+  return { n: set.length, won, staked, profit, roi: staked ? (profit / staked) * 100 : null, legs: legs.length, lh, open: open.length, inPlay: open.reduce((s, b) => s + b.stake, 0), toWin: open.reduce((s, b) => s + potential(b), 0) };
+}
+function aiSection() {
+  const all = allBets();
+  const ai = all.filter((b) => b.ai);
+  const A = aiStats(ai), R = aiStats(all.filter((b) => !b.ai));
+  const tone = (v) => (v == null ? '' : v > 0 ? 'pos' : v < 0 ? 'neg' : '');
+  const recent = ai.slice().sort((a, b) => (b.placedAt || 0) - (a.placedAt || 0)).slice(0, 6);
+  const head = `<h2 class="sec-h">✦ Claude AI slips <span class="dim">${ai.length} tagged</span></h2>`;
+  if (!ai.length) return `${head}<div class="card empty"><b>No Claude slips tagged yet</b>Open any slip and tap <b>✦ Tag as Claude AI slip</b>. Its record shows up here, next to the rest of your book.</div>`;
+  const vs = (a, r, f) => (a == null || r == null ? '' : `<small>you ${f(r)}</small>`);
+  return `${head}
+    <div class="lsum">
+      <div><span>Slips won</span><b>${A.n ? `${A.won}/${A.n}` : '—'}</b><small>${A.n ? pct((A.won / A.n) * 100, 0) + ' hit' : 'none settled'}${R.n ? ` · you ${pct((R.won / R.n) * 100, 0)}` : ''}</small></div>
+      <div><span>Leg hit rate</span><b class="${A.legs ? (A.lh / A.legs >= 0.6 ? 'pos' : A.lh / A.legs < 0.45 ? 'neg' : '') : ''}">${A.legs ? pct((A.lh / A.legs) * 100, 0) : '—'}</b><small>${A.lh}/${A.legs} legs${R.legs ? ` · you ${pct((R.lh / R.legs) * 100, 0)}` : ''}</small></div>
+      <div><span>P&amp;L</span><b class="${tone(A.profit)}">${A.n ? money(A.profit, { sign: true }) : '—'}</b><small>${money(A.staked)} staked</small></div>
+      <div><span>ROI</span><b class="${tone(A.roi)}">${A.roi == null ? '—' : pct(A.roi, 1)}</b>${vs(A.roi, R.roi, (r) => pct(r, 1))}</div>
+    </div>
+    ${A.open ? `<p class="sub" style="margin:2px 0 0">${A.open} open · <span class="num">${money(A.inPlay)}</span> riding to win <span class="num">${money(A.toWin)}</span></p>` : ''}
+    <div class="stack">${recent.map((b) => slipCard(b, { compact: true })).join('')}</div>`;
 }
 function labRow(l, e, grp) {
   const st = e.state;
@@ -1612,7 +1643,7 @@ function sheetDetail() {
     <div class="grid g3">${kpi('Stake', money(b.stake))}${kpi('Odds', odds(b.settledOdds || b.odds), b.boost ? `+${b.boost}% boost` : '')}${isSettled(b) ? kpi('Result', money(p, { sign: true }), money(betReturn(b)) + ' back', cls(p)) : kpi('To win', money(potential(b)), '', 'pos')}</div>
     <div class="sheet-note">Placed ${when(b.placedAt)}${b.placedBy ? ' by ' + esc(b.placedBy) : ''}${b.settledAt ? ' · settled ' + when(b.settledAt) + (b.autoSettled ? ' (auto)' : '') : ''}${b.notes ? '<br>“' + esc(b.notes) + '”' : ''}</div>
     ${b.status === 'open' ? `<div class="row wrap" style="gap:8px"><button class="btn good sm" data-act="settle" data-id="${b.id}" data-s="won">Mark won</button><button class="btn danger sm" data-act="settle" data-id="${b.id}" data-s="lost">Mark lost</button><button class="btn sm" data-act="settle" data-id="${b.id}" data-s="void">Void</button><button class="btn sm" data-act="cashoutsheet" data-id="${b.id}">Cashed out…</button></div>` : `<div class="row wrap"><button class="btn sm" data-act="reopen" data-id="${b.id}">Reopen</button></div>`}
-    <div class="row wrap" style="gap:8px"><button class="btn sm" data-act="share" data-id="${b.id}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4M8 8l4-4 4 4M5 13v6a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-6"/></svg>Flex card</button><button class="btn sm" data-act="edit" data-id="${b.id}">Edit</button><button class="btn sm" data-act="dup" data-id="${b.id}">Duplicate</button><button class="btn sm danger" data-act="del" data-id="${b.id}">Delete</button></div>
+    <div class="row wrap" style="gap:8px"><button class="btn sm" data-act="share" data-id="${b.id}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4M8 8l4-4 4 4M5 13v6a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-6"/></svg>Flex card</button><button class="btn sm" data-act="edit" data-id="${b.id}">Edit</button><button class="btn sm" data-act="dup" data-id="${b.id}">Duplicate</button><button class="btn sm ${b.ai ? 'ai-on' : ''}" data-act="aitag" data-id="${b.id}" aria-pressed="${b.ai ? 'true' : 'false'}">${b.ai ? '✦ Claude AI slip ✓' : '✦ Tag as Claude AI slip'}</button><button class="btn sm danger" data-act="del" data-id="${b.id}">Delete</button></div>
   </div>`;
 }
 
@@ -1704,6 +1735,7 @@ document.addEventListener('click', async (e) => {
       c.legs.forEach((l) => { l.id = uid(); l.result = 'pending'; l.manual = false; l.gameId = null; l.playerId = null; delete l.finalValue; });
       openSheet('edit', { draft: c, mode: 'build', day: null }); loadDay(c.gameDate); break;
     }
+    case 'aitag': bet.ai = !bet.ai; commit(bet); renderSheet(); toast(bet.ai ? 'Tagged as Claude AI slip · stats in Lab' : 'Claude tag removed'); break;
     case 'del': if (confirmInline(t, 'Tap again to delete')) { bet.deleted = true; closeSheet(); commit(bet); toast('Slip deleted'); } break;
     case 'settle': {
       bet.status = t.dataset.s; bet.settledAt = settleStamp(bet); bet.autoSettled = false;

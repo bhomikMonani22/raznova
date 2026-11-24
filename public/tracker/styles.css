@@ -926,3 +926,7 @@ label.check { display: flex; align-items: center; gap: 10px; min-height: 40px; f
 @media (hover: hover) { .pf-daychip:hover { border-color: var(--accent); background: rgba(255, 107, 26, 0.2); color: var(--text); } }
 
 @media (prefers-reduced-motion: reduce) { .pf-day, .pf-bar .pf-col { transition: none; } }
+
+/* Claude AI slip tag */
+.pill.ai { background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); }
+.btn.ai-on { border-color: var(--accent); color: var(--accent); }
