@@ -1,4 +1,4 @@
-const V = 'rz-tracker-v3.1.1';
+const V = 'rz-tracker-v3.1.2';
 const B = '/tracker';
 const SHELL = [B, B + '/index.html', B + '/styles.css', B + '/js/app.js', B + '/js/engine.js', B + '/js/parser.js', B + '/js/charts.js', B + '/js/flex.js', B + '/js/deep.js', B + '/js/events.js', B + '/js/fx.js', B + '/js/celebrate.js', B + '/js/notify.js', B + '/fx.css', B + '/celebrate.css', B + '/notify.css', B + '/fonts/anybody-latin-standard-normal.woff2', B + '/fonts/anybody-rupee.woff2', B + '/fonts/schibsted-grotesk-latin-wght-normal.woff2', B + '/fonts/schibsted-grotesk-rupee.woff2', B + '/manifest.webmanifest', B + '/icons/icon-192.png', B + '/icons/icon-512.png'];
 

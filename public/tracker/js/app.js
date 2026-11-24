@@ -1267,12 +1267,14 @@ function aiStats(list) {
   const open = list.filter((b) => b.status === 'open');
   return { n: set.length, won, staked, profit, roi: staked ? (profit / staked) * 100 : null, legs: legs.length, lh, open: open.length, inPlay: open.reduce((s, b) => s + b.stake, 0), toWin: open.reduce((s, b) => s + potential(b), 0) };
 }
+let aiShowAll = false;
 function aiSection() {
   const all = allBets();
   const ai = all.filter((b) => b.ai);
   const A = aiStats(ai), R = aiStats(all.filter((b) => !b.ai));
   const tone = (v) => (v == null ? '' : v > 0 ? 'pos' : v < 0 ? 'neg' : '');
-  const recent = ai.slice().sort((a, b) => (b.placedAt || 0) - (a.placedAt || 0)).slice(0, 6);
+  const sorted = ai.slice().sort((a, b) => (b.placedAt || 0) - (a.placedAt || 0));
+  const recent = aiShowAll ? sorted : sorted.slice(0, 6);
   const head = `<h2 class="sec-h">✦ Claude AI slips <span class="dim">${ai.length} tagged</span></h2>`;
   if (!ai.length) return `${head}<div class="card empty"><b>No Claude slips tagged yet</b>Open any slip and tap <b>✦ Tag as Claude AI slip</b>. Its record shows up here, next to the rest of your book.</div>`;
   const vs = (a, r, f) => (a == null || r == null ? '' : `<small>you ${f(r)}</small>`);
@@ -1284,7 +1286,8 @@ function aiSection() {
       <div><span>ROI</span><b class="${tone(A.roi)}">${A.roi == null ? '—' : pct(A.roi, 1)}</b>${vs(A.roi, R.roi, (r) => pct(r, 1))}</div>
     </div>
     ${A.open ? `<p class="sub" style="margin:2px 0 0">${A.open} open · <span class="num">${money(A.inPlay)}</span> riding to win <span class="num">${money(A.toWin)}</span></p>` : ''}
-    <div class="stack">${recent.map((b) => slipCard(b, { compact: true })).join('')}</div>`;
+    <div class="stack">${recent.map((b) => slipCard(b, { compact: true })).join('')}</div>
+    ${sorted.length > 6 ? `<div class="row wrap" style="gap:8px"><button class="btn sm" data-act="aiall">${aiShowAll ? 'Show latest 6' : `Show all ${sorted.length} Claude slips`}</button><button class="btn ghost sm" data-act="aislips">Open in Slips →</button></div>` : ''}`;
 }
 function labRow(l, e, grp) {
   const st = e.state;
@@ -1736,6 +1739,8 @@ document.addEventListener('click', async (e) => {
       c.legs.forEach((l) => { l.id = uid(); l.result = 'pending'; l.manual = false; l.gameId = null; l.playerId = null; delete l.finalValue; });
       openSheet('edit', { draft: c, mode: 'build', day: null }); loadDay(c.gameDate); break;
     }
+    case 'aiall': aiShowAll = !aiShowAll; render(); break;
+    case 'aislips': slipDay = null; L.slipFilter = 'claude'; slipSearch = ''; saveL(); go('slips'); break;
     case 'aitag': bet.ai = !bet.ai; commit(bet); renderSheet(); toast(bet.ai ? 'Tagged as Claude AI slip · stats in Lab' : 'Claude tag removed'); break;
     case 'del': if (confirmInline(t, 'Tap again to delete')) { bet.deleted = true; closeSheet(); commit(bet); toast('Slip deleted'); } break;
     case 'settle': {
