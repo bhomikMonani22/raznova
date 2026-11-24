@@ -890,23 +890,24 @@ function srow(b, e) {
 let slipSearch = '';
 let slipDay = null; // dayKey picked from a Day-by-day row (settled that day); this session only, cleared with its chip
 const dayDate = (k) => { const [y, m, d] = String(k).split('-').map(Number); return new Date(y, m - 1, d).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' }); };
-const SLIP_FILTERS = ['all', 'today', 'open', 'won', 'lost', 'void', 'cashout'];
+const SLIP_FILTERS = ['all', 'today', 'claude', 'open', 'won', 'lost', 'void', 'cashout'];
 function vSlips() {
   const f = SLIP_FILTERS.includes(L.slipFilter) ? L.slipFilter : 'all';
   const now = Date.now();
   // Today: same definition and order as the Portfolio card (open first, live on top, then settled newest first)
   let list = f === 'today' && !slipDay ? todayBook(bets(), now, isLiveSlip).slips : bets().sort((a, b) => (b.placedAt || 0) - (a.placedAt || 0));
-  if (f !== 'all' && f !== 'today' && !slipDay) list = list.filter((b) => b.status === f);
+  if (f === 'claude' && !slipDay) list = list.filter((b) => b.ai);
+  else if (f !== 'all' && f !== 'today' && !slipDay) list = list.filter((b) => b.status === f);
   if (slipDay) list = list.filter((b) => settledOn(b, slipDay)).sort((a, b) => settleTime(b) - settleTime(a));
   if (slipSearch) {
     const q = norm(slipSearch);
-    list = list.filter((b) => norm(b.legs.map((l) => `${l.player} ${l.team} ${l.stat} ${l.gameLabel}`).join(' ') + ' ' + (b.notes || '') + ' ' + (b.placedBy || '')).includes(q));
+    list = list.filter((b) => norm(b.legs.map((l) => `${l.player} ${l.team} ${l.stat} ${l.gameLabel}`).join(' ') + ' ' + (b.notes || '') + ' ' + (b.placedBy || '') + (b.ai ? ' claude ai' : '')).includes(q));
   }
   const groups = new Map();
   if (slipDay) { if (list.length) groups.set(`Settled ${dayDate(slipDay)}`, list); }
   else if (f === 'today') { if (list.length) groups.set('Today', list); }
   else for (const b of list) { const k = new Date(b.placedAt).toLocaleDateString([], { month: 'long', year: 'numeric' }); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(b); }
-  const counts = { all: bets().length, today: bets().filter((b) => isTodaySlip(b, now)).length };
+  const counts = { all: bets().length, today: bets().filter((b) => isTodaySlip(b, now)).length, claude: bets().filter((b) => b.ai).length };
   for (const b of bets()) counts[b.status] = (counts[b.status] || 0) + 1;
   const dayChip = slipDay
     ? `<button type="button" class="chip pf-daychip" data-act="slipday" aria-label="Clear day filter, settled ${esc(dayDate(slipDay))}">Settled ${esc(dayDate(slipDay))}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"/></svg></button>`
@@ -915,12 +916,12 @@ function vSlips() {
     <div class="page-h"><div><h1 class="h1">Slips</h1><p class="sub">${bets().length} total</p></div>
       <div class="page-acts"><button class="btn sm" data-act="csv"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>CSV</button><button class="btn primary sm" data-act="add">+ New slip</button></div></div>
     <div class="search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg><input class="in" id="slip-search" type="search" aria-label="Search slips" placeholder="Search player, team, stat, notes…" value="${esc(slipSearch)}"></div>
-    <div class="chips" role="group" aria-label="Filter slips">${dayChip}${SLIP_FILTERS.map((k) => `<button class="chip ${f === k && !slipDay ? 'on' : ''}" data-filter="${k}" aria-pressed="${f === k && !slipDay}">${k === 'cashout' ? 'Cashed out' : k[0].toUpperCase() + k.slice(1)}${counts[k] ? ` <span class="n">${counts[k]}</span>` : ''}</button>`).join('')}</div>
+    <div class="chips" role="group" aria-label="Filter slips">${dayChip}${SLIP_FILTERS.map((k) => `<button class="chip ${f === k && !slipDay ? 'on' : ''}" data-filter="${k}" aria-pressed="${f === k && !slipDay}">${k === 'cashout' ? 'Cashed out' : k === 'claude' ? '✦ Claude' : k[0].toUpperCase() + k.slice(1)}${counts[k] ? ` <span class="n">${counts[k]}</span>` : ''}</button>`).join('')}</div>
     ${[...groups].map(([k, arr]) => {
       const pl = arr.reduce((s, b) => s + betProfit(b), 0);
       return `<div class="month-h"><b>${k}</b><span class="num ${cls(pl)}">${money(pl, { sign: true })}</span></div>
       <div class="grid slip-grid">${arr.map((b) => slipCard(b, { compact: true })).join('')}</div>`;
-    }).join('') || (f === 'today' && !slipDay && !slipSearch ? '<div class="card empty"><b>Nothing on today</b>No open slips and nothing settled since midnight.</div>' : '<div class="card empty"><b>Nothing here</b>Change the filter or add a slip.</div>')}
+    }).join('') || (f === 'today' && !slipDay && !slipSearch ? '<div class="card empty"><b>Nothing on today</b>No open slips and nothing settled since midnight.</div>' : f === 'claude' && !slipDay && !slipSearch ? '<div class="card empty"><b>No Claude slips yet</b>Open a slip and tap <b>✦ Tag as Claude AI slip</b>.</div>' : '<div class="card empty"><b>Nothing here</b>Change the filter or add a slip.</div>')}
   </div>`;
 }
 after.slips = () => {
