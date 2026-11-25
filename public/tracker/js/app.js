@@ -1847,6 +1847,11 @@ async function loadHistory() {
       }
     };
     up(S.bets, h.bets); up(S.txns, h.txns); up(S.lab, h.lab);
+    // Claude tags ride on their own map so they reach every device whatever the slip's updatedAt (1 = tagged, 0 = untagged)
+    for (const [id, v] of Object.entries(h.aiTags || {})) {
+      const b = S.bets.find((x) => x.id === id);
+      if (b && !!b.ai !== !!v) { b.ai = !!v; n++; }
+    }
     historyLoaded = true;
     if (n) { save(); render(); scanNow(); if (L.mode) pollLive(true); }
   } catch { historyLoaded = true; }
