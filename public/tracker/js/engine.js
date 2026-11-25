@@ -193,8 +193,11 @@ export function evalLeg(leg, g) {
 const fmtN = (n) => (Math.round(n * 10) / 10).toString();
 
 // Decide whether a bet can be auto-settled from leg evaluations.
+// Stake rule: a same-game multi with any void leg (DNP) is voided whole and the stake refunded, even if another leg lost.
+export const isSGM = (bet) => bet.type === 'sgm' || (bet.legs?.length > 1 && bet.legs.every((l) => l.gameId && l.gameId === bet.legs[0].gameId));
 export function autoSettle(bet, evals) {
   const res = evals.map((e) => e.state);
+  if (isSGM(bet) && res.includes('push')) return { status: 'void' };
   if (res.includes('dead')) return { status: 'lost' };
   if (res.every((s) => s === 'hit' || s === 'push')) {
     if (res.every((s) => s === 'push')) return { status: 'void' };
